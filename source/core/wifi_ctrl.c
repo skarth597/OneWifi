@@ -602,7 +602,7 @@ void bus_get_vap_init_parameter(const char *name, unsigned int *ret_val)
     get_wifidb_obj()->desc.get_wifi_global_param_fn(&global_param);
     // set all default return values first
     if (strcmp(name, WIFI_DEVICE_MODE) == 0) {
-#ifdef EASY_MESH_NODE || defined EASY_MESH_COLOCATED_NODE
+#if defined EASY_MESH_NODE || defined EASY_MESH_COLOCATED_NODE
         wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
         int colocated_mode = ((wifi_mgr_t *)get_wifimgr_obj())->hal_cap.wifi_prop.colocated_mode;
         /* Initially assign this to em_node mode to start with */

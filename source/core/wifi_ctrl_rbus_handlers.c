@@ -648,7 +648,7 @@ bus_error_t webconfig_get_dml_subdoc(char *event_name, raw_data_t *p_data)
         /* check 2 */
         if (wifi_prop->colocated_mode == 0) {
             /* colocated_mode 0 check ifname is sta and connected*/
-            ret = interfacename_from_mac(wifi_prop->al_1905_mac, ifname);
+            ret = interfacename_from_mac((const mac_address_t *)wifi_prop->al_1905_mac, ifname);
             if (ret != 0) {
                 wifi_util_error_print(WIFI_CTRL,
                     "%s:%d FATAL Error Interface not found for al_mac:%s\n", __func__, __LINE__,
@@ -728,7 +728,7 @@ bus_error_t webconfig_set_subdoc(char *event_name, raw_data_t *p_data)
 
 static void MarkerListConfigHandler (char *event_name, raw_data_t *p_data)
 {
-    marker_list_t list_type;
+    wifi_event_subtype_t list_type;
     const char *pTmp = NULL;
 
     if (strcmp(event_name, WIFI_NORMALIZED_RSSI_LIST) == 0) {
