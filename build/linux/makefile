@@ -227,6 +227,7 @@ INCLUDEDIRS = \
     -I$(ONE_WIFI_HOME)/source/apps/ocs \
     -I$(ONE_WIFI_HOME)/source/apps/sm \
     -I$(ONE_WIFI_HOME)/source/apps/whix \
+    -I$(ONE_WIFI_HOME)/source/apps/easyconnect \
     -I$(ONE_WIFI_HOME)/source/apps/em \
     -I$(ONE_WIFI_HOME)/source/apps/sta_manager \
     -I$(ONE_WIFI_HOME)/source/core/services \
@@ -383,6 +384,10 @@ endif
 ifdef ONEWIFI_BLASTER_APP_SUPPORT 
 	CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/blaster/*.c) \
 	WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_blaster.c
+endif
+
+ifdef ONEWIFI_EASYCONNECT_APP_SUPPORT
+	CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/easyconnect/*.c)
 endif
 
 ifdef EM_APP
