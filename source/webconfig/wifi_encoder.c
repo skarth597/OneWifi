@@ -2404,6 +2404,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
     }
 
     cJSON *policy_obj, *param_arr, *param_obj;
+    char mac_str[32];
 
     policy_obj = cJSON_CreateObject();
     if (policy_obj == NULL) {
@@ -2420,6 +2421,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
         return webconfig_error_encode;
     }
     cJSON_AddItemToObject(policy_obj, "AP Metrics Reporting Policy", param_obj);
+
     cJSON_AddNumberToObject(param_obj, "Interval", em_config->ap_metric_policy.interval);
     cJSON_AddStringToObject(param_obj, "Managed Client Marker", em_config->ap_metric_policy.managed_client_marker);
 
@@ -2484,7 +2486,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
     cJSON_AddNumberToObject(param_obj, "Report Independent Channel Scans", em_config->channel_scan_reporting_policy.report_independent_channel_scan);
 
     // Radio Specific Metrics Policy
-    param_arr = cJSON_CreateObject();
+    param_arr = cJSON_CreateArray();
     if (param_arr == NULL) {
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
     }
@@ -2495,7 +2497,9 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
             wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
         }
         cJSON_AddItemToArray(param_arr, param_obj);
-        cJSON_AddStringToObject(param_obj, "ID", em_config->radio_metrics_policies.radio_metrics_policy[i].ruid);
+
+        uint8_mac_to_string_mac(em_config->radio_metrics_policies.radio_metrics_policy[i].ruid, mac_str);
+        cJSON_AddStringToObject(param_obj, "ID", mac_str);
         cJSON_AddNumberToObject(param_obj, "STA RCPI Threshold", em_config->radio_metrics_policies.radio_metrics_policy[i].sta_rcpi_threshold);
         cJSON_AddNumberToObject(param_obj, "STA RCPI Hysteresis", em_config->radio_metrics_policies.radio_metrics_policy[i].sta_rcpi_hysteresis);
         cJSON_AddNumberToObject(param_obj, "AP Utilization Threshold", em_config->radio_metrics_policies.radio_metrics_policy[i].ap_util_threshold);

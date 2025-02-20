@@ -1089,6 +1089,8 @@ typedef char marker_name[32];
 
 typedef struct {
     int interval;
+    //int num_markers;
+    //marker_name managed_client_marker[5];
     marker_name managed_client_marker;
 } ap_metrics_policy_t;
 
@@ -1118,9 +1120,10 @@ typedef struct {
     bool sta_status;
 } radio_metrics_policy_t;
 
+#define MAX_RADIO_POLICY 4
 typedef struct {
     int radio_count;
-    radio_metrics_policy_t radio_metrics_policy[0];
+    radio_metrics_policy_t radio_metrics_policy[MAX_RADIO_POLICY];
 } radio_metrics_policies_t;
 
 typedef struct {
