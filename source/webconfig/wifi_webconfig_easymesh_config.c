@@ -84,10 +84,12 @@ webconfig_error_t encode_em_config_subdoc(webconfig_t *config, webconfig_subdoc_
     cJSON_AddStringToObject(json, "Version", "1.0");
     cJSON_AddStringToObject(json, "SubDocName", "Easymesh Config");
 
-    obj_emconfig = cJSON_CreateObject();
-    cJSON_AddItemToObject(json, "WifiEMConfig", obj_emconfig);
+    cJSON *array_emconfig = cJSON_CreateArray();
+    cJSON_AddItemToObject(json, "WifiEMConfig", array_emconfig);
 
-    //todo: need to  update
+    obj_emconfig = cJSON_CreateObject();
+    cJSON_AddItemToArray(array_emconfig, obj_emconfig);
+
     if (encode_em_config_object(&params->em_config, obj_emconfig) != webconfig_error_none) {
         wifi_util_error_print(WIFI_EM, "%s:%d: Failed to encode wifi easymesh config\n", __func__, __LINE__);
         return webconfig_error_encode;
@@ -117,6 +119,7 @@ webconfig_error_t decode_em_config_subdoc(webconfig_t *config, webconfig_subdoc_
     
     params = &data->u.decoded;
     if (params == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL json pointer\n", __func__, __LINE__);
         return webconfig_error_decode;
     }
 
@@ -138,21 +141,21 @@ webconfig_error_t decode_em_config_subdoc(webconfig_t *config, webconfig_subdoc_
 
     if (cJSON_IsArray(em_config)) {
         int arr_sz = cJSON_GetArraySize(em_config);
-            for (int i = 0; i < arr_sz; i++) {
-                const cJSON *policy_cfg = cJSON_GetArrayItem(em_config, i);
-                if (decode_em_policy_object(policy_cfg, &params->em_config) != webconfig_error_none) {
-                    wifi_util_error_print(WIFI_EM, "%s:%d: EM config object Validation Failed\n", __func__, __LINE__);
-                    cJSON_Delete(json);
-                    wifi_util_error_print(WIFI_EM, "%s\n", (char *)data->u.encoded.raw);
-                    return webconfig_error_decode;
-                }
+        for (int i = 0; i < arr_sz; i++) {
+            const cJSON *policy_cfg = cJSON_GetArrayItem(em_config, i);
+            if (decode_em_policy_object(policy_cfg, &params->em_config) != webconfig_error_none) {
+                wifi_util_error_print(WIFI_EM, "%s:%d: EM config object Validation Failed\n", __func__, __LINE__);
+                cJSON_Delete(json);
+                wifi_util_error_print(WIFI_EM, "%s\n", (char *)data->u.encoded.raw);
+                return webconfig_error_decode;
             }
+        }
     }
 
-
-
     cJSON_Delete(json);
+
     wifi_util_info_print(WIFI_EM, "%s:%d: decode success\n", __func__, __LINE__);
+
     return webconfig_error_none;
 }
 

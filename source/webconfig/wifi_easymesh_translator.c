@@ -1255,6 +1255,53 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
     }
     return webconfig_error_none;
 }
+
+//translate_beacon_report_object_to_easymesh_sta_info() converts data elements of sta_beacon_report_reponse_t to em_sta_info_t of  easymesh
+webconfig_error_t translate_beacon_report_object_to_easymesh_sta_info(webconfig_subdoc_data_t *data, wifi_freq_bands_t freq_band)
+{
+    em_sta_info_t em_sta_dev_info;
+    webconfig_external_easymesh_t *proto;
+    em_radio_info_t *radio_info;
+    em_bss_info_t *bss_info;
+    int vap_index = 0, radio_index = 0;
+    wifi_platform_property_t *wifi_prop;
+    webconfig_subdoc_decoded_data_t *params = &data->u.decoded;
+
+    if (params == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: decoded_params is NULL\n", __func__, __LINE__);
+        return webconfig_error_decode;
+    }
+
+    vap_index = params->stamgr.ap_index;
+    wifi_prop = &data->u.decoded.hal_cap.wifi_prop;
+    radio_index = get_radio_index_for_vap_index(wifi_prop, vap_index);
+
+    proto = (webconfig_external_easymesh_t *)params->external_protos;
+    if (proto == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: em_sta_info_t is NULL\n", __func__, __LINE__);
+        return webconfig_error_translate_to_easymesh;
+    }
+
+    radio_info = proto->get_radio_info(proto->data_model, radio_index);
+    bss_info = proto->get_bss_info(proto->data_model, vap_index);
+
+    memcpy(em_sta_dev_info.id, params->stamgr.mac_addr, sizeof(mac_address_t));
+    memcpy(em_sta_dev_info.bssid, bss_info->bssid.mac, sizeof(mac_address_t));
+    memcpy(em_sta_dev_info.radiomac, radio_info->intf.mac, sizeof(mac_address_t));
+    em_sta_dev_info.num_beacon_meas_report = params->stamgr.num_br_data;
+
+    for (unsigned int count = 0; count < params->stamgr.num_br_data; count++) {
+        memcpy(em_sta_dev_info.beacon_report[count].br_bssid, params->stamgr.data[count].bssid, sizeof(mac_address_t));
+        em_sta_dev_info.beacon_report[count].br_op_class       = params->stamgr.data[count].op_class;
+        em_sta_dev_info.beacon_report[count].br_channel        = params->stamgr.data[count].channel;
+        em_sta_dev_info.beacon_report[count].br_rcpi           = params->stamgr.data[count].rcpi;
+        em_sta_dev_info.beacon_report[count].br_rsni           = params->stamgr.data[count].rssi;
+    }
+    proto->put_sta_info(proto->data_model, &em_sta_dev_info, em_target_sta_map_consolidated);
+
+    return webconfig_error_none;
+}
+
 // translate_em_common_to_vap_info_common() converts common data elements of em_bss_info_t to wifi_vap_info_t  of Onewifi
 webconfig_error_t translate_em_common_to_vap_info_common( wifi_vap_info_t *vap, const em_bss_info_t *vap_row)
 {
@@ -2043,6 +2090,14 @@ webconfig_error_t  translate_to_easymesh_tables(webconfig_subdoc_type_t type, we
         case webconfig_subdoc_type_vap_6G:
             if (translate_per_radio_vap_object_to_easymesh_bss_info(data, WIFI_FREQUENCY_6_BAND) != webconfig_error_none) {
                 wifi_util_error_print(WIFI_WEBCONFIG, 
+                    "%s:%d: webconfig_subdoc_type_private vap_object translation to easymesh failed\n", __func__, __LINE__);
+                return webconfig_error_translate_to_easymesh;
+            }
+            break;
+
+        case webconfig_subdoc_type_sta_manager:
+            if (translate_beacon_report_object_to_easymesh_sta_info(data, WIFI_FREQUENCY_6_BAND) != webconfig_error_none) {
+                wifi_util_error_print(WIFI_WEBCONFIG,
                     "%s:%d: webconfig_subdoc_type_private vap_object translation to easymesh failed\n", __func__, __LINE__);
                 return webconfig_error_translate_to_easymesh;
             }

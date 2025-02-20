@@ -12,6 +12,9 @@
 #include "wifi_sta_manager.h"
 #include "common/ieee802_11_defs.h"
 
+//TODO: Test Data, remove later
+unsigned int g_sched_id;
+
 static int sta_mgr_send_action_frame(sta_beacon_report_reponse_t *sched_data)
 {
     unsigned int op_class;
@@ -506,6 +509,30 @@ int sta_mgr_event(wifi_app_t *app, wifi_event_t *event)
     return RETURN_OK;
 }
 
+//TODO: Test Data, remove later
+static int send_em_test_data(void *arg)
+{
+    wifi_util_info_print(WIFI_APPS, "%s:%d Pushing to ctrl queue\n", __func__, __LINE__);
+    unsigned char null_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    sta_beacon_report_reponse_t temp_data_t;
+    temp_data_t.num_br_data = 2;
+    temp_data_t.ap_index = 0;
+    mac_addr_t sta_mac = {0x82,0x5c,0xec,0x20,0xc0,0xd9};
+    memcpy(temp_data_t.mac_addr, sta_mac, sizeof(mac_addr_t));
+    for (int itr = 0; itr < 2; itr++) {
+        memcpy(temp_data_t.data[itr].bssid, null_mac, ETH_ALEN);
+        temp_data_t.data[itr].op_class = 1;
+        temp_data_t.data[itr].channel = 44;
+        temp_data_t.data[itr].rcpi = 122;
+        temp_data_t.data[itr].rssi = 234;
+    }
+
+	push_event_to_ctrl_queue(&temp_data_t, sizeof(sta_beacon_report_reponse_t), 
+			wifi_event_type_hal_ind, wifi_event_br_report, NULL);
+	return;
+    return 0;
+}
+
 int sta_mgr_init(wifi_app_t *app, unsigned int create_flag)
 {
 
@@ -529,6 +556,11 @@ int sta_mgr_init(wifi_app_t *app, unsigned int create_flag)
     if (ctrl->network_mode == rdk_dev_mode_type_gw) {
         app->data.u.sta_mgr.sta_mgr_map = hash_map_create();
     }
+
+    //TODO: Test Data, remove later
+    scheduler_add_timer_task(ctrl->sched, FALSE, &(g_sched_id), send_em_test_data,
+        NULL, 10000, 0, FALSE);
+
     return 0;
 }
 

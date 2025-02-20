@@ -309,7 +309,6 @@ int push_em_config_event_to_monitor_queue(wifi_app_t *app, wifi_mon_stats_reques
 
 int handle_em_webconfig_event(wifi_app_t *app, wifi_event_t *event)
 {
-
     wifi_mgr_t *g_wifi_mgr = get_wifimgr_obj();
     bool off_scan_rfc = g_wifi_mgr->rfc_dml_parameters.wifi_offchannelscan_sm_rfc;
     webconfig_subdoc_data_t *webconfig_data = NULL;
@@ -327,7 +326,6 @@ int handle_em_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     if (webconfig_data->type != webconfig_subdoc_type_em_config) {
         return RETURN_ERR;
     }
-
 
     hash_map_t *new_ctrl_stats_cfg_map = webconfig_data->u.decoded.stats_config_map;
     hash_map_t *cur_app_stats_cfg_map = app->data.u.em_data.em_stats_config_map;
@@ -422,17 +420,117 @@ int handle_em_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     return RETURN_OK;
 }
 
+static int em_beacon_report_publish(bus_handle_t *handle,  void *msg_data)
+{
+    int rc;
+    sta_beacon_report_reponse_t *temp_data_t = NULL;
+    webconfig_subdoc_data_t *wb_data = NULL;
+    wifi_ctrl_t *ctrl = NULL;
+    raw_data_t p_data;
+    wifi_mgr_t *mgr = NULL;
+
+    if (msg_data == NULL) {
+        wifi_util_error_print(WIFI_EM,"%s %d NULL pointer \n", __func__, __LINE__);
+        return 0;
+    }
+
+    wb_data = (webconfig_subdoc_data_t *) malloc(sizeof(webconfig_subdoc_data_t));
+    if (wb_data == NULL) {
+        wifi_util_error_print(WIFI_EM,"%s %d malloc failed to allocate webconfig_subdoc_data_t, size %d\n", \
+            __func__, sizeof(webconfig_subdoc_data_t));
+        return bus_error_general;
+    }
+
+    memset(wb_data, 0, sizeof(webconfig_subdoc_data_t));
+    memcpy(&(wb_data->u.decoded.stamgr), msg_data, sizeof(sta_beacon_report_reponse_t));
+
+    mgr = get_wifimgr_obj();
+    ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+
+    wb_data->u.decoded.hal_cap = mgr->hal_cap;
+    if (webconfig_encode(&ctrl->webconfig, wb_data, webconfig_subdoc_type_sta_manager) != webconfig_error_none) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d: Webconfig set failed\n", __func__, __LINE__);
+        if (wb_data != NULL) {
+            free(wb_data);
+        }
+        return bus_error_general;
+    }
+
+    memset(&p_data, 0, sizeof(raw_data_t));
+
+    p_data.data_type        = bus_data_type_string;
+    p_data.raw_data.bytes   = (void *)wb_data->u.encoded.raw;
+    p_data.raw_data_len     = strlen(wb_data->u.encoded.raw) + 1;
+
+    rc = get_bus_descriptor()->bus_event_publish_fn(handle, WIFI_EM_BEACON_REPORT, &p_data);
+    if (rc != bus_error_success) {
+        wifi_util_error_print(WIFI_EM, "%s:%d: bus_event_publish_fn Event failed %d\n", __func__, __LINE__, rc);
+        return RETURN_ERR;
+    } else {
+        wifi_util_dbg_print(WIFI_EM, "%s:%d: bus_event_publish_fn Event for %s\n", __func__, __LINE__, WIFI_EM_BEACON_REPORT);
+    }
+
+    return RETURN_OK;
+}
+
+void em_beacon_report_frame_event(wifi_app_t *apps, void *data)
+{
+    wifi_app_t *wifi_app =  NULL;
+
+    if (data == NULL) {
+        wifi_util_error_print(WIFI_EM,"%s:%d NULL Pointer \n", __func__, __LINE__);
+        return;
+    }
+
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_apps_mgr_t *apps_mgr;
+
+    apps_mgr = &ctrl->apps_mgr;
+    if (apps_mgr == NULL){
+        wifi_util_dbg_print(WIFI_EM,"%s:%d NULL Pointer \n", __func__, __LINE__);
+        free(data);
+        return -1;
+    }
+
+    wifi_app = get_app_by_inst(apps_mgr, wifi_app_inst_easymesh);
+    if (wifi_app == NULL) {
+        wifi_util_error_print(WIFI_EM,"%s:%d NULL Pointer \n", __func__, __LINE__);
+        return;
+    }
+
+    //em_beacon_report_publish(&ctrl->handle, data);
+    em_beacon_report_publish(&wifi_app->handle, data);
+}
+
+int handle_em_hal_event(wifi_app_t *app, wifi_event_subtype_t sub_type, void *data)
+{
+    switch (sub_type) {
+        case wifi_event_br_report:
+            em_beacon_report_frame_event(app, data);
+            break;
+
+        default:
+            wifi_util_dbg_print(WIFI_EM, "%s:%d app sub_event:%s not handled\r\n", __func__, __LINE__,
+                wifi_event_subtype_to_string(sub_type));
+            break;
+    }
+    return RETURN_OK;
+}
+
 int em_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
+        case wifi_event_type_hal_ind:
+            handle_em_hal_event(app, event->sub_type, event->u.core_data.msg);
+            break;
         case wifi_event_type_webconfig:
             handle_em_webconfig_event(app, event);
-        break;
+            break;
         case wifi_event_type_monitor:
             monitor_event_em(app, event);
-        break;
+            break;
         default:
-        break;
+            break;
     }
     return RETURN_OK;
 }
@@ -447,6 +545,9 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
         /*{ RADIO_LEVL_TEMPERATURE_EVENT, bus_element_type_event,
             { NULL, NULL, NULL, NULL, levl_event_handler, NULL }, slow_speed, ZERO_TABLE,
             { bus_data_type_uint32, false, 0, 0, 0, NULL } }*///what kind of dataElements we want?
+        { WIFI_EM_BEACON_REPORT, bus_element_type_method,
+            { NULL, NULL, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
+            { bus_data_type_string, false, 0, 0, 0, NULL } },
     };
 
     if (app_init(app, create_flag) != 0) {

@@ -1096,12 +1096,7 @@ typedef struct {
 typedef struct {
     int sta_count;
     mac_addr_t disallowed_sta[MAX_DIS_STA];
-} local_steering_disallowed_policy_t;
-
-typedef struct {
-    int sta_count;
-    mac_addr_t disallowed_sta[MAX_DIS_STA];
-} btm_steering_disallowed_policy_t;
+} steering_disallowed_policy_t;
 
 typedef struct {
     bssid_t bssid;
@@ -1130,8 +1125,8 @@ typedef struct {
 
 typedef struct {
     ap_metrics_policy_t ap_metric_policy;
-    local_steering_disallowed_policy_t local_steering_dslw_policy;
-    btm_steering_disallowed_policy_t btm_steering_dslw_policy;
+    steering_disallowed_policy_t local_steering_dslw_policy;
+    steering_disallowed_policy_t btm_steering_dslw_policy;
     backhaul_bss_config_policy_t backhaul_bss_config_policy;
     channel_scan_reporting_policy_t channel_scan_reporting_policy;
     radio_metrics_policies_t radio_metrics_policies;
