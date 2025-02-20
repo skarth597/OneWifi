@@ -498,8 +498,7 @@ void em_beacon_report_frame_event(wifi_app_t *apps, void *data)
         return;
     }
 
-    //em_beacon_report_publish(&ctrl->handle, data);
-    em_beacon_report_publish(&wifi_app->handle, data);
+    em_beacon_report_publish(&wifi_app->ctrl->handle, data);
 }
 
 int handle_em_hal_event(wifi_app_t *app, wifi_event_subtype_t sub_type, void *data)
@@ -563,7 +562,7 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
 
     num_elements = (sizeof(dataElements)/sizeof(bus_data_element_t));
 
-    rc = get_bus_descriptor()->bus_reg_data_element_fn(&app->handle, dataElements, num_elements);
+    rc = get_bus_descriptor()->bus_reg_data_element_fn(&app->ctrl->handle, dataElements, num_elements);
     if (rc != bus_error_success) {
         wifi_util_dbg_print(WIFI_EM,"%s:%d bus_reg_data_element_fn failed, rc:%d\n", __func__, __LINE__, rc);
     } else {
