@@ -1603,7 +1603,7 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
         return webconfig_error_translate_to_easymesh;
     }
 
-    int num_scan_results = channel_st->num_results;
+    unsigned int num_scan_results = channel_st->num_results;
     proto->set_num_scan_results(proto->data_model, num_scan_results);
 
     for (i = 0; i < num_scan_results; i++) {
@@ -1615,18 +1615,18 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
 
         channel_scan_result_t *src = &channel_st->results[i];
 
-        em_scan_result->id.op_class = (unsigned char)src->operating_class;
-        em_scan_result->id.channel = (unsigned char)src->channel;
+        em_scan_result->id.op_class = src->operating_class;
+        em_scan_result->id.channel = src->channel;
         memset(em_scan_result->id.net_id, 0, sizeof(em_scan_result->id.net_id));
         memset(em_scan_result->id.dev_mac, 0, sizeof(em_scan_result->id.dev_mac));
         memset(em_scan_result->id.ruid, 0, sizeof(em_scan_result->id.ruid));
 
-        em_scan_result->scan_status = (unsigned char)src->scan_status;
-        strncpy(em_scan_result->timestamp, src->time_stamp, sizeof(em_scan_result->timestamp) - 1);  // Try get_date_time_rfc3399()
+        em_scan_result->scan_status = src->scan_status;
+        strncpy(em_scan_result->timestamp, src->time_stamp, sizeof(em_scan_result->timestamp) - 1);
         em_scan_result->timestamp[sizeof(em_scan_result->timestamp) - 1] = '\0';
-        em_scan_result->util = (unsigned char)src->utilization;
-        em_scan_result->noise = (unsigned char)src->noise;
-        em_scan_result->num_neighbors = (unsigned short)src->num_neighbors;
+        em_scan_result->util = src->utilization;
+        em_scan_result->noise = src->noise;
+        em_scan_result->num_neighbors = src->num_neighbors;
         em_scan_result->aggr_scan_duration = 0;
         em_scan_result->scan_type = 0;
 
@@ -1635,12 +1635,21 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
             em_neighbor_t *dst_neighbor = &em_scan_result->neighbor[j];
 
             memcpy(dst_neighbor->bssid, src_neighbor->bssid, sizeof(bssid_t));
-            strncpy(dst_neighbor->ssid, src_neighbor->ssid, sizeof(ssid_t) - 1);
-            dst_neighbor->ssid[sizeof(ssid_t) - 1] = '\0';
+            strncpy(dst_neighbor->ssid, src_neighbor->ssid, strlen(src_neighbor->ssid) + 1);
             dst_neighbor->signal_strength = (signed char)src_neighbor->signal_strength;
-            dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_20MHZ; // ToDo - Rework here
-            dst_neighbor->bss_color = (unsigned char)src_neighbor->bss_color;
-            dst_neighbor->channel_util = (unsigned char)src_neighbor->channel_utilization;
+            if (strncmp(src_neighbor->channel_bandwidth, "20", strlen("20")) == 0) {
+                dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_20MHZ;
+            } else if (strncmp(src_neighbor->channel_bandwidth, "40", strlen("40")) == 0) {
+                dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_40MHZ;
+            } else if (strncmp(src_neighbor->channel_bandwidth, "80", strlen("80")) == 0) {
+                dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_40MHZ;
+            } else if (strncmp(src_neighbor->channel_bandwidth, "160", strlen("160")) == 0) {
+                dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_160MHZ;
+            } else if (strncmp(src_neighbor->channel_bandwidth, "320", strlen("320")) == 0) {
+                dst_neighbor->bandwidth = WIFI_CHANNELBANDWIDTH_320MHZ;
+            }
+            dst_neighbor->bss_color = 0x8f;
+            dst_neighbor->channel_util = 00;
             dst_neighbor->sta_count = (unsigned short)src_neighbor->station_count;
         }
         count++;

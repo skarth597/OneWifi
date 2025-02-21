@@ -4898,7 +4898,7 @@ webconfig_error_t decode_em_channel_stats_object(channel_scan_response_t **chan_
                 neighbor_bss_t *neighbor_data = &result->neighbors[j];
 
                 decode_param_string(neighbor, "BSSID", param);
-                strncpy(neighbor_data->bssid, param->valuestring, sizeof(neighbor_data->bssid) - 1);
+                string_mac_to_uint8_mac(neighbor_data->bssid, param->valuestring);
 
                 decode_param_string(neighbor, "SSID", param);
                 strncpy(neighbor_data->ssid, param->valuestring, sizeof(neighbor_data->ssid) - 1);

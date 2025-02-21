@@ -2270,6 +2270,7 @@ webconfig_error_t encode_neighbor_radio_params(wifi_provider_response_t *neigh_s
 webconfig_error_t encode_em_channel_stats_params(channel_scan_response_t *neigh_stats, cJSON *neigh_stats_obj)
 {
     int i, j;
+    char mac_str[32];
     cJSON *channel_obj, *neighbors_arr, *neighbor_obj;
 
     if (neigh_stats == NULL || neigh_stats_obj == NULL) {
@@ -2303,7 +2304,8 @@ webconfig_error_t encode_em_channel_stats_params(channel_scan_response_t *neigh_
             }
 
             cJSON_AddItemToArray(neighbors_arr, neighbor_obj);
-            cJSON_AddStringToObject(neighbor_obj, "BSSID", neigh_stats->results[i].neighbors[j].bssid);
+            uint8_mac_to_string_mac((uint8_t *)neigh_stats->results[i].neighbors[j].bssid, mac_str);
+            cJSON_AddStringToObject(neighbor_obj, "BSSID", mac_str);
             cJSON_AddStringToObject(neighbor_obj, "SSID", neigh_stats->results[i].neighbors[j].ssid);
             cJSON_AddNumberToObject(neighbor_obj, "SignalStrength", neigh_stats->results[i].neighbors[j].signal_strength);
             cJSON_AddStringToObject(neighbor_obj, "ChannelBandwidth", neigh_stats->results[i].neighbors[j].channel_bandwidth);

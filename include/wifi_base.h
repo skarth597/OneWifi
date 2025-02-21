@@ -82,9 +82,6 @@ extern "C" {
 #define WIFI_EM_CHANNEL_SCAN_REPORT                 "Device.WiFi.EM.ChannelScanReport"
 
 #define MAX_OPERATING_CLASS 48
-#define MAX_CHANNELS_IN_LIST 64
-#define MAX_SSID_LEN 33
-#define MAX_BSSID_LEN 64
 #define MAX_CHANNEL_BW_LEN 16
 #define MAX_NEIGHBORS 32
 #define MAX_RESULTS 32
@@ -1173,45 +1170,45 @@ typedef struct {
 } sta_beacon_report_reponse_t;
 
 typedef struct {
-    uint8_t operating_class;
-    uint8_t num_channels;
-    uint8_t channels[MAX_CHANNELS_IN_LIST];
+    UCHAR operating_class;
+    UINT num_channels;
+    UCHAR channels[MAX_CHANNELS];
 } operating_class_t;
 
 typedef struct {
-    uint8_t perform_fresh_scan;
-    uint8_t num_radios;
-    uint8_t ruid[6];
-    uint8_t num_operating_classes;
+    BOOL perform_fresh_scan;
+    UINT num_radios;
+    mac_address_t ruid;
+    UINT num_operating_classes;
     operating_class_t operating_classes[MAX_OPERATING_CLASS];
 } channel_scan_request_t;
 
 typedef struct {
-    char bssid[MAX_BSSID_LEN];
-    char ssid[MAX_SSID_LEN];
-    int signal_strength;
-    char channel_bandwidth[MAX_CHANNEL_BW_LEN];
-    int bss_load_element_present;
-    int bss_color;
-    int channel_utilization;
-    int station_count;
-    int aggregate_scan_duration;
-    int scan_type;  // 0: Passive, 1: Active
+    bssid_t bssid;
+    ssid_t ssid;
+    CHAR signal_strength;
+    CHAR channel_bandwidth[MAX_CHANNEL_BW_LEN];
+    UCHAR bss_load_element_present;
+    UCHAR bss_color;
+    UCHAR channel_utilization;
+    USHORT station_count;
+    UINT aggregate_scan_duration;
+    UCHAR scan_type;  // 0: Passive, 1: Active
 } neighbor_bss_t;
 
 typedef struct {
-    int operating_class;
-    int channel;
-    int scan_status;
-    char time_stamp[32];
-    int utilization;
-    int noise;
-    int num_neighbors;
+    UCHAR operating_class;
+    UCHAR channel;
+    UCHAR scan_status;
+    CHAR time_stamp[32];
+    UCHAR utilization;
+    UCHAR noise;
+    USHORT num_neighbors;
     neighbor_bss_t neighbors[MAX_NEIGHBORS];
 } channel_scan_result_t;
 
 typedef struct {
-    int num_results;
+    UINT num_results;
     channel_scan_result_t results[MAX_RESULTS];
 } channel_scan_response_t;
 

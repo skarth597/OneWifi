@@ -176,7 +176,7 @@ int assoc_client_response(wifi_provider_response_t *provider_response)
     return RETURN_OK;
 }
 
-int getOperatingClass(int channel, const char *band) {
+static int em_getOperatingClass(int channel, const char *band) {
     if (strcmp(band, "2.4GHz") == 0) {
         if (channel >= 1 && channel <= 13) return 81;
         if (channel == 14) return 82;
@@ -190,7 +190,7 @@ int getOperatingClass(int channel, const char *band) {
     return 0;
 }
 
-void prepare_scan_response_data(wifi_neighbor_ap2_t *wifi_scan_data, int scan_count, channel_scan_response_t *scan_response) {
+static void em_prepare_scan_response_data(wifi_neighbor_ap2_t *wifi_scan_data, int scan_count, channel_scan_response_t *scan_response) {
 
     memset(scan_response, 0, sizeof(channel_scan_response_t));
 
@@ -206,7 +206,7 @@ void prepare_scan_response_data(wifi_neighbor_ap2_t *wifi_scan_data, int scan_co
 
     for (int i = 0; i < scan_count; i++) {
         wifi_neighbor_ap2_t *src = &wifi_scan_data[i];
-        int operating_class = getOperatingClass(src->ap_Channel, src->ap_OperatingFrequencyBand);
+        int operating_class = em_getOperatingClass(src->ap_Channel, src->ap_OperatingFrequencyBand);
 
         if (operating_class == 0) continue;
         if (strcmp(src->ap_SSID, "") == 0) continue;
@@ -237,8 +237,10 @@ void prepare_scan_response_data(wifi_neighbor_ap2_t *wifi_scan_data, int scan_co
         channel_scan_result_t *res = &scan_response->results[res_index];
         if (res->num_neighbors < MAX_NEIGHBORS) {
             neighbor_bss_t *neighbor = &res->neighbors[res->num_neighbors];
-            strncpy(neighbor->bssid, src->ap_BSSID, MAX_BSSID_LEN);
-            strncpy(neighbor->ssid, src->ap_SSID, MAX_SSID_LEN);
+            sscanf(src->ap_BSSID, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+                &neighbor->bssid[0], &neighbor->bssid[1], &neighbor->bssid[2],
+                &neighbor->bssid[3], &neighbor->bssid[4], &neighbor->bssid[5]);
+            strncpy(neighbor->ssid, src->ap_SSID, sizeof(ssid_t));
             neighbor->signal_strength = src->ap_SignalStrength;
             strncpy(neighbor->channel_bandwidth, src->ap_OperatingChannelBandwidth, MAX_CHANNEL_BW_LEN);
             neighbor->channel_utilization = src->ap_ChannelUtilization;
@@ -252,7 +254,7 @@ void prepare_scan_response_data(wifi_neighbor_ap2_t *wifi_scan_data, int scan_co
     }
 }
 
-void publish_stats_data(wifi_provider_response_t *provider_response, channel_scan_response_t *scan_response) {
+static void em_publish_stats_data(wifi_provider_response_t *provider_response, channel_scan_response_t *scan_response) {
     webconfig_subdoc_data_t *data;
     int rc;
     bus_error_t status;
@@ -305,7 +307,12 @@ void publish_stats_data(wifi_provider_response_t *provider_response, channel_sca
     rdata.raw_data.bytes = (void *)data->u.encoded.raw;
     rdata.raw_data_len = strlen(data->u.encoded.raw) + 1;
 
-    status = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, eventName, &rdata);
+    wifi_apps_mgr_t *apps_mgr;
+    apps_mgr = &ctrl->apps_mgr;
+    wifi_app_t *wifi_app =  NULL;
+    wifi_app = get_app_by_inst(apps_mgr, wifi_app_inst_easymesh);
+    
+    status = get_bus_descriptor()->bus_event_publish_fn(&wifi_app->ctrl->handle, eventName, &rdata);
 
     if (status != bus_error_success) {
         wifi_util_error_print(WIFI_EM, "%s:%d: bus: bus_event_publish_fn Event failed %d\n",
@@ -318,7 +325,7 @@ void publish_stats_data(wifi_provider_response_t *provider_response, channel_sca
     free(data);
 }
 
-int process_neighbour_data(wifi_provider_response_t *provider_response)
+static int em_process_neighbour_data(wifi_provider_response_t *provider_response)
 {
     wifi_neighbor_ap2_t *chan_scan_data = NULL;
     chan_scan_data = (wifi_neighbor_ap2_t *) provider_response->stat_pointer;
@@ -340,15 +347,15 @@ int process_neighbour_data(wifi_provider_response_t *provider_response)
         return RETURN_ERR;
     }
 
-    prepare_scan_response_data(chan_scan_data, provider_response->stat_array_size, &scan_response);
+    em_prepare_scan_response_data(chan_scan_data, provider_response->stat_array_size, &scan_response);
 
-    publish_stats_data(provider_response, &scan_response);
+    em_publish_stats_data(provider_response, &scan_response);
 
     return RETURN_OK;
 
 }
 
-int process_chan_stats_data(wifi_provider_response_t *provider_response)
+static int em_process_chan_stats_data(wifi_provider_response_t *provider_response)
 {
     radio_chan_data_t *chan_scan_data = NULL;
     chan_scan_data = (radio_chan_data_t *) provider_response->stat_pointer;
@@ -395,10 +402,10 @@ int handle_monitor_provider_response(wifi_app_t *app, wifi_event_t *event)
             ret = assoc_client_response(provider_response);
             break;
         case em_app_event_type_neighbor_stats:
-            ret = process_neighbour_data(provider_response);
+            ret = em_process_neighbour_data(provider_response);
             break;
         case em_app_event_type_chan_stats:
-            ret = process_chan_stats_data(provider_response);
+            ret = em_process_chan_stats_data(provider_response);
             break;
         default:
             wifi_util_error_print(WIFI_EM,"%s:%d: event not handle[%d]\r\n",__func__, __LINE__, provider_response->args.app_info);
@@ -648,7 +655,7 @@ static void config_em_neighbour_scan(wifi_monitor_data_t *data, unsigned int rad
     push_event_to_monitor_queue(data, wifi_event_monitor_data_collection_config, &route);
 }
 
-void config_em_chan_util(wifi_monitor_data_t *data, unsigned int radioIndex) {
+static void config_em_chan_util(wifi_monitor_data_t *data, unsigned int radioIndex) {
 
     wifi_event_route_t route;
     em_route(&route);
@@ -661,7 +668,7 @@ void config_em_chan_util(wifi_monitor_data_t *data, unsigned int radioIndex) {
     push_event_to_monitor_queue(data, wifi_event_monitor_data_collection_config, &route);
 }
 
-static void process_scan_init_command(unsigned int radio_index)
+static void em_process_scan_init_command(unsigned int radio_index)
 {
 
     wifi_util_dbg_print(WIFI_EM, "%s:%d Entering \n", __func__, __LINE__);
@@ -728,22 +735,35 @@ static void process_scan_init_command(unsigned int radio_index)
 
 }
 
-void config_channel_scan(void)
+static void em_config_channel_scan(void *data, unsigned int len)
 {
 
     unsigned int radioIndex = 0;
+    channel_scan_request_t *scan_req;
     wifi_mgr_t *mgr = get_wifimgr_obj();
     unsigned int total_radios = getNumberRadios();
+
+    if (data == NULL) {
+        wifi_util_error_print(WIFI_EM, "%s:%d NUll data Pointer\n", __func__, __LINE__);
+        return;
+    }
+
+    if (len < sizeof(channel_scan_request_t)) {
+        wifi_util_error_print(WIFI_EM, "%s:%d Invalid parameter size \r\n", __func__, __LINE__);
+        return;
+    }
 
     if (mgr == NULL) {
         wifi_util_error_print(WIFI_EM, "%s:%d Mgr object is NULL \r\n", __func__, __LINE__);
         return RETURN_ERR;
     }
 
+    scan_req = (channel_scan_request_t *)data;
+
     for (radioIndex = 0; radioIndex < total_radios; radioIndex++)
     {
         wifi_util_dbg_print(WIFI_EM, "%s:%d band : %d ====\n", __func__, __LINE__, mgr->radio_config[radioIndex].oper.band);
-        process_scan_init_command(radioIndex);
+        em_process_scan_init_command(radioIndex);
     }
 
 }
@@ -756,7 +776,7 @@ void handle_em_command_event(wifi_app_t *app, wifi_event_t *event)
         break;
     case wifi_event_type_start_channel_scan:
         if (is_monitor_done) {
-            config_channel_scan();
+            em_config_channel_scan(event->u.core_data.msg, event->u.core_data.len);
         }
         break;
     default:
@@ -782,6 +802,34 @@ int em_event(wifi_app_t *app, wifi_event_t *event)
     return RETURN_OK;
 }
 
+bus_error_t start_channel_scan(char *name, raw_data_t *p_data)
+{
+    unsigned int len = 0;
+    char *pTmp = NULL;
+    unsigned int idx = 0;
+    int ret;
+    unsigned int num_of_radios = getNumberRadios();
+
+    if (!name) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d property name is not found\r\n", __FUNCTION__,
+            __LINE__);
+        return bus_error_element_name_missing;
+    }
+
+    pTmp = (char *)p_data->raw_data.bytes;
+    if ((p_data->data_type != bus_data_type_bytes) || (pTmp == NULL)) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d wrong bus data_type:%x\n", __func__, __LINE__,
+            p_data->data_type);
+        return bus_error_invalid_input;
+    }
+
+    len = p_data->raw_data_len;
+    push_event_to_ctrl_queue((char *)pTmp, len, wifi_event_type_command,
+    wifi_event_type_start_channel_scan, NULL);
+
+    return bus_error_success;
+} 
+
 int em_init(wifi_app_t *app, unsigned int create_flag)
 {
     int rc = RETURN_OK;
@@ -792,6 +840,12 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
         /*{ RADIO_LEVL_TEMPERATURE_EVENT, bus_element_type_event,
             { NULL, NULL, NULL, NULL, levl_event_handler, NULL }, slow_speed, ZERO_TABLE,
             { bus_data_type_uint32, false, 0, 0, 0, NULL } }*///what kind of dataElements we want?
+        { WIFI_EM_CHANNEL_SCAN_REQUEST, bus_element_type_method,
+            { NULL, start_channel_scan, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+            { bus_data_type_bytes, true, 0, 0, 0, NULL } },
+        { WIFI_EM_CHANNEL_SCAN_REPORT, bus_element_type_event,
+            { NULL, NULL, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+            { bus_data_type_bytes, false, 0, 0, 0, NULL } }
     };
 
     if (app_init(app, create_flag) != 0) {
@@ -807,7 +861,7 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
 
     num_elements = (sizeof(dataElements)/sizeof(bus_data_element_t));
 
-    rc = get_bus_descriptor()->bus_reg_data_element_fn(&app->handle, dataElements, num_elements);
+    rc = get_bus_descriptor()->bus_reg_data_element_fn(&app->ctrl->handle, dataElements, num_elements);
     if (rc != bus_error_success) {
         wifi_util_dbg_print(WIFI_EM,"%s:%d bus_reg_data_element_fn failed, rc:%d\n", __func__, __LINE__, rc);
     } else {
