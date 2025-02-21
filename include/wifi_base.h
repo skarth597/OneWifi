@@ -78,6 +78,17 @@ extern "C" {
 #define WIFI_NOTIFY_DENY_TCM_ASSOCIATION               "Device.WiFi.ConnectionControl.TcmClientDenyAssociation"
 #define WIFI_STUCK_DETECT_FILE_NAME         "/nvram/wifi_stuck_detect"
 
+#define WIFI_EM_CHANNEL_SCAN_REQUEST                "Device.WiFi.EM.ChannelScanRequest"
+#define WIFI_EM_CHANNEL_SCAN_REPORT                 "Device.WiFi.EM.ChannelScanReport"
+
+#define MAX_OPERATING_CLASS 48
+#define MAX_CHANNELS_IN_LIST 64
+#define MAX_SSID_LEN 33
+#define MAX_BSSID_LEN 64
+#define MAX_CHANNEL_BW_LEN 16
+#define MAX_NEIGHBORS 32
+#define MAX_RESULTS 32
+
 #define PLAN_ID_LENGTH     38
 #define MAX_STEP_COUNT  32 /*Active Measurement Step Count */
 #define  MAC_ADDRESS_LENGTH  13
@@ -1160,6 +1171,49 @@ typedef struct {
     int sched_handler_id;
     unsigned char dialog_token;
 } sta_beacon_report_reponse_t;
+
+typedef struct {
+    uint8_t operating_class;
+    uint8_t num_channels;
+    uint8_t channels[MAX_CHANNELS_IN_LIST];
+} operating_class_t;
+
+typedef struct {
+    uint8_t perform_fresh_scan;
+    uint8_t num_radios;
+    uint8_t ruid[6];
+    uint8_t num_operating_classes;
+    operating_class_t operating_classes[MAX_OPERATING_CLASS];
+} channel_scan_request_t;
+
+typedef struct {
+    char bssid[MAX_BSSID_LEN];
+    char ssid[MAX_SSID_LEN];
+    int signal_strength;
+    char channel_bandwidth[MAX_CHANNEL_BW_LEN];
+    int bss_load_element_present;
+    int bss_color;
+    int channel_utilization;
+    int station_count;
+    int aggregate_scan_duration;
+    int scan_type;  // 0: Passive, 1: Active
+} neighbor_bss_t;
+
+typedef struct {
+    int operating_class;
+    int channel;
+    int scan_status;
+    char time_stamp[32];
+    int utilization;
+    int noise;
+    int num_neighbors;
+    neighbor_bss_t neighbors[MAX_NEIGHBORS];
+} channel_scan_result_t;
+
+typedef struct {
+    int num_results;
+    channel_scan_result_t results[MAX_RESULTS];
+} channel_scan_response_t;
 
 #ifdef __cplusplus
 }

@@ -394,7 +394,8 @@ endif
 ifdef EM_APP
     #INCLUDEDIRS +=  -I$(ONE_WIFI_HOME)/source/apps/em
 	CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/em/*.c)
-	WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_easymesh_config.c
+	WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_easymesh_config.c    \
+                         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_em_channel_stats.c
 endif
 
 COBJECTS = $(CSOURCES:.c=.o)  # expands to list of object files
