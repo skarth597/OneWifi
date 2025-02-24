@@ -3070,12 +3070,6 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                     { bus_data_type_object, false, 0, 0, 0, NULL } },
                                 { WIFI_COLLECT_STATS_ASSOC_DEVICE_STATS, bus_element_type_event,
                                     { NULL, NULL, NULL, NULL, eventSubHandler, NULL}, slow_speed, ZERO_TABLE,
-                                    { bus_data_type_bytes, false, 0, 0, 0, NULL } },
-                                { WIFI_EM_CHANNEL_SCAN_REQUEST, bus_element_type_method,
-                                    { NULL, start_channel_scan, NULL, NULL, NULL, NULL}, high_speed, ZERO_TABLE,
-                                    { bus_data_type_bytes, true, 0, 0, 0, NULL } },
-                                { WIFI_EM_CHANNEL_SCAN_REPORT, bus_element_type_event,
-                                    { NULL, NULL, NULL, NULL, eventSubHandler, NULL}, slow_speed, ZERO_TABLE,
                                     { bus_data_type_bytes, false, 0, 0, 0, NULL } }
     };
 

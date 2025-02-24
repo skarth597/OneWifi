@@ -24,6 +24,9 @@
 extern "C" {
 #endif
 
+#define WIFI_EM_CHANNEL_SCAN_REQUEST                "Device.WiFi.EM.ChannelScanRequest"
+#define WIFI_EM_CHANNEL_SCAN_REPORT                 "Device.WiFi.EM.ChannelScanReport"
+
 typedef struct wifi_app wifi_app_t;
 
 typedef char short_string[32];

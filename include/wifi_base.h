@@ -78,9 +78,6 @@ extern "C" {
 #define WIFI_NOTIFY_DENY_TCM_ASSOCIATION               "Device.WiFi.ConnectionControl.TcmClientDenyAssociation"
 #define WIFI_STUCK_DETECT_FILE_NAME         "/nvram/wifi_stuck_detect"
 
-#define WIFI_EM_CHANNEL_SCAN_REQUEST                "Device.WiFi.EM.ChannelScanRequest"
-#define WIFI_EM_CHANNEL_SCAN_REPORT                 "Device.WiFi.EM.ChannelScanReport"
-
 #define MAX_OPERATING_CLASS 48
 #define MAX_CHANNEL_BW_LEN 16
 #define MAX_NEIGHBORS 32
