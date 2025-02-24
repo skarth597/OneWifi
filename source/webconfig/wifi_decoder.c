@@ -5194,6 +5194,9 @@ webconfig_error_t decode_sta_mgr_object(const cJSON *obj_sta_cfg,
                     __LINE__);
                 return webconfig_error_decode;
             }
+
+            bR_data = &sta_data->data[itr];
+
             decode_param_string(br_item, "BSSID", param);
             str_to_mac_bytes(param->valuestring, bR_data->bssid);
 
@@ -5298,10 +5301,10 @@ webconfig_error_t decode_em_policy_object(const cJSON *em_cfg, em_config_t *em_c
     strncpy((char *)em_config->backhaul_bss_config_policy.bssid, param->valuestring, sizeof(bssid_t));
 
     decode_param_allow_optional_string(backhaul_policy, "Profile-1 bSTA Disallowed", param);
-    em_config->backhaul_bss_config_policy.profile_1_bsta_disallowed = param->valuedouble;
+    em_config->backhaul_bss_config_policy.profile_1_bsta_disallowed = 0;//param->valuedouble;
 
     decode_param_allow_optional_string(backhaul_policy, "Profile-2 bSTA Disallowed", param);
-    em_config->backhaul_bss_config_policy.profile_2_bsta_disallowed = param->valuedouble;
+    em_config->backhaul_bss_config_policy.profile_2_bsta_disallowed = 1;//param->valuedouble;
 
     // Channel Scan Reporting Policy
     channel_scan_policy = cJSON_GetObjectItem(policy_obj, "Channel Scan Reporting Policy");
@@ -5351,4 +5354,3 @@ webconfig_error_t decode_em_policy_object(const cJSON *em_cfg, em_config_t *em_c
     }
     return webconfig_error_none;
 }
-

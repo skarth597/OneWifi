@@ -24,6 +24,8 @@
 extern "C" {
 #endif
 
+#define WIFI_EM_BEACON_REPORT                 "Device.WiFi.EM.BeaconReport"
+
 typedef struct wifi_app wifi_app_t;
 
 typedef char short_string[32];
