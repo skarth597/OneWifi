@@ -1088,8 +1088,6 @@ typedef char marker_name[32];
 
 typedef struct {
     int interval;
-    //int num_markers;
-    //marker_name managed_client_marker[5];
     marker_name managed_client_marker;
 } ap_metrics_policy_t;
 

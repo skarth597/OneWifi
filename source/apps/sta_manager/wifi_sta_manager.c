@@ -529,7 +529,7 @@ static int send_em_test_data(void *arg)
 
 	push_event_to_ctrl_queue(&temp_data_t, sizeof(sta_beacon_report_reponse_t), 
 			wifi_event_type_hal_ind, wifi_event_br_report, NULL);
-	return;
+
     return 0;
 }
 

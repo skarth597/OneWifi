@@ -2416,7 +2416,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
 
     // AP Metrics Reporting Policy
     param_obj = cJSON_CreateObject();
-    if (policy_obj == NULL) {
+    if (param_obj == NULL) {
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
@@ -2427,7 +2427,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
 
     // Local Steering Disallowed Policy
     param_obj = cJSON_CreateObject();
-    if (policy_obj == NULL) {
+    if (param_obj == NULL) {
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
     }
     cJSON_AddItemToObject(policy_obj, "Local Steering Disallowed Policy", param_obj);
@@ -2439,7 +2439,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
     cJSON_AddItemToObject(param_obj, "Disallowed STA", param_arr);
     for (int i = 0; i < em_config->local_steering_dslw_policy.sta_count; i++) {
         param_obj = cJSON_CreateObject();
-        if (policy_obj == NULL) {
+        if (param_obj == NULL) {
             wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
         }
         cJSON_AddItemToArray(param_arr, param_obj);
@@ -2460,7 +2460,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
     cJSON_AddItemToObject(param_obj, "Disallowed STA", param_arr);
     for (int i = 0; i < em_config->btm_steering_dslw_policy.sta_count; i++) {
         param_obj = cJSON_CreateObject();
-        if (policy_obj == NULL) {
+        if (param_obj == NULL) {
             wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
         }
         cJSON_AddItemToArray(param_arr, param_obj);
@@ -2469,7 +2469,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
 
     // Backhaul BSS Configuration Policy
     param_obj = cJSON_CreateObject();
-    if (policy_obj == NULL) {
+    if (param_obj == NULL) {
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
     }
     cJSON_AddItemToObject(policy_obj, "Backhaul BSS Configuration Policy", param_obj);
@@ -2479,7 +2479,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
 
     // Channel Scan Reporting Policy
     param_obj = cJSON_CreateObject();
-    if (policy_obj == NULL) {
+    if (param_obj == NULL) {
         wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
     }
     cJSON_AddItemToObject(policy_obj, "Channel Scan Reporting Policy", param_obj);
@@ -2493,7 +2493,7 @@ webconfig_error_t encode_em_config_object(const em_config_t *em_config, cJSON *e
     cJSON_AddItemToObject(policy_obj, "Radio Specific Metrics Policy", param_arr);
     for (int i = 0; i < em_config->radio_metrics_policies.radio_count; i++) {
         param_obj = cJSON_CreateObject();
-        if (policy_obj == NULL) {
+        if (param_obj == NULL) {
             wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: json create object failed\n", __func__, __LINE__);
         }
         cJSON_AddItemToArray(param_arr, param_obj);

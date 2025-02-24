@@ -465,6 +465,7 @@ static int em_beacon_report_publish(bus_handle_t *handle,  void *msg_data)
     rc = get_bus_descriptor()->bus_event_publish_fn(handle, WIFI_EM_BEACON_REPORT, &p_data);
     if (rc != bus_error_success) {
         wifi_util_error_print(WIFI_EM, "%s:%d: bus_event_publish_fn Event failed %d\n", __func__, __LINE__, rc);
+        free(wb_data);
         return RETURN_ERR;
     } else {
         wifi_util_dbg_print(WIFI_EM, "%s:%d: bus_event_publish_fn Event for %s\n", __func__, __LINE__, WIFI_EM_BEACON_REPORT);
