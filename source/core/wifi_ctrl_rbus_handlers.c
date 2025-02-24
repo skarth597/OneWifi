@@ -2827,35 +2827,6 @@ bus_error_t send_action_frame(char *name, raw_data_t *p_data)
     return bus_error_success;
 }
 
-bus_error_t start_channel_scan(char *name, raw_data_t *p_data)
-{
-
-    unsigned int len = 0;
-    char *pTmp = NULL;
-    unsigned int idx = 0;
-    int ret;
-    unsigned int num_of_radios = getNumberRadios();
-
-    if (!name) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d property name is not found\r\n", __FUNCTION__,
-            __LINE__);
-        return bus_error_element_name_missing;
-    }
-
-    pTmp = (char *)p_data->raw_data.bytes;
-    if ((p_data->data_type != bus_data_type_bytes) || (pTmp == NULL)) {
-        wifi_util_error_print(WIFI_CTRL, "%s:%d wrong bus data_type:%x\n", __func__, __LINE__,
-            p_data->data_type);
-        return bus_error_invalid_input;
-    }
-
-    len = p_data->raw_data_len;
-    push_event_to_ctrl_queue((char *)pTmp, len, wifi_event_type_command,
-    wifi_event_type_start_channel_scan, NULL);
-
-    return bus_error_success;
-}
-
 bus_error_t set_force_vap_apply(char *name, raw_data_t *p_data)
 {
     unsigned int idx = 0;
