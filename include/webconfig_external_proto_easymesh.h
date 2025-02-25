@@ -49,7 +49,8 @@ typedef em_scan_result_t * (*ext_proto_get_scan_result_info_t)(void *data_model,
 typedef struct {
     void *data_model; /* agent data model dm_easy_mesh_t */
 
-    void *m2ctrl_vapconfig;
+    void *m2ctrl_radioconfig;
+    void *policy_config;
     // descriptors to access data model
     ext_proto_get_num_radio_t   get_num_radio;
     ext_proto_set_num_radio_t   set_num_radio;
@@ -73,7 +74,7 @@ typedef struct {
     ext_proto_get_scan_result_info_t get_scan_result_info;
 } webconfig_external_easymesh_t;
 
-void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *data_model, void *m2ctrl_vapconfig,
+void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *data_model, void *m2ctrl_vapconfig, void *policy_config,
         ext_proto_get_num_radio_t   get_num_radio, ext_proto_set_num_radio_t set_num_radio,
         ext_proto_get_num_op_class_t   get_num_op_class, ext_proto_set_num_op_class_t set_num_op_class,
         ext_proto_get_num_bss_t   get_num_bss, ext_proto_set_num_bss_t set_num_bss,

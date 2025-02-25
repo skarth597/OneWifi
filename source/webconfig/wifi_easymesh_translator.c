@@ -54,6 +54,21 @@ static webconfig_subdoc_data_t  webconfig_easymesh_data;
 /* global pointer to webconfig subdoc encoded data to avoid memory loss when passing data to  */
 static char *webconfig_easymesh_raw_data_ptr = NULL;
 
+void convert_vap_name_to_hault_type(em_haul_type_t *haultype, char *vapname)
+{
+        if (strncmp("private_ssid", vapname, strlen("private_ssid")) == 0) {
+                *haultype = em_haul_type_fronthaul;
+        } else if (strncmp("hotspot", vapname, strlen("hotspot")) == 0) {
+                *haultype = em_haul_type_hotspot;
+        } else if (strncmp("iot_ssid", vapname, strlen("iot_ssid")) == 0) {
+                *haultype = em_haul_type_iot;
+        } else if (strncmp("lnf_psk", vapname, strlen("lnf_psk")) == 0) {
+                *haultype = em_haul_type_configurator;
+        } else if (strncmp("mesh_backhaul", vapname, strlen("mesh_backhaul")) == 0) {
+                *haultype = em_haul_type_backhaul;
+        }
+}
+
 // webconfig_easymesh_decode() will convert the onewifi structures to easymesh structures
 webconfig_error_t webconfig_easymesh_decode(webconfig_t *config, const char *str,
         webconfig_external_easymesh_t *data,
@@ -476,7 +491,8 @@ webconfig_error_t translate_vap_info_to_em_common(const wifi_vap_info_t *vap, co
             vap->u.bss_info.bssid[2], vap->u.bss_info.bssid[3],
             vap->u.bss_info.bssid[4], vap->u.bss_info.bssid[5]);
     str_to_mac_bytes(mac_str,vap_row->bssid.mac);
-    strncpy(vap_row->bssid.name,iface_map->interface_name,sizeof(vap_row->bssid.name));
+    strncpy(vap_row->bssid.name, iface_map->interface_name,sizeof(vap_row->bssid.name));
+	convert_vap_name_to_hault_type(&vap_row->id.haul_type, vap->vap_name);
 
     default_em_bss_info(vap_row);
     radio_iface_map = NULL;
@@ -490,7 +506,7 @@ webconfig_error_t translate_vap_info_to_em_common(const wifi_vap_info_t *vap, co
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Unable to find the interface map entry for %d\n", __func__, __LINE__, vap->vap_index);
         return webconfig_error_translate_to_easymesh;
     }
-    strncpy(vap_row->ruid.name,radio_iface_map->radio_name,sizeof(vap_row->ruid.name));
+    strncpy(vap_row->ruid.name, radio_iface_map->radio_name,sizeof(vap_row->ruid.name));
     mac_address_from_name(radio_iface_map->interface_name,vap_row->ruid.mac);	
     return webconfig_error_none;
 }
@@ -711,11 +727,8 @@ webconfig_error_t translate_sta_info_to_em_common(const wifi_vap_info_t *vap, co
             vap->u.sta_info.bssid[2], vap->u.sta_info.bssid[3],
             vap->u.sta_info.bssid[4], vap->u.sta_info.bssid[5]);
     str_to_mac_bytes(mac_str,vap_row->bssid.mac);
-    strncpy(vap_row->bssid.name,iface_map->interface_name,sizeof(vap_row->bssid.name));	
-
-    strncpy(ssid_vid_map->ssid, vap->u.sta_info.ssid, sizeof(ssid_vid_map->ssid));
-    strncpy(ssid_vid_map->id, mac_str, sizeof(ssid_vid_map->id));
-    ssid_vid_map->vid =  iface_map->vlan_id; 
+    strncpy(vap_row->bssid.name,iface_map->interface_name,sizeof(vap_row->bssid.name));
+	convert_vap_name_to_hault_type(&vap_row->id.haul_type, vap->vap_name);
 
     radio_iface_map = NULL;
     for (k = 0; k < (sizeof(wifi_prop->radio_interface_map)/sizeof(radio_interface_mapping_t)); k++) {
@@ -925,8 +938,6 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
 {
     em_radio_info_t *em_radio_info;
     em_bss_info_t *em_bss_info;
-    em_bss_info_t *em_vap_info;
-    em_bss_info_t *vap_info_row;
     wifi_vap_info_map_t *vap_map;
     em_ssid_2_vid_map_info_t *ssid_vid_map = NULL;
     em_ssid_2_vid_map_info_t *ssid_vid_row;
@@ -969,7 +980,6 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
     for (i = 0; i < decoded_params->num_radios; i++) {
         radio = &decoded_params->radios[i];
         vap_map = &radio->vaps.vap_map;
-        num_bss = proto->get_num_bss(proto->data_model);
         radio_index = convert_radio_name_to_radio_index(decoded_params->radios[i].name);
         radio_iface_map = NULL;
         for (unsigned int k = 0; k < (sizeof(wifi_prop->radio_interface_map)/sizeof(radio_interface_mapping_t)); k++) {
@@ -991,8 +1001,21 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
             if (is_vap_hotspot(wifi_prop,vap->vap_index) == true) {
                 continue;
             }
-
-            // please move this code to specific vap function like ovsdb_translator
+            iface_map = NULL;
+            for (k = 0; k < (sizeof(wifi_prop->interface_map)/sizeof(wifi_interface_name_idex_map_t)); k++) {
+                if (wifi_prop->interface_map[k].index == vap->vap_index) {
+                    iface_map = &(wifi_prop->interface_map[k]);
+                    break;
+                }
+            }
+            if (iface_map == NULL) {
+                wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: Unable to find the interface map entry for %d\n", __func__, __LINE__, vap->vap_index);
+                return webconfig_error_translate_to_easymesh;
+            }
+            if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
+		        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Ignore the mesh sta config index %d\n", __func__, __LINE__, vap->vap_index);
+                continue;
+	        }
             em_bss_info =  (em_bss_info_t *)(proto->get_bss_info(proto->data_model, num_bss));
             if (em_bss_info == NULL) {
                 wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Cannot find bss info for index %d\n", __func__, __LINE__, vap->vap_index);
@@ -1008,28 +1031,23 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
                     return webconfig_error_translate_to_easymesh;
                 }
             } else  if (is_vap_xhs(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_xhs_vap_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row, wifi_prop) != webconfig_error_none) {
+                if (translate_xhs_vap_info_to_em_bss_config(vap, iface_map, em_bss_info, ssid_vid_row, wifi_prop) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of iot vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
             } else  if (is_vap_lnf_psk(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_lnf_psk_vap_info_to_em_bss_config(vap, iface_map, vap_info_row,ssid_vid_row, wifi_prop) != webconfig_error_none) {
+                if (translate_lnf_psk_vap_info_to_em_bss_config(vap, iface_map, em_bss_info,ssid_vid_row, wifi_prop) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of lnf psk vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
             } else  if (is_vap_lnf_radius(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_lnf_radius_vap_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row, wifi_prop) != webconfig_error_none) {
+                if (translate_lnf_radius_vap_info_to_em_bss_config(vap, iface_map, em_bss_info, ssid_vid_row, wifi_prop) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of lnf radius vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
             } else  if (is_vap_mesh_backhaul(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_mesh_backhaul_vap_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row, wifi_prop) != webconfig_error_none) {
+                if (translate_mesh_backhaul_vap_info_to_em_bss_config(vap, iface_map, em_bss_info, ssid_vid_row, wifi_prop) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of backhaul vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
-                    return webconfig_error_translate_to_easymesh;
-                }
-            } else  if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_mesh_sta_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row, wifi_prop) != webconfig_error_none) {
-                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of mesh_stavap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
             }
@@ -1041,7 +1059,6 @@ webconfig_error_t translate_vap_object_to_easymesh_for_dml(webconfig_subdoc_data
 //translate_vap_object_to_easymesh_bss_info() converts data elements of wifi_vap_info_t to em_bss_info_t of  easymesh
 webconfig_error_t translate_vap_object_to_easymesh_bss_info(webconfig_subdoc_data_t *data,char *vap_name)
 {
-    em_bss_info_t *em_vap_info;
     em_bss_info_t *vap_info_row;
     em_ssid_2_vid_map_info_t *ssid_vid_row;
     mac_address_t rmac;
@@ -1098,6 +1115,10 @@ webconfig_error_t translate_vap_object_to_easymesh_bss_info(webconfig_subdoc_dat
         for (j = 0; j < radio->vaps.num_vaps; j++) {
             //Get the corresponding vap
             vap = &vap_map->vap_array[j];
+            if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
+		        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Ignore the mesh sta config index %d\n", __func__, __LINE__, vap->vap_index);
+                continue;
+	        }
             vap_info_row = proto->get_bss_info(proto->data_model, count);
             if (vap_info_row == NULL) {
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Cannot find the bssid\n", __func__, __LINE__);
@@ -1133,11 +1154,6 @@ webconfig_error_t translate_vap_object_to_easymesh_bss_info(webconfig_subdoc_dat
             } else  if (is_vap_mesh_backhaul(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_mesh_backhaul_vap_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row, wifi_prop) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of backhaul vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
-                    return webconfig_error_translate_to_easymesh;
-                }
-            } else  if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_mesh_sta_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row,  wifi_prop) != webconfig_error_none) {
-                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of mesh_stavap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
             }
@@ -1211,6 +1227,10 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
         for (j = 0; j < radio->vaps.num_vaps; j++) {
             //Get the corresponding vap
             vap = &vap_map->vap_array[j];
+            if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
+		        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Ignore the mesh sta config index %d\n", __func__, __LINE__, vap->vap_index);
+                continue;
+	        }
             vap_info_row = proto->get_bss_info(proto->data_model, count);
             if (vap_info_row == NULL) {
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Cannot find the bssid\n", __func__, __LINE__);
@@ -1245,16 +1265,51 @@ webconfig_error_t translate_per_radio_vap_object_to_easymesh_bss_info(webconfig_
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of backhaul vap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_to_easymesh;
                 }
-            } else  if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_mesh_sta_info_to_em_bss_config(vap, iface_map, vap_info_row, ssid_vid_row,  wifi_prop) != webconfig_error_none) {
-                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation of mesh_stavap to EM failed for %d\n", __func__, __LINE__, vap->vap_index);
-                    return webconfig_error_translate_to_easymesh;
-                }
             }
         }
     }
     return webconfig_error_none;
 }
+
+//translate_beacon_report_object_to_easymesh_sta_info() converts data elements of sta_beacon_report_reponse_t to em_sta_info_t of  easymesh
+webconfig_error_t translate_beacon_report_object_to_easymesh_sta_info(webconfig_subdoc_data_t *data, wifi_freq_bands_t freq_band)
+{
+    em_sta_info_t em_sta_dev_info;
+    webconfig_external_easymesh_t *proto;
+    em_radio_info_t *radio_info;
+    em_bss_info_t *bss_info;
+    int vap_index = 0, radio_index = 0;
+    wifi_platform_property_t *wifi_prop;
+    webconfig_subdoc_decoded_data_t *params = &data->u.decoded;
+
+    if (params == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: decoded_params is NULL\n", __func__, __LINE__);
+        return webconfig_error_decode;
+    }
+
+    vap_index = params->stamgr.ap_index;
+    wifi_prop = &data->u.decoded.hal_cap.wifi_prop;
+    radio_index = get_radio_index_for_vap_index(wifi_prop, vap_index);
+
+    proto = (webconfig_external_easymesh_t *)params->external_protos;
+    if (proto == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: em_sta_info_t is NULL\n", __func__, __LINE__);
+        return webconfig_error_translate_to_easymesh;
+    }
+
+    radio_info = proto->get_radio_info(proto->data_model, radio_index);
+    bss_info = proto->get_bss_info(proto->data_model, vap_index);
+
+    memcpy(em_sta_dev_info.id, params->stamgr.mac_addr, sizeof(mac_address_t));
+    memcpy(em_sta_dev_info.bssid, bss_info->bssid.mac, sizeof(mac_address_t));
+    memcpy(em_sta_dev_info.radiomac, radio_info->intf.mac, sizeof(mac_address_t));
+    em_sta_dev_info.num_beacon_meas_report = params->stamgr.num_br_data;
+
+    proto->put_sta_info(proto->data_model, &em_sta_dev_info, em_target_sta_map_consolidated);
+
+    return webconfig_error_none;
+}
+
 // translate_em_common_to_vap_info_common() converts common data elements of em_bss_info_t to wifi_vap_info_t  of Onewifi
 webconfig_error_t translate_em_common_to_vap_info_common( wifi_vap_info_t *vap, const em_bss_info_t *vap_row)
 {
@@ -1472,8 +1527,8 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
     rdk_wifi_radio_t *radio;
     wifi_hal_capability_t *hal_cap;
     decoded_params = &data->u.decoded;
-    wifi_interface_name_idex_map_t *radio_iface_map;
-    m2ctrl_vapconfig *vap_config;
+    radio_interface_mapping_t *radio_iface_map;
+    m2ctrl_radioconfig *radio_config;
     mac_address_t mac;
 
     if (decoded_params == NULL) {
@@ -1497,7 +1552,7 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
         return webconfig_error_invalid_subdoc;
     }
 
-    vap_config = proto->m2ctrl_vapconfig;
+    radio_config = proto->m2ctrl_radioconfig;
     wifi_platform_property_t *wifi_prop = &data->u.decoded.hal_cap.wifi_prop;
     hal_cap =&data->u.decoded.hal_cap;
 
@@ -1527,7 +1582,12 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
     for (j = 0; j < radio->vaps.num_vaps; j++) {
         //Get the corresponding vap
         vap = &vap_map->vap_array[j];
-        vap_info_row = proto->get_bss_info_with_mac(proto->data_model, vap->u.bss_info.bssid);
+        if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
+		    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Ignore the mesh sta config index %d\n", __func__, __LINE__, vap->vap_index);
+            continue;
+        } else {
+            vap_info_row = proto->get_bss_info_with_mac(proto->data_model, vap->u.bss_info.bssid);
+		}
         if (vap_info_row == NULL) {
             wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: em_vap_info is NULL\n", __func__, __LINE__);
             continue;
@@ -1558,20 +1618,19 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
                 wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  backhaul vap  failed for %d\n", __func__, __LINE__, vap->vap_index);
                 return webconfig_error_translate_from_easymesh;
             }
-        } else  if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
-            if (translate_em_bss_to_mesh_sta_info(vap,  vap_info_row) != webconfig_error_none) {
-                wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  mesh_stavap failed for %d\n", __func__, __LINE__, vap->vap_index);
-                return webconfig_error_translate_from_easymesh;
-            }
         }
 
-        if ((vap_config != NULL) && (memcmp(vap_config->mac, vap_info_row->ruid.mac, sizeof(mac_address_t)) == 0)) {
-            wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
-            vap_config->ssid,vap_config->authtype,vap_config->password);
-            vap->u.bss_info.security.mode = vap_config->authtype;
-            strncpy(vap->u.bss_info.ssid, vap_config->ssid, sizeof(vap->u.bss_info.ssid)-1);
-            strncpy(vap->u.bss_info.security.u.key.key, vap_config->password, sizeof(vap->u.bss_info.security.u.key.key)-1);
-            vap->u.bss_info.enabled = vap_config->enable;
+        if (radio_config != NULL) {
+            for(k = 0; k < radio_config->noofbssconfig; k++) {
+                if(memcmp(radio_config->bssid_mac[k], vap_info_row->bssid.mac, sizeof(mac_address_t)) == 0) {
+                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
+                    radio_config->ssid[k],radio_config->authtype[k],radio_config->password[k]);
+                    vap->u.bss_info.security.mode = radio_config->authtype[k];
+                    strncpy(vap->u.bss_info.ssid, radio_config->ssid[k], sizeof(vap->u.bss_info.ssid)-1);
+                    strncpy(vap->u.bss_info.security.u.key.key, radio_config->password[k], sizeof(vap->u.bss_info.security.u.key.key)-1);
+                    vap->u.bss_info.enabled = radio_config->enable[k];
+                }
+            }
         }
     }
 
@@ -1673,8 +1732,8 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
     rdk_wifi_radio_t *radio;
     wifi_hal_capability_t *hal_cap;
     decoded_params = &data->u.decoded;
-    wifi_interface_name_idex_map_t *radio_iface_map;
-    m2ctrl_vapconfig *vap_config;
+    radio_interface_mapping_t *radio_iface_map;
+    m2ctrl_radioconfig *radio_config;
 
     if (decoded_params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: decoded_params is NULL\n", __func__, __LINE__);
@@ -1697,7 +1756,7 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
         return webconfig_error_invalid_subdoc;
     }
 
-    vap_config = proto->m2ctrl_vapconfig;
+    radio_config = proto->m2ctrl_radioconfig;
     wifi_platform_property_t *wifi_prop = &data->u.decoded.hal_cap.wifi_prop;
     hal_cap =&data->u.decoded.hal_cap;
     //Get the number of radios
@@ -1719,6 +1778,10 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
         for (j = 0; j < radio->vaps.num_vaps; j++) {
             //Get the corresponding vap
             vap = &vap_map->vap_array[j];
+            if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
+		        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Ignore the mesh sta config index %d\n", __func__, __LINE__, vap->vap_index);
+                continue;
+	        }
             vap_info_row = proto->get_bss_info(proto->data_model, count);
             if (vap_info_row == NULL) {
                 wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: vap_info_row is NULL\n", __func__, __LINE__);
@@ -1739,45 +1802,40 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  private vap failed %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_from_easymesh;
                 }
-                if (vap_config != NULL) {
-                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
-                            vap_config->ssid,vap_config->authtype,vap_config->password);
-                    vap->u.bss_info.security.mode = vap_config->authtype;
-                    strncpy(vap->u.bss_info.ssid, vap_config->ssid, sizeof(vap->u.bss_info.ssid)-1);
-                    strncpy(vap->u.bss_info.security.u.key.key, vap_config->password, sizeof(vap->u.bss_info.security.u.key.key)-1);
-                    vap->u.bss_info.enabled = vap_config->enable;
-                }
-                count++;
             } else  if (is_vap_xhs(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_em_bss_to_xhs_vap_info(vap, vap_info_row) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  iot vap  failed  %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_from_easymesh;
                 }
-                count++;
             } else  if (is_vap_lnf_psk(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_em_bss_to_lnf_psk_vap_info(vap,  vap_info_row) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to lnf psk vap  failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_from_easymesh;
                 }
-                count++;
             } else  if (is_vap_lnf_radius(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_em_bss_to_lnf_radius_vap_info(vap, vap_info_row) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  lnf radius vap  failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_from_easymesh;
                 }
-                count++;
             } else  if (is_vap_mesh_backhaul(wifi_prop, vap->vap_index) == TRUE) {
                 if (translate_em_bss_to_mesh_backhaul_vap_info(vap, vap_info_row) != webconfig_error_none) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  backhaul vap  failed for %d\n", __func__, __LINE__, vap->vap_index);
                     return webconfig_error_translate_from_easymesh;
                 }
-                count++;
-            } else  if (is_vap_mesh_sta(wifi_prop, vap->vap_index) == TRUE) {
-                if (translate_em_bss_to_mesh_sta_info(vap,  vap_info_row) != webconfig_error_none) {
-                    wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: Translation from EM to  mesh_stavap failed for %d\n", __func__, __LINE__, vap->vap_index);
-                    return webconfig_error_translate_from_easymesh;
+            }
+            if (radio_config != NULL) {
+                for(k = 0; k < radio_config->noofbssconfig; k++) {
+                    if(memcmp(radio_config->bssid_mac[k], vap_info_row->bssid.mac, sizeof(mac_address_t)) == 0) {
+                        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
+                        radio_config->ssid[k],radio_config->authtype[k],radio_config->password[k]);
+                        vap->u.bss_info.security.mode = radio_config->authtype[k];
+                        strncpy(vap->u.bss_info.ssid, radio_config->ssid[k], sizeof(vap->u.bss_info.ssid)-1);
+                        strncpy(vap->u.bss_info.security.u.key.key, radio_config->password[k], sizeof(vap->u.bss_info.security.u.key.key)-1);
+                        vap->u.bss_info.enabled = radio_config->enable[k];
+                    }
                 }
             }
+    
         }
     }
     return webconfig_error_none;
@@ -2014,6 +2072,74 @@ webconfig_error_t   translate_vap_object_from_easymesh_to_dml(webconfig_subdoc_d
     }
     return webconfig_error_none;
 }
+
+//translate_policy_cfg_object_from_easymesh_to_em_cfg() converts data elements of em_policy_cfg_params_t of easymesh to Onewifi
+webconfig_error_t   translate_policy_cfg_object_from_easymesh_to_em_cfg(webconfig_subdoc_data_t *data)
+{
+    em_policy_cfg_params_t *em_policy_cfg;
+    em_config_t *policy_cfg;
+    webconfig_subdoc_decoded_data_t *decoded_params;
+    webconfig_external_easymesh_t *proto;
+
+    decoded_params = &data->u.decoded;
+    if (decoded_params == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: decoded_params is NULL\n", __func__, __LINE__);
+        return webconfig_error_translate_from_easymesh;
+    }
+
+    proto = (webconfig_external_easymesh_t *)data->u.decoded.external_protos;
+    if (proto == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: external_protos is NULL\n", __func__, __LINE__);
+        return webconfig_error_translate_from_easymesh;
+    }
+
+    em_policy_cfg = proto->policy_config;
+    if (em_policy_cfg == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d:rcvd policy cfg is NULL\n", __func__, __LINE__);
+        return webconfig_error_translate_from_easymesh;
+    }
+
+    policy_cfg = &decoded_params->em_config;
+
+    //ap metric policy
+    policy_cfg->ap_metric_policy.interval = em_policy_cfg->metrics_policy.interval;
+    strncpy(policy_cfg->ap_metric_policy.managed_client_marker, em_policy_cfg->vendor_policy.managed_client_marker , strlen(em_policy_cfg->vendor_policy.managed_client_marker)+1);
+
+    //local steering policy
+    policy_cfg->local_steering_dslw_policy.sta_count = em_policy_cfg->steering_policy.local_steer_policy.num_sta;
+    for (int i = 0; i < policy_cfg->local_steering_dslw_policy.sta_count; i++) {
+        memcpy(policy_cfg->local_steering_dslw_policy.disallowed_sta[i], em_policy_cfg->steering_policy.local_steer_policy.sta_mac[i], sizeof(mac_addr_t));
+    }
+
+    //btm steering policy
+    policy_cfg->btm_steering_dslw_policy.sta_count = em_policy_cfg->steering_policy.btm_steer_policy.num_sta;
+    for (int i = 0; i < policy_cfg->btm_steering_dslw_policy.sta_count; i++) {
+        memcpy(policy_cfg->btm_steering_dslw_policy.disallowed_sta[i], em_policy_cfg->steering_policy.btm_steer_policy.sta_mac[i], sizeof(mac_addr_t));
+    }
+
+    //backhaul bss config policy
+    memcpy(policy_cfg->backhaul_bss_config_policy.bssid, em_policy_cfg->bh_bss_cfg_policy.bssid, sizeof(bssid_t));
+    policy_cfg->backhaul_bss_config_policy.profile_1_bsta_disallowed = em_policy_cfg->bh_bss_cfg_policy.p1_bsta_disallowed;
+    policy_cfg->backhaul_bss_config_policy.profile_1_bsta_disallowed = em_policy_cfg->bh_bss_cfg_policy.p2_bsta_disallowed;
+
+    //channel scan reporting policy
+    policy_cfg->channel_scan_reporting_policy.report_independent_channel_scan = em_policy_cfg->channel_scan_policy.rprt_ind_ch_scan;
+
+    //radio metrics policy
+    policy_cfg->radio_metrics_policies.radio_count = em_policy_cfg->metrics_policy.radios_num;
+    for (int i = 0; i < policy_cfg->radio_metrics_policies.radio_count; i++) {
+        memcpy(policy_cfg->radio_metrics_policies.radio_metrics_policy[i].ruid, em_policy_cfg->metrics_policy.radios[i].ruid, sizeof(mac_addr_t));
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].sta_rcpi_threshold   = em_policy_cfg->metrics_policy.radios[i].rcpi_thres;
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].sta_rcpi_hysteresis  = em_policy_cfg->metrics_policy.radios[i].rcpi_hysteresis;
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].ap_util_threshold    = em_policy_cfg->metrics_policy.radios[i].util_thres;
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].link_metrics         = (em_policy_cfg->metrics_policy.radios[i].sta_policy >> 2) & 1;
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].traffic_stats        = (em_policy_cfg->metrics_policy.radios[i].sta_policy >> 1) & 1;
+        policy_cfg->radio_metrics_policies.radio_metrics_policy[i].sta_status           = (em_policy_cfg->metrics_policy.radios[i].sta_policy >> 3) & 1;
+    }
+
+    return webconfig_error_none;
+}
+
 // translate_to_easymesh_tables() is translations of OneWifi structures to Easymesh structures based on type
 webconfig_error_t  translate_to_easymesh_tables(webconfig_subdoc_type_t type, webconfig_subdoc_data_t *data)
 {
@@ -2137,6 +2263,14 @@ webconfig_error_t  translate_to_easymesh_tables(webconfig_subdoc_type_t type, we
             }
             break;
 
+        case webconfig_subdoc_type_sta_manager:
+            if (translate_beacon_report_object_to_easymesh_sta_info(data, WIFI_FREQUENCY_6_BAND) != webconfig_error_none) {
+                wifi_util_error_print(WIFI_WEBCONFIG,
+                    "%s:%d: webconfig_subdoc_type_private vap_object translation to easymesh failed\n", __func__, __LINE__);
+                return webconfig_error_translate_to_easymesh;
+            }
+            break;
+
         default:
             break;
     }
@@ -2225,13 +2359,21 @@ webconfig_error_t   translate_from_easymesh_tables(webconfig_subdoc_type_t type,
             }
             break;
 
+        case webconfig_subdoc_type_em_config:
+            if (translate_policy_cfg_object_from_easymesh_to_em_cfg(data) != webconfig_error_none) {
+                wifi_util_error_print(WIFI_WEBCONFIG, 
+                    "%s:%d: webconfig_subdoc_type_em_config policy_cfg object translation from easymesh failed\n", __func__, __LINE__);
+                return webconfig_error_translate_from_easymesh;
+            }
+            break;
+
         default:
             break;
     }
     return webconfig_error_none;
 }
 
-void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *data_model, void *m2ctrl_vapconfig,
+void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *data_model, void *m2ctrl_radioconfig, void *policy_config,
         ext_proto_get_num_radio_t get_num_radios, ext_proto_set_num_radio_t set_num_radios,
         ext_proto_get_num_op_class_t get_num_op_class, ext_proto_set_num_op_class_t set_num_op_class,
         ext_proto_get_num_bss_t get_num_bss, ext_proto_set_num_bss_t set_num_bss,
@@ -2243,7 +2385,8 @@ void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *d
         ext_proto_get_num_scan_results_t get_num_scan_res, ext_proto_set_num_scan_results_t set_num_scan_res, ext_proto_get_scan_result_info_t get_scan_result)
 {
     proto->data_model = data_model;
-    proto->m2ctrl_vapconfig = m2ctrl_vapconfig;
+    proto->m2ctrl_radioconfig = m2ctrl_radioconfig;
+	proto->policy_config = policy_config;
     proto->get_num_radio = get_num_radios;
     proto->set_num_radio = set_num_radios;
     proto->get_num_op_class = get_num_op_class;

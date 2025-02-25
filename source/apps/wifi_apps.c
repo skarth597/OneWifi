@@ -27,8 +27,6 @@
 #include "wifi_util.h"
 #include "wifi_apps_mgr.h"
 
-
-
 extern int sta_mgr_init(wifi_app_t *app, unsigned int create_flag);
 extern int sta_mgr_deinit(wifi_app_t *app);
 extern int sta_mgr_event(wifi_app_t *app, wifi_event_t *event);
@@ -219,6 +217,32 @@ int easyconnect_event(wifi_app_t *app, wifi_event_t *event)
 }
 #endif // ONEWIFI_EASYCONNECT_APP_SUPPORT
 
+#if EM_APP
+extern int em_init(wifi_app_t *app, unsigned int create_flag);
+extern int em_deinit(wifi_app_t *app);
+extern int em_update(wifi_app_t *app);
+extern int em_event(wifi_app_t *app, wifi_event_t *event);
+#else
+int em_init(wifi_app_t *app, unsigned int create_flag)
+{
+    return 0;
+}
+
+int em_deinit(wifi_app_t *app)
+{
+    return 0;
+}
+
+int em_update(wifi_app_t *app)
+{
+    return 0;
+}
+
+int em_event(wifi_app_t *app, wifi_event_t *event)
+{
+    return 0;
+}
+#endif // EM_APP
 
 wifi_app_descriptor_t app_desc[] = {
 #ifdef ONEWIFI_ANALYTICS_APP_SUPPORT
@@ -254,7 +278,7 @@ wifi_app_descriptor_t app_desc[] = {
 #if EM_APP
     {
         wifi_app_inst_easymesh, 0,
-        wifi_event_type_monitor | wifi_event_type_webconfig | wifi_event_type_command,
+        wifi_event_type_monitor | wifi_event_type_webconfig | wifi_event_type_hal_indi | wifi_event_type_command,
         true, true,
         "Easy Mesh",
         em_init, em_event, em_deinit,

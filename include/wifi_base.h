@@ -424,7 +424,6 @@ typedef struct {
 
 typedef struct {
     int rssi_threshold;
-    bool ReconnectCountEnable[MAX_VAP];
     bool FeatureMFPConfig;
     int ChUtilityLogInterval;
     int DeviceLogInterval;
@@ -1101,12 +1100,7 @@ typedef struct {
 typedef struct {
     int sta_count;
     mac_addr_t disallowed_sta[MAX_DIS_STA];
-} local_steering_disallowed_policy_t;
-
-typedef struct {
-    int sta_count;
-    mac_addr_t disallowed_sta[MAX_DIS_STA];
-} btm_steering_disallowed_policy_t;
+} steering_disallowed_policy_t;
 
 typedef struct {
     bssid_t bssid;
@@ -1128,15 +1122,16 @@ typedef struct {
     bool sta_status;
 } radio_metrics_policy_t;
 
+#define MAX_RADIO_POLICY 4
 typedef struct {
     int radio_count;
-    radio_metrics_policy_t radio_metrics_policy[0];
+    radio_metrics_policy_t radio_metrics_policy[MAX_RADIO_POLICY];
 } radio_metrics_policies_t;
 
 typedef struct {
     ap_metrics_policy_t ap_metric_policy;
-    local_steering_disallowed_policy_t local_steering_dslw_policy;
-    btm_steering_disallowed_policy_t btm_steering_dslw_policy;
+    steering_disallowed_policy_t local_steering_dslw_policy;
+    steering_disallowed_policy_t btm_steering_dslw_policy;
     backhaul_bss_config_policy_t backhaul_bss_config_policy;
     channel_scan_reporting_policy_t channel_scan_reporting_policy;
     radio_metrics_policies_t radio_metrics_policies;
@@ -1148,18 +1143,11 @@ typedef struct {
     wifi_BeaconReport_t *beacon_repo;
 } wifi_hal_rrm_report_t;
 
-typedef struct {
-    mac_address_t bssid;
-    UCHAR op_class;
-    UCHAR channel;
-    UCHAR rcpi;
-    UCHAR rssi;
-} beacon_response_data_t;
-
-#define MAX_BR_DATA 30
+#define MAX_BR_DATA 400
 typedef struct {
     mac_address_t mac_addr;
-    beacon_response_data_t data[MAX_BR_DATA];
+    unsigned int data_len;
+    unsigned char data[MAX_BR_DATA];
     unsigned int ap_index;
     unsigned int num_br_data;
     int sched_handler_id;
