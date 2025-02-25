@@ -728,7 +728,7 @@ webconfig_error_t translate_sta_info_to_em_common(const wifi_vap_info_t *vap, co
             vap->u.sta_info.bssid[4], vap->u.sta_info.bssid[5]);
     str_to_mac_bytes(mac_str,vap_row->bssid.mac);
     strncpy(vap_row->bssid.name,iface_map->interface_name,sizeof(vap_row->bssid.name));
-	convert_vap_name_to_hault_type(&vap_row->id.haul_type, vap->vap_name);
+    convert_vap_name_to_hault_type(&vap_row->id.haul_type, vap->vap_name);
 
     radio_iface_map = NULL;
     for (k = 0; k < (sizeof(wifi_prop->radio_interface_map)/sizeof(radio_interface_mapping_t)); k++) {
@@ -1303,7 +1303,9 @@ webconfig_error_t translate_beacon_report_object_to_easymesh_sta_info(webconfig_
     memcpy(em_sta_dev_info.id, params->stamgr.mac_addr, sizeof(mac_address_t));
     memcpy(em_sta_dev_info.bssid, bss_info->bssid.mac, sizeof(mac_address_t));
     memcpy(em_sta_dev_info.radiomac, radio_info->intf.mac, sizeof(mac_address_t));
-    em_sta_dev_info.num_beacon_meas_report = params->stamgr.num_br_data;
+    em_sta_dev_info.beacon_report_len = params->stamgr.data_len;
+
+    memcpy(em_sta_dev_info.beacon_report_elem, params->stamgr.data, params->stamgr.data_len);
 
     proto->put_sta_info(proto->data_model, &em_sta_dev_info, em_target_sta_map_consolidated);
 
@@ -1530,6 +1532,7 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
     radio_interface_mapping_t *radio_iface_map;
     m2ctrl_radioconfig *radio_config;
     mac_address_t mac;
+    em_haul_type_t haultype;
 
     if (decoded_params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: decoded_params is NULL\n", __func__, __LINE__);
@@ -1622,7 +1625,8 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_per_radio(webconfig_sub
 
         if (radio_config != NULL) {
             for(k = 0; k < radio_config->noofbssconfig; k++) {
-                if(memcmp(radio_config->bssid_mac[k], vap_info_row->bssid.mac, sizeof(mac_address_t)) == 0) {
+                convert_vap_name_to_hault_type(&haultype, vap->vap_name );
+                if (radio_config->haultype[k] == haultype) {
                     wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
                     radio_config->ssid[k],radio_config->authtype[k],radio_config->password[k]);
                     vap->u.bss_info.security.mode = radio_config->authtype[k];
@@ -1728,6 +1732,7 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
     decoded_params = &data->u.decoded;
     radio_interface_mapping_t *radio_iface_map;
     m2ctrl_radioconfig *radio_config;
+    em_haul_type_t haultype;
 
     if (decoded_params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: decoded_params is NULL\n", __func__, __LINE__);
@@ -1819,7 +1824,8 @@ webconfig_error_t translate_from_easymesh_bssinfo_to_vap_object(webconfig_subdoc
             }
             if (radio_config != NULL) {
                 for(k = 0; k < radio_config->noofbssconfig; k++) {
-                    if(memcmp(radio_config->bssid_mac[k], vap_info_row->bssid.mac, sizeof(mac_address_t)) == 0) {
+                    convert_vap_name_to_hault_type(&haultype, vap->vap_name );
+                    if (radio_config->haultype[k] == haultype) {
                         wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: ssid=%s sec_mode=%d password=%s", __func__, __LINE__,
                         radio_config->ssid[k],radio_config->authtype[k],radio_config->password[k]);
                         vap->u.bss_info.security.mode = radio_config->authtype[k];
