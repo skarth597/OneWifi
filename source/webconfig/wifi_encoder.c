@@ -2426,6 +2426,43 @@ webconfig_error_t encode_radiodiag_params(wifi_provider_response_t *radiodiag_st
     return webconfig_error_none;
 }
 
+void print_hex_dump(unsigned int length, unsigned char *buffer)
+{
+    int i;
+    unsigned char buff[512] = {};
+    const unsigned char * pc = (const unsigned char *)buffer;
+
+    if (length > 500) return;
+
+    if ((pc == NULL) || (length <= 0)) {
+        printf ("buffer NULL or BAD LENGTH = %d :\n", length);
+        return;
+    }
+
+    for (i = 0; i < length; i++) {
+        if ((i % 16) == 0) {
+            if (i != 0)
+                printf ("  %s\n", buff);
+            printf ("  %04x ", i);
+        }
+
+        printf (" %02x", pc[i]);
+
+        if (!isprint(pc[i]))
+            buff[i % 16] = '.';
+        else
+            buff[i % 16] = pc[i];
+        buff[(i % 16) + 1] = '\0';
+    }
+
+    while ((i % 16) != 0) {
+        printf ("   ");
+        i++;
+    }
+
+    printf ("  %s\n", buff);
+}
+
 webconfig_error_t encode_sta_manager_object(sta_beacon_report_reponse_t *sta_data,
     cJSON **sta_manager_obj)
 {
@@ -2443,7 +2480,9 @@ webconfig_error_t encode_sta_manager_object(sta_beacon_report_reponse_t *sta_dat
 
     memset(assoc_frame_string, 0, sizeof(assoc_frame_string));
     if (sta_data->data_len != 0) {
+	//print_hex_dump(sta_data->data_len, sta_data->data);
         hextostring(sta_data->data_len, sta_data->data, MAX_FRAME_SZ * 2 + 1, assoc_frame_string);
+	//printf("assoc_frame_string:%s\n", assoc_frame_string);
     } else {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d No Report Data\n", __func__, __LINE__);
         return webconfig_error_encode;
