@@ -1642,7 +1642,7 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
 {
     channel_scan_response_t *channel_st;
     webconfig_external_easymesh_t *proto;
-    int i, count = 0;
+    int i, j, count = 0;
 
     webconfig_subdoc_decoded_data_t *params = &data->u.decoded;
     if (params == NULL) {
@@ -1662,36 +1662,29 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
         return webconfig_error_translate_to_easymesh;
     }
 
-    unsigned int num_scan_results = channel_st->num_results;
-    proto->set_num_scan_results(proto->data_model, num_scan_results);
+    for (i = 0; i < channel_st->num_results; i++) {
 
-    for (i = 0; i < num_scan_results; i++) {
-        em_scan_result_t *em_scan_result = proto->get_scan_result_info(proto->data_model, count);
-        if (!em_scan_result) {
-            wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: em_scan_result is NULL\n", __func__, __LINE__);
-            continue;
-        }
-
+        em_scan_result_t em_scan_result;
         channel_scan_result_t *src = &channel_st->results[i];
 
-        em_scan_result->id.op_class = src->operating_class;
-        em_scan_result->id.channel = src->channel;
-        memset(em_scan_result->id.net_id, 0, sizeof(em_scan_result->id.net_id));
-        memset(em_scan_result->id.dev_mac, 0, sizeof(em_scan_result->id.dev_mac));
-        memset(em_scan_result->id.ruid, 0, sizeof(em_scan_result->id.ruid));
+        em_scan_result.id.op_class = src->operating_class;
+        em_scan_result.id.channel = src->channel;
+        memset(em_scan_result.id.net_id, 0, sizeof(em_scan_result.id.net_id));
+        memset(em_scan_result.id.dev_mac, 0, sizeof(em_scan_result.id.dev_mac));
+        memset(em_scan_result.id.scanner_mac, 0, sizeof(em_scan_result.id.scanner_mac));
 
-        em_scan_result->scan_status = src->scan_status;
-        strncpy(em_scan_result->timestamp, src->time_stamp, sizeof(em_scan_result->timestamp) - 1);
-        em_scan_result->timestamp[sizeof(em_scan_result->timestamp) - 1] = '\0';
-        em_scan_result->util = src->utilization;
-        em_scan_result->noise = src->noise;
-        em_scan_result->num_neighbors = src->num_neighbors;
-        em_scan_result->aggr_scan_duration = 0;
-        em_scan_result->scan_type = 0;
+        em_scan_result.scan_status = src->scan_status;
+        strncpy(em_scan_result.timestamp, src->time_stamp, sizeof(em_scan_result.timestamp) - 1);
+        em_scan_result.timestamp[sizeof(em_scan_result.timestamp) - 1] = '\0';
+        em_scan_result.util = src->utilization;
+        em_scan_result.noise = src->noise;
+        em_scan_result.num_neighbors = src->num_neighbors;
+        em_scan_result.aggr_scan_duration = 0;
+        em_scan_result.scan_type = 0;
 
-        for (int j = 0; j < src->num_neighbors && j < EM_MAX_NEIGHORS; j++) {
+        for (j = 0; j < src->num_neighbors && j < EM_MAX_NEIGHORS; j++) {
             neighbor_bss_t *src_neighbor = &src->neighbors[j];
-            em_neighbor_t *dst_neighbor = &em_scan_result->neighbor[j];
+            em_neighbor_t *dst_neighbor = &em_scan_result.neighbor[j];
 
             memcpy(dst_neighbor->bssid, src_neighbor->bssid, sizeof(bssid_t));
             strncpy(dst_neighbor->ssid, src_neighbor->ssid, strlen(src_neighbor->ssid) + 1);
@@ -1712,8 +1705,9 @@ webconfig_error_t translate_channel_stats_to_easymesh_channel_info(webconfig_sub
             dst_neighbor->sta_count = (unsigned short)src_neighbor->station_count;
         }
         count++;
+        proto->put_scan_results(proto->data_model, &em_scan_result);
     }
-    proto->set_num_scan_results(proto->data_model, count);
+
     wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: No of scan results : %d \n", __func__, __LINE__, count);
 
     return webconfig_error_none;
@@ -2382,7 +2376,7 @@ void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *d
         ext_proto_em_get_bss_info_t get_bss, ext_proto_em_get_op_class_info_t get_op_class,
         ext_proto_get_first_sta_info_t get_first_sta, ext_proto_get_next_sta_info_t get_next_sta,
         ext_proto_get_sta_info_t get_sta, ext_proto_put_sta_info_t put_sta, ext_proto_em_get_bss_info_with_mac_t get_bss_with_mac,
-        ext_proto_get_num_scan_results_t get_num_scan_res, ext_proto_set_num_scan_results_t set_num_scan_res, ext_proto_get_scan_result_info_t get_scan_result)
+        ext_proto_put_scan_results_t put_scan_res)
 {
     proto->data_model = data_model;
     proto->m2ctrl_radioconfig = m2ctrl_radioconfig;
@@ -2404,7 +2398,5 @@ void webconfig_proto_easymesh_init(webconfig_external_easymesh_t *proto, void *d
     proto->get_sta_info = get_sta;
     proto->put_sta_info = put_sta;
     proto->get_bss_info_with_mac = get_bss_with_mac;
-    proto->get_num_scan_results = get_num_scan_res;
-    proto->set_num_scan_results = set_num_scan_res;
-    proto->get_scan_result_info = get_scan_result;
+    proto->put_scan_results = put_scan_res;
 }
