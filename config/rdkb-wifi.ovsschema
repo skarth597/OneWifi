@@ -1718,6 +1718,15 @@
             "max": 1
           }
         },
+        "MemwrapTool_app_rfc": {
+          "type": {
+            "key": {
+              "type": "boolean"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
         "wifi_offchannelscan_app_rfc": {
           "type": {
             "key": {

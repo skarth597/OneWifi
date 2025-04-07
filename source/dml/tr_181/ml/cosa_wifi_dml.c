@@ -373,6 +373,11 @@ WiFi_GetParamBoolValue
         *pBool = rfc_pcfg->wifipasspoint_rfc;
         return TRUE;
     }
+    if (AnscEqualString(ParamName, "MemwrapTool", TRUE))
+    {
+        *pBool = rfc_pcfg->Memwraptool_app_rfc;
+        return TRUE;
+    }
     if (AnscEqualString(ParamName, "WiFi-OffChannelScan-APP", TRUE)) {
 #if defined (FEATURE_OFF_CHANNEL_SCAN_5G)
         *pBool = rfc_pcfg->wifi_offchannelscan_app_rfc;
@@ -1110,6 +1115,12 @@ WiFi_SetParamBoolValue
     {
         if(bValue != rfc_pcfg->wifipasspoint_rfc) {
             push_rfc_dml_cache_to_one_wifidb(bValue,wifi_event_type_wifi_passpoint_rfc);
+        }
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
+        if(bValue != rfc_pcfg->Memwraptool_app_rfc) {
+            push_rfc_dml_cache_to_one_wifidb(bValue,wifi_event_type_MemwrapTool_app_rfc);
         }
         return TRUE;
     }

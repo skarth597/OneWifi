@@ -418,6 +418,7 @@ typedef struct {
 }levl_config_t;
 
 typedef struct {
+    bool MemwrapTool_app_rfc;
     bool wifi_offchannelscan_app_rfc;
     bool wifi_offchannelscan_sm_rfc;
     bool wifipasspoint_rfc;
