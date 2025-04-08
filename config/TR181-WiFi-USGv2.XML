@@ -459,6 +459,46 @@
             </parameters>
         </object>
         <object>
+        <name>MemwrapTool</name>
+        <objectType>object</objectType>
+        <functions>
+            <func_GetParamBoolValue>MemwrapTool_GetParamBoolValue</func_GetParamBoolValue>
+            <func_GetParamUlongValue>MemwrapTool_GetParamUlongValue</func_GetParamUlongValue>
+            <func_SetParamBoolValue>MemwrapTool_SetParamBoolValue</func_SetParamBoolValue>
+            <func_SetParamUlongValue>MemwrapTool_SetParamUlongValue</func_SetParamUlongValue>
+        </functions>
+        <parameters>
+            <parameter>
+                <name>Enable</name>
+                <type>boolean</type>
+                <syntax>bool</syntax>
+                <writable>true</writable>
+            </parameter>
+            <parameter>
+                <name>RSS_check_Interval</name>
+                <type>unsignedInt</type>
+                <syntax>uint32</syntax>
+                <writable>true</writable>
+            </parameter>
+            <parameter>
+                <name>RSS_Threshold</name>
+                <type>unsignedInt</type>
+                <syntax>uint32</syntax>
+                <writable>true</writable>
+            <parameter>
+                <name>Heapwalk_Duration</name>
+                <type>unsignedInt</type>
+                <syntax>uint32</syntax>
+                <writable>true</writable>
+            </parameter>
+            <parameter>
+                <name>Heapwalk_Interval</name>
+                <type>unsignedInt</type>
+                <syntax>uint32</syntax>
+                <writable>true</writable>
+            </parameter>
+            </parameters>
+        </object>
         <name>X_RDKCENTRAL-COM_Report</name>
         <objectType>object</objectType>
 	<functions></functions>

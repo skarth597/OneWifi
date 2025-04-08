@@ -473,6 +473,11 @@ typedef struct {
     int  assoc_gate_time;
     int  whix_log_interval; //seconds
     int  whix_chutility_loginterval; //seconds
+    bool Memwraptool_enable;
+    int  Memwraptool_RSS_check_Interval;
+    int  Memwraptool_RSS_Threshold;
+    int  Memwraptool_Heapwalk_Duration; //minutes
+    int  Memwraptool_Heapwalk_Interval; //minutes
     int  assoc_monitor_duration;
     bool rapid_reconnect_enable;
     bool vap_stats_feature;
