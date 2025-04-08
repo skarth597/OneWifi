@@ -1580,6 +1580,108 @@ WiFi_SetParamUlongValue
     return FALSE;
 }
 
+BOOL MemwrapTool_GetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOOL *pBool)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
+    if (pcfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail\n", __FUNCTION__, __LINE__);
+        return FALSE;
+    }
+    if (AnscEqualString(ParamName, "Enable", TRUE)) {
+        *pBool = pcfg->Memwraptool_enable;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL MemwrapTool_GetParamUlongValue { ANSC_HANDLE hInsContext, char *ParamName, ULONG *puLong }
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
+    if (pcfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail\n", __FUNCTION__, __LINE__);
+        return FALSE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_RSS_check_Interval", TRUE)) {
+        *puLong = pcfg->Memwraptool_RSS_check_Interval;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_RSS_Threshold", TRUE)) {
+        *puLong = pcfg->Memwraptool_RSS_Threshold;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Duration", TRUE)) {
+        *puLong = pcfg->Memwraptool_Heapwalk_Duration;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
+        *puLong = pcfg->Memwraptool_Heapwalk_Interval;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL MemwrapTool_SetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOOL bValue)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
+    wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
+    if (pcfg == NULL || rfc_pcfg->Memwraptool_app_rfc == FALSE) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail or rfc is false\n",
+            __FUNCTION__, __LINE__);
+        return FALSE;
+    }
+
+    if (AnscEqualString(ParamName, "Enable", TRUE)) {
+        if (pcfg->Memwraptool_enable == bValue) {
+            return FALSE;
+        }
+
+        if (pcfg->Memwraptool_enable == FALSE) {
+            push_memwraptool_config_to_ctrl_queue();
+        } else {
+            wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Memwraptool is already enabled\n", __FUNCTION__,
+                __LINE__);
+        }
+        pcfg->Memwraptool_enable = bValue;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL MemwrapTool_SetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, ULONG uValue)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
+    if (pcfg == NULL) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail\n", __FUNCTION__, __LINE__);
+        return FALSE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_RSS_check_Interval", TRUE)) {
+        pcfg->Memwraptool_RSS_check_Interval = uValue;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_RSS_Threshold", TRUE)) {
+        pcfg->Memwraptool_RSS_Threshold = uValue;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Duration", TRUE)) {
+        pcfg->Memwraptool_Heapwalk_Duration = uValue;
+        return TRUE;
+    }
+    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
+        if (pcfg->Memwraptool_Heapwalk_Duration <= uValue) {
+            wifi_util_dbg_print(WIFI_DMCLI,
+                "%s:%d Heapwalk interval should be less than Heapwalk duration\n", __FUNCTION__,
+                __LINE__);
+            return FALSE;
+        }
+        pcfg->Memwraptool_Heapwalk_Interval = uValue;
+        return TRUE;
+    }
+    return FALSE;
+}
 
 /***********************************************************************
 APIs for Object:

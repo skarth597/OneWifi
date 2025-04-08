@@ -6853,6 +6853,11 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.assoc_gate_time  = 0;
     cfg.whix_log_interval = 3600;
     cfg.whix_chutility_loginterval = 900;
+    cfg.Memwraptool_enable = false;
+    cfg.Memwraptool_RSS_check_Interval = 300;
+    cfg.Memwraptool_RSS_Threshold = 1024;
+    cfg.Memwraptool_Heapwalk_Duration = 60;
+    cfg.Memwraptool_Heapwalk_Interval = 15;
     cfg.assoc_monitor_duration = 0;
     cfg.rapid_reconnect_enable = true;
     cfg.vap_stats_feature =  true;
