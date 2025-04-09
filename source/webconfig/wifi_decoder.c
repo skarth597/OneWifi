@@ -3999,6 +3999,31 @@ webconfig_error_t decode_blaster_object(const cJSON *blaster_cfg, active_msmt_t 
     return webconfig_error_none;
 }
 
+webconfig_error_t decode_memwraptool_subdoc(const cJSON *memwraptool_cfg,
+    wifi_global_param_t *memwrap_info)
+{
+    const cJSON *param;
+    cJSON *stepobj;
+    const cJSON *obj_array;
+
+    decode_param_bool(memwraptool_cfg, "Memwraptool_enable", param);
+    memwrap_info->Memwraptool_enable = (param->type & cJSON_True) ? true : false;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_RSS_check_Interval", param);
+    memwrap_info->Memwraptool_RSS_check_Interval = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_RSS_Threshold", param);
+    memwrap_info->Memwraptool_RSS_Threshold = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_Heapwalk_Duration", param);
+    memwrap_info->Memwraptool_Heapwalk_Duration = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_Heapwalk_Interval", param);
+    memwrap_info->Memwraptool_Heapwalk_Interval = param->valuedouble;
+
+    return webconfig_error_none;
+}
+
 webconfig_error_t decode_harvester_object(const cJSON *obj, instant_measurement_config_t *harvester)
 {
     const cJSON  *param;
