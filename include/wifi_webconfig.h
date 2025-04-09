@@ -113,6 +113,7 @@ typedef enum {
     webconfig_subdoc_type_wifiapivap,
     webconfig_subdoc_type_mac_filter,
     webconfig_subdoc_type_blaster,
+    webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_harvester,
     webconfig_subdoc_type_wifi_config,
     webconfig_subdoc_type_csi,
@@ -477,6 +478,15 @@ webconfig_error_t       decode_blaster_subdoc(webconfig_t *config, webconfig_sub
 webconfig_error_t       encode_blaster_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 webconfig_error_t       translate_to_blaster_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 webconfig_error_t       translate_from_blaster_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+
+//memwraptool config
+
+webconfig_error_t       init_memwraptool_subdoc(webconfig_subdoc_t *doc);
+webconfig_error_t       access_memwraptool_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       translate_to_memwraptool_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
+webconfig_error_t       translate_from_memwraptool_subdoc(webconfig_t *config, webconfig_subdoc_data_t *data);
 
 //harvester
 
