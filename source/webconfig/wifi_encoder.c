@@ -1795,9 +1795,6 @@ webconfig_error_t encode_blaster_object(const active_msmt_t *blaster_info, cJSON
 
 webconfig_error_t encode_memwraptool_object(wifi_global_param_t *memwrap_info, cJSON *memwrap_obj)
 {
-    cJSON *stepobj;
-    cJSON *obj_array;
-
     if(memwrap_info == NULL)
     {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
