@@ -3999,12 +3999,10 @@ webconfig_error_t decode_blaster_object(const cJSON *blaster_cfg, active_msmt_t 
     return webconfig_error_none;
 }
 
-webconfig_error_t decode_memwraptool_subdoc(const cJSON *memwraptool_cfg,
+webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
     wifi_global_param_t *memwrap_info)
 {
     const cJSON *param;
-    cJSON *stepobj;
-    const cJSON *obj_array;
 
     decode_param_bool(memwraptool_cfg, "Memwraptool_enable", param);
     memwrap_info->Memwraptool_enable = (param->type & cJSON_True) ? true : false;
