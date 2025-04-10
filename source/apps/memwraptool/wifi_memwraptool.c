@@ -46,7 +46,7 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
 int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
-    case webconfig_subdoc_type_memwraptool:
+    case wifi_event_type_webconfig:
         handle_memwraptool_webconfig_event(app, event);
         break;
     default:
