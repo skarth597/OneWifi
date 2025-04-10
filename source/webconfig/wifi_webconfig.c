@@ -453,7 +453,6 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_blaster].translate_from_subdoc = translate_from_blaster_subdoc;
 #endif
 
-#ifdef ONEWIFI_MEMWRAPTOOL_APP_SUPPORT
     config->subdocs[webconfig_subdoc_type_memwraptool].type = webconfig_subdoc_type_memwraptool;
     strcpy(config->subdocs[webconfig_subdoc_type_memwraptool].name, "memwraptool config");
     config->subdocs[webconfig_subdoc_type_memwraptool].major = 1;
@@ -464,7 +463,7 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_memwraptool].decode_subdoc = decode_memwraptool_subdoc;
     config->subdocs[webconfig_subdoc_type_memwraptool].translate_to_subdoc = translate_to_memwraptool_subdoc;
     config->subdocs[webconfig_subdoc_type_memwraptool].translate_from_subdoc = translate_from_memwraptool_subdoc;
-#endif
+
 
 #ifdef ONEWIFI_HARVESTER_APP_SUPPORT
     config->subdocs[webconfig_subdoc_type_harvester].type = webconfig_subdoc_type_harvester;
@@ -548,6 +547,7 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_vif_neighbors].translate_from_subdoc = translate_from_vif_neighbors_subdoc;
 
 #ifdef EM_APP
+    
     config->subdocs[webconfig_subdoc_type_beacon_report].type = webconfig_subdoc_type_beacon_report;
     strcpy(config->subdocs[webconfig_subdoc_type_beacon_report].name, "Beacon Report");
     config->subdocs[webconfig_subdoc_type_beacon_report].major = 1;
@@ -722,6 +722,7 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_radio_6G].translate_from_subdoc = translate_from_single_radio_subdoc;
 
 #ifdef EM_APP
+    wifi_util_info_print(WIFI_WEBCONFIG,"EM_APP is enabled\n");   
     config->subdocs[webconfig_subdoc_type_em_config].type = webconfig_subdoc_type_em_config;
     strcpy(config->subdocs[webconfig_subdoc_type_em_config].name, "Easymesh Config");
     config->subdocs[webconfig_subdoc_type_em_config].major = 1;
