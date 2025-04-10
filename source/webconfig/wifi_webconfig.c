@@ -458,7 +458,7 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_memwraptool].major = 1;
     config->subdocs[webconfig_subdoc_type_memwraptool].minor = 1;
     config->subdocs[webconfig_subdoc_type_memwraptool].init_subdoc = init_memwraptool_subdoc;
-    config->subdocs[webconfig_subdoc_type_memwraptool].access_check_subdoc = access_check_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].access_check_subdoc = access_memwraptool_subdoc;
     config->subdocs[webconfig_subdoc_type_memwraptool].encode_subdoc = encode_memwraptool_subdoc;
     config->subdocs[webconfig_subdoc_type_memwraptool].decode_subdoc = decode_memwraptool_subdoc;
     config->subdocs[webconfig_subdoc_type_memwraptool].translate_to_subdoc = translate_to_memwraptool_subdoc;
