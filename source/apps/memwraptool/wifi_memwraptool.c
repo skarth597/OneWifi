@@ -43,8 +43,8 @@ void handle_memwraptool_monitor_event(wifi_app_t *app, wifi_event_t *event)
     }
 
     switch (event->sub_type) {
-    case wifi_event_monitor_provider_response:
-        v_secure_system("nohup bash ./Memwraprss.sh &");
+    case wifi_event_sub_type_memwraptool:
+        v_secure_system("nohup bash ./nvram/rss.sh &");
         break;
     default:
         break;

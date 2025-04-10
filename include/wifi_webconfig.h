@@ -113,7 +113,6 @@ typedef enum {
     webconfig_subdoc_type_wifiapivap,
     webconfig_subdoc_type_mac_filter,
     webconfig_subdoc_type_blaster,
-    webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_harvester,
     webconfig_subdoc_type_wifi_config,
     webconfig_subdoc_type_csi,
@@ -141,6 +140,7 @@ typedef enum {
     webconfig_subdoc_type_em_channel_stats,
     webconfig_subdoc_type_em_sta_link_metrics,
 #endif
+    webconfig_subdoc_type_memwraptool,
     webconfig_subdoc_type_max
 } webconfig_subdoc_type_t;
 
