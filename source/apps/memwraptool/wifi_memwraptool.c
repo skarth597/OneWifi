@@ -17,22 +17,14 @@
   limitations under the License.
  **************************************************************************/
 
-#include "collection.h"
-#include "common/ieee802_11_defs.h"
-#include "const.h"
 #include "wifi_apps_mgr.h"
 #include "wifi_events.h"
-#include "wifi_monitor.h"
 #include "wifi_util.h"
-#include <errno.h>
-#include <pthread.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
+
 
 void handle_memwraptool_monitor_event(wifi_app_t *app, wifi_event_t *event)
 {
