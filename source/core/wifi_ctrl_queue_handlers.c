@@ -3107,6 +3107,11 @@ static void process_monitor_init_command(void)
     free(data);
 }
 
+INT wifi_sendActionFrameExt(INT apIndex, mac_address_t MacAddr, UINT frequency, UINT wait, UCHAR *frame, UINT len)
+{
+    return 0;
+}
+
 void process_send_action_frame_command(void *data, unsigned int len)
 {
     action_frame_params_t *params;
