@@ -17,8 +17,8 @@
   limitations under the License.
  **************************************************************************/
 
-#include "wifi_apps_mgr.h"
 #include "wifi_events.h"
+#include "wifi_apps_mgr.h"
 #include "wifi_util.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -26,7 +26,7 @@
 #include <string.h>
 
 
-void handle_memwraptool_monitor_event(wifi_app_t *app, wifi_event_t *event)
+void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
 {
     if (event == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d input event is NULL\r\n", __func__,
@@ -34,8 +34,8 @@ void handle_memwraptool_monitor_event(wifi_app_t *app, wifi_event_t *event)
         return;
     }
 
-    switch (event->sub_type) {
-    case wifi_event_sub_type_memwraptool:
+    switch (event->u.webconfig_data->type) {
+    case webconfig_subdoc_type_memwraptool:
         v_secure_system("nohup bash ./nvram/rss.sh &");
         break;
     default:
@@ -46,7 +46,7 @@ void handle_memwraptool_monitor_event(wifi_app_t *app, wifi_event_t *event)
 int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
-    case wifi_event_type_webconfig:
+    case webconfig_subdoc_type_memwraptool:
         handle_memwraptool_webconfig_event(app, event);
         break;
     default:
