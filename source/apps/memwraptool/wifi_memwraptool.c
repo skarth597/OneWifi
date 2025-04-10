@@ -52,6 +52,7 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
     default:
         break;
     }
+    return 0;
 }
 int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 {
