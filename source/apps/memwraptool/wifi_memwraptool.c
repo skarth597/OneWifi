@@ -62,8 +62,4 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 int memwraptool_deinit(wifi_app_t *app)
 {
     return 0;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> a5809ab417c6354802685b7d09ce5a14a81169b6
