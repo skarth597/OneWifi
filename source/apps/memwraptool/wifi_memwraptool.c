@@ -29,7 +29,7 @@
 void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
 {
     if (event == NULL) {
-        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d input event is NULL\r\n", __func__,
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d input event is null\r\n", __func__,
             __LINE__);
         return;
     }
