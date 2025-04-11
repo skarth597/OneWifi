@@ -1801,7 +1801,7 @@ webconfig_error_t encode_memwraptool_object(wifi_global_param_t *memwrap_info, c
         return webconfig_error_encode;
     }
 
-    cJSON_AddNumberToObject(memwrap_obj, "Memwraptoom_RSS_check_Interval", memwrap_info->Memwraptool_RSS_check_Interval);
+    cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_RSS_check_Interval", memwrap_info->Memwraptool_RSS_check_Interval);
     cJSON_AddNumberToObject(memwrap_obj,"Memwraptool_RSS_Threshold",memwrap_info->Memwraptool_RSS_Threshold);
     cJSON_AddNumberToObject(memwrap_obj,"Memwraptool_Heapwalk_Duration",memwrap_info->Memwraptool_Heapwalk_Duration);
     cJSON_AddNumberToObject(memwrap_obj,"Memwraptool_Heapwalk_Interval",memwrap_info->Memwraptool_Heapwalk_Interval);

@@ -475,25 +475,25 @@
                 <writable>true</writable>
             </parameter>
             <parameter>
-                <name>RSS_check_Interval</name>
+                <name>Memwraptool_RSS_check_Interval</name>
                 <type>unsignedInt</type>
                 <syntax>uint32</syntax>
                 <writable>true</writable>
             </parameter>
             <parameter>
-                <name>RSS_Threshold</name>
+                <name>Memwraptool_RSS_Threshold</name>
                 <type>unsignedInt</type>
                 <syntax>uint32</syntax>
                 <writable>true</writable>
             </parameter>
             <parameter>
-                <name>Heapwalk_Duration</name>
+                <name>Memwraptool_Heapwalk_Duration</name>
                 <type>unsignedInt</type>
                 <syntax>uint32</syntax>
                 <writable>true</writable>
             </parameter>
             <parameter>
-                <name>Heapwalk_Interval</name>
+                <name>Memwraptool_Heapwalk_Interval</name>
                 <type>unsignedInt</type>
                 <syntax>uint32</syntax>
                 <writable>true</writable>
