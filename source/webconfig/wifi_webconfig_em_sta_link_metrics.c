@@ -28,7 +28,6 @@
 #include "wifi_util.h"
 #include "wifi_ctrl.h"
 
-#ifdef EM_APP
 webconfig_subdoc_object_t   em_sta_link_metrics_objects[3] = {
     { webconfig_subdoc_object_type_version, "Version" },
     { webconfig_subdoc_object_type_subdoc, "SubDocName" },
@@ -158,5 +157,3 @@ webconfig_error_t decode_em_sta_link_subdoc(webconfig_t *config, webconfig_subdo
     wifi_util_info_print(WIFI_EM, "%s:%d: decode success\n", __func__, __LINE__);
     return webconfig_error_none;
 }
-
-#endif // EM_APP
