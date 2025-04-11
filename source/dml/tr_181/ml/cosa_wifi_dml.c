@@ -4491,7 +4491,7 @@ BOOL MemwrapTool_SetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, UL
         return TRUE;
     }
     if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
-        if (pcfg->Memwraptool_Heapwalk_Duration <= (ULONG)uValue) {
+        if ((ULONG)pcfg->Memwraptool_Heapwalk_Duration <= uValue) {
             wifi_util_dbg_print(WIFI_DMCLI,
                 "%s:%d Heapwalk interval should be less than Heapwalk duration\n", __FUNCTION__,
                 __LINE__);
