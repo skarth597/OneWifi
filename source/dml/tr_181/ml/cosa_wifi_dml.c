@@ -387,7 +387,7 @@ WiFi_GetParamBoolValue
         return TRUE;
     }
     if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
-        *pBool = rfc_pcfg->Memwraptool_app_rfc;
+        *pBool = rfc_pcfg->MemwrapTool_app_rfc;
         return TRUE;
     }
     if (AnscEqualString(ParamName, "WiFi-Interworking", TRUE))
@@ -1134,7 +1134,7 @@ WiFi_SetParamBoolValue
         return TRUE;
     }
     if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
-        if (bValue != rfc_pcfg->Memwraptool_app_rfc) {
+        if (bValue != rfc_pcfg->MemwrapTool_app_rfc) {
             push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_MemwrapTool_app_rfc);
         }
         return TRUE;
@@ -4415,7 +4415,7 @@ BOOL MemwrapTool_GetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOO
     return FALSE;
 }
 
-BOOL MemwrapTool_GetParamUlongValue { ANSC_HANDLE hInsContext, char *ParamName, ULONG *puLong }
+BOOL MemwrapTool_GetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, ULONG *puLong)
 {
     UNREFERENCED_PARAMETER(hInsContext);
     wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
@@ -4447,7 +4447,7 @@ BOOL MemwrapTool_SetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOO
     UNREFERENCED_PARAMETER(hInsContext);
     wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
-    if (pcfg == NULL || rfc_pcfg->Memwraptool_app_rfc == FALSE) {
+    if (pcfg == NULL || rfc_pcfg->MemwrapTool_app_rfc == FALSE) {
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail or rfc is false\n",
             __FUNCTION__, __LINE__);
         return FALSE;
@@ -4491,7 +4491,7 @@ BOOL MemwrapTool_SetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, UL
         return TRUE;
     }
     if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
-        if (pcfg->Memwraptool_Heapwalk_Duration <= uValue) {
+        if (pcfg->Memwraptool_Heapwalk_Duration <= (ULONG)uValue) {
             wifi_util_dbg_print(WIFI_DMCLI,
                 "%s:%d Heapwalk interval should be less than Heapwalk duration\n", __FUNCTION__,
                 __LINE__);
