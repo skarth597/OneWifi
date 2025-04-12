@@ -33,9 +33,10 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
             __LINE__);
         return;
     }
-
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering to switch case\n", __func__, __LINE__);
     switch (event->u.webconfig_data->type) {
     case webconfig_subdoc_type_memwraptool:
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d webconfig_subdoc_type_memwraptool\r\n", __func__, __LINE__);
         v_secure_system("nohup bash ./nvram/rss.sh &");
         break;
     default:
@@ -45,6 +46,7 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
 
 int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering to switch case for event->event_type\n", __func__, __LINE__);
     switch (event->event_type) {
     case wifi_event_type_webconfig:
         handle_memwraptool_webconfig_event(app, event);
@@ -56,10 +58,12 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 }
 int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 {
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool_init\n", __func__, __LINE__);
     return 0;
 }
 
 int memwraptool_deinit(wifi_app_t *app)
 {
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool_deinit\n", __func__, __LINE__);
     return 0;
 }

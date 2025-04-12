@@ -4002,8 +4002,9 @@ webconfig_error_t decode_blaster_object(const cJSON *blaster_cfg, active_msmt_t 
 webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
     wifi_global_param_t *memwrap_info)
 {
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
     const cJSON *param;
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is sent to decode\n", __func__, __LINE__);
     decode_param_bool(memwraptool_cfg, "Memwraptool_enable", param);
     memwrap_info->Memwraptool_enable = (param->type & cJSON_True) ? true : false;
 
@@ -4018,7 +4019,7 @@ webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
 
     decode_param_integer(memwraptool_cfg, "Memwraptool_Heapwalk_Interval", param);
     memwrap_info->Memwraptool_Heapwalk_Interval = param->valuedouble;
-
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is sent and decode successfully  completed\n", __func__, __LINE__);
     return webconfig_error_none;
 }
 
