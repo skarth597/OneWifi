@@ -110,7 +110,9 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     memcpy(data->u.encoded.raw, str, strlen(str));
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Encoded success %s\n", __func__, __LINE__, str);
     cJSON_free(str);
-    cJSON_delete(json);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Cjson free after encode success %s\n", __func__, __LINE__, str);
+    cJSON_Delete(json);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Cjson delete after encode success %s\n", __func__, __LINE__, str);
     return webconfig_error_none;
 }
 
