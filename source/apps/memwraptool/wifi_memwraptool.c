@@ -22,7 +22,7 @@
 #include "wifi_util.h"
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include "stdlib.h"
 #include <string.h>
 #include "wifi_stubs.h"
 #include "secure_wrapper.h"
@@ -39,7 +39,15 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     switch (event->u.webconfig_data->type) {
     case webconfig_subdoc_type_memwraptool:
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d webconfig_subdoc_type_memwraptool\r\n", __func__, __LINE__);
-        get_stubs_descriptor()->v_secure_system_fn("/bin/sh -c '/usr/ccsp/wifi/Heapwalkscheckrss.sh' &");
+        int ret = system("/bin/sh -c '/usr/ccsp/wifi/Heapwalkscheckrss.sh' &");
+        if(!ret)
+        {
+            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
+        }
+        else
+        {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Heapwalkscheckrss.sh script execution failed\r\n", __func__, __LINE__);
+        }
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d v_secure_system_fn is called\r\n", __func__, __LINE__);
         break;
     default:
