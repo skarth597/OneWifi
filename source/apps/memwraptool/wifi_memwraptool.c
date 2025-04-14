@@ -39,7 +39,7 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     switch (event->u.webconfig_data->type) {
     case webconfig_subdoc_type_memwraptool:
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d webconfig_subdoc_type_memwraptool\r\n", __func__, __LINE__);
-        int ret = v_secure_system("/bin/sh -c '/usr/ccsp/wifi/Heapwalkscheckrss.sh' &");
+        int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh &");
         if(!ret)
         {
             wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
