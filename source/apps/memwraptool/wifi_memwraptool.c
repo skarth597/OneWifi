@@ -39,10 +39,8 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     switch (event->u.webconfig_data->type) {
     case webconfig_subdoc_type_memwraptool:
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d webconfig_subdoc_type_memwraptool\r\n", __func__, __LINE__);
-        get_stubs_descriptor()->v_secure_system_fn("nohup bash ./nvram/rss.sh &");
+        get_stubs_descriptor()->v_secure_system_fn("/bin/sh -c '/usr/ccsp/wifi/Heapwalkscheckrss.sh' &");
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d v_secure_system_fn is called\r\n", __func__, __LINE__);
-        v_secure_system("nohup bash ./nvram/rss.sh &");
-        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d v_secure_system is called\r\n", __func__, __LINE__);
         break;
     default:
         break;
