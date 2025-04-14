@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "wifi_stubs.h"
 
 
 void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
@@ -37,7 +38,7 @@ void handle_memwraptool_webconfig_event(wifi_app_t *app, wifi_event_t *event)
     switch (event->u.webconfig_data->type) {
     case webconfig_subdoc_type_memwraptool:
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d webconfig_subdoc_type_memwraptool\r\n", __func__, __LINE__);
-        v_secure_system("nohup bash ./nvram/rss.sh &");
+        get_stubs_descriptor()->v_secure_system_fn("nohup bash ./nvram/rss.sh &");
         break;
     default:
         break;
