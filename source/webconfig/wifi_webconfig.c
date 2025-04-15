@@ -453,6 +453,17 @@ webconfig_error_t webconfig_init(webconfig_t *config)
     config->subdocs[webconfig_subdoc_type_blaster].translate_from_subdoc = translate_from_blaster_subdoc;
 #endif
 
+    config->subdocs[webconfig_subdoc_type_memwraptool].type = webconfig_subdoc_type_memwraptool;
+    strcpy(config->subdocs[webconfig_subdoc_type_memwraptool].name, "memwraptool config");
+    config->subdocs[webconfig_subdoc_type_memwraptool].major = 1;
+    config->subdocs[webconfig_subdoc_type_memwraptool].minor = 1;
+    config->subdocs[webconfig_subdoc_type_memwraptool].init_subdoc = init_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].access_check_subdoc = access_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].encode_subdoc = encode_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].decode_subdoc = decode_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].translate_to_subdoc = translate_to_memwraptool_subdoc;
+    config->subdocs[webconfig_subdoc_type_memwraptool].translate_from_subdoc = translate_from_memwraptool_subdoc;
+
 #ifdef ONEWIFI_HARVESTER_APP_SUPPORT
     config->subdocs[webconfig_subdoc_type_harvester].type = webconfig_subdoc_type_harvester;
     strcpy(config->subdocs[webconfig_subdoc_type_harvester].name, "instant measurement config");

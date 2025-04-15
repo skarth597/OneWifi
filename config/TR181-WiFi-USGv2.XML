@@ -501,7 +501,6 @@
             </parameters>
         </object>
         <object>
-        <object>
         <name>X_RDKCENTRAL-COM_Report</name>
         <objectType>object</objectType>
 	<functions></functions>
