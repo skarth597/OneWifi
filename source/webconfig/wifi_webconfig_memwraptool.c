@@ -133,6 +133,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
             __LINE__);
         wifi_util_error_print(WIFI_WEBCONFIG, "%s\n", (char *)data->u.encoded.raw);
+        cJSON_Delete(json);
         return webconfig_error_invalid_subdoc;
     }
     cJSON_Delete(json);

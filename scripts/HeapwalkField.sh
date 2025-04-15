@@ -45,13 +45,13 @@ done
         current_pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
         if [ -z "$current_pid" ]; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') Onewifi process not found." >> "$log_file"
-			nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+			/usr/ccsp/wifi/Heapwalkcheckrss.sh &
             exit 1
         fi
 
         if [ "$current_pid" != "$initial_pid" ]; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') PID has changed. Exiting." >> "$log_file"
-			nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+			/usr/ccsp/wifi/Heapwalkcheckrss.sh &
             exit 1
         else
             # Run memleakutil with input provided directly in the script

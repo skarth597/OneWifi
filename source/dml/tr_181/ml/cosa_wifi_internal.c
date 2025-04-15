@@ -1067,7 +1067,7 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
         /* Set default value */
         MemwrapTool_RFC = 0;
     }
-    push_rfc_dml_cache_to_one_wifidb(MemwrapTool_RFC, wifi_event_type_MemwrapTool_app_rfc);
+    push_rfc_dml_cache_to_one_wifidb(MemwrapTool_RFC, wifi_event_type_memwraptool_app_rfc);
 #endif // FEATURE_MemwrapTool
 
 #if defined (FEATURE_OFF_CHANNEL_SCAN_5G)

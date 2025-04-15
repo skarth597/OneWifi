@@ -1808,8 +1808,7 @@ webconfig_error_t encode_memwraptool_object(wifi_global_param_t *memwrap_info, c
     cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_Heapwalk_Interval",
         memwrap_info->Memwraptool_Heapwalk_Interval);
     cJSON_AddBoolToObject(memwrap_obj, "Memwraptool_enable", memwrap_info->Memwraptool_enable);
-    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Memwrap info encode is completed\n", __func__,
-        __LINE__);
+
     return webconfig_error_none;
 }
 

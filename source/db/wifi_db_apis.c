@@ -232,7 +232,7 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
         rfc_param->hotspot_open_6g_last_enabled = new_rec->hotspot_open_6g_last_enabled;
         rfc_param->hotspot_secure_2g_last_enabled = new_rec->hotspot_secure_2g_last_enabled;
         rfc_param->hotspot_secure_5g_last_enabled = new_rec->hotspot_secure_5g_last_enabled;
-        rfc_param->MemwrapTool_app_rfc = new_rec->MemwrapTool_app_rfc;
+        rfc_param->memwraptool_app_rfc = new_rec->memwraptool_app_rfc;
         rfc_param->wifi_offchannelscan_app_rfc = new_rec->wifi_offchannelscan_app_rfc;
         rfc_param->wifi_offchannelscan_sm_rfc = new_rec->wifi_offchannelscan_sm_rfc;
         rfc_param->hotspot_secure_6g_last_enabled = new_rec->hotspot_secure_6g_last_enabled;
@@ -255,7 +255,7 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
             rfc_param->hotspot_open_6g_last_enabled, rfc_param->hotspot_secure_2g_last_enabled,
             rfc_param->hotspot_secure_5g_last_enabled, rfc_param->hotspot_secure_6g_last_enabled,
             rfc_param->wifi_offchannelscan_app_rfc, rfc_param->wifi_offchannelscan_sm_rfc,
-            rfc_param->MemwrapTool_app_rfc, rfc_param->rfc_id, rfc_param->levl_enabled_rfc,
+            rfc_param->memwraptool_app_rfc, rfc_param->rfc_id, rfc_param->levl_enabled_rfc,
             rfc_param->tcm_enabled_rfc, rfc_param->wpa3_compatibility_enable);
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     }
@@ -1698,7 +1698,7 @@ int wifidb_get_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_info)
     rfc_info->hotspot_secure_2g_last_enabled= pcfg->hotspot_secure_2g_last_enabled;
     rfc_info->hotspot_secure_2g_last_enabled= pcfg->hotspot_secure_5g_last_enabled;
     rfc_info->hotspot_secure_6g_last_enabled= pcfg->hotspot_secure_6g_last_enabled;
-    rfc_info->MemwrapTool_app_rfc = pcfg->MemwrapTool_app_rfc;
+    rfc_info->memwraptool_app_rfc = pcfg->memwraptool_app_rfc;
     rfc_info->wifi_offchannelscan_app_rfc = pcfg->wifi_offchannelscan_app_rfc;
     rfc_info->wifi_offchannelscan_sm_rfc = pcfg->wifi_offchannelscan_sm_rfc;
     rfc_info->tcm_enabled_rfc = pcfg->tcm_enabled_rfc;
@@ -4249,7 +4249,7 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     rfc_config.hotspot_secure_2g_last_enabled = false;
     rfc_config.hotspot_secure_5g_last_enabled = false;
     rfc_config.hotspot_secure_6g_last_enabled = false;
-    rfc_config.MemwrapTool_app_rfc = false;
+    rfc_config.memwraptool_app_rfc = false;
     rfc_config.wifi_offchannelscan_app_rfc = false;
     rfc_config.wifi_offchannelscan_sm_rfc = false;
     rfc_config.tcm_enabled_rfc = false;
@@ -5476,7 +5476,7 @@ int wifidb_update_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_param)
     cfg.hotspot_secure_2g_last_enabled = rfc_param->hotspot_secure_2g_last_enabled;
     cfg.hotspot_secure_5g_last_enabled = rfc_param->hotspot_secure_5g_last_enabled;
     cfg.hotspot_secure_6g_last_enabled = rfc_param->hotspot_secure_6g_last_enabled;
-    cfg.MemwrapTool_app_rfc = rfc_param->MemwrapTool_app_rfc;
+    cfg.memwraptool_app_rfc = rfc_param->memwraptool_app_rfc;
     cfg.wifi_offchannelscan_app_rfc = rfc_param->wifi_offchannelscan_app_rfc;
     cfg.wifi_offchannelscan_sm_rfc = rfc_param->wifi_offchannelscan_sm_rfc;
     cfg.tcm_enabled_rfc = rfc_param->tcm_enabled_rfc;

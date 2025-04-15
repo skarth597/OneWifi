@@ -31,10 +31,10 @@ current_date=$(date)
 
 # Echo the date and time
 echo "Current date and time: $current_date" >> "$log_file"
-RSSInterval=`dmcli eRT getv Device.WiFi.MemwrapTool.Memwraptool_RSS_check_Interval | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
-RSSThreshold=`dmcli eRT getv Device.WiFi.MemwrapTool.Memwraptool_RSS_Threshold | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
-HeapwalkDuration=`dmcli eRT getv Device.WiFi.MemwrapTool.Memwraptool_Heapwalk_Duration | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
-HeapwalkInterval=`dmcli eRT getv Device.WiFi.MemwrapTool.Memwraptool_Heapwalk_Interval | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
+RSSInterval=`dmcli eRT getv Device.WiFi.MemwrapTool.RssCheckInterval | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
+RSSThreshold=`dmcli eRT getv Device.WiFi.MemwrapTool.RssThreshold | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
+HeapwalkDuration=`dmcli eRT getv Device.WiFi.MemwrapTool.HeapwalkDuration | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
+HeapwalkInterval=`dmcli eRT getv Device.WiFi.MemwrapTool.HeapwalkInterval | grep "value:" |  cut -f2- -d: |  cut -f2- -d:`
 
 echo "RSS Interval: $RSSInterval" >> "$log_file"
 echo "RSS Threshold: $RSSThresholdl" >> "$log_file"
@@ -56,7 +56,7 @@ if [ -z "$onewifi_pid" ]; then
   retry_count=$(cat "$retry_file")
   if [ "$retry_count" -lt "$max_retries" ]; then
     echo $((retry_count + 1)) > "$retry_file"
-    nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+    /usr/ccsp/wifi/Heapwalkcheckrss.sh &
   else
     echo "$(date '+%Y-%m-%d %H:%M:%S') Max retries reached. Exiting script." >> "$log_file"
     exit 1
@@ -76,7 +76,7 @@ if [ ! -f "$STATUS_FILE" ]; then
   retry_count=$(cat "$retry_file")
   if [ "$retry_count" -lt "$max_retries" ]; then
     echo $((retry_count + 1)) > "$retry_file"
-    nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+    /usr/ccsp/wifi/Heapwalkcheckrss.sh &
   else
     echo "$(date '+%Y-%m-%d %H:%M:%S') Max retries reached. Exiting script." >> "$log_file"
     exit 1
@@ -85,6 +85,7 @@ if [ ! -f "$STATUS_FILE" ]; then
 fi
 initial_vmrss=$(grep -i 'VmRSS' "$STATUS_FILE" | awk '{print $2}')
 echo "$(date '+%Y-%m-%d %H:%M:%S') Initial RSS : $initial_vmrss" >> "$log_file"
+
 while true; do
     sleep $RSSInterval
     echo "$(date '+%Y-%m-%d %H:%M:%S') Sleeping for $RSSInterval" >> "$log_file"
@@ -94,7 +95,7 @@ if [ -z "$onewifi_pid2" ]; then
   retry_count=$(cat "$retry_file")
   if [ "$retry_count" -lt "$max_retries" ]; then
     echo $((retry_count + 1)) > "$retry_file"
-    nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+    /usr/ccsp/wifi/Heapwalkcheckrss.sh &
   else
     echo "$(date '+%Y-%m-%d %H:%M:%S') Max retries reached. Exiting script." >> "$log_file"
     exit 1
@@ -106,7 +107,7 @@ if [ $onewifi_pid != $onewifi_pid2 ]; then
   retry_count=$(cat "$retry_file")
   if [ "$retry_count" -lt "$max_retries" ]; then
     echo $((retry_count + 1)) > "$retry_file"
-    nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+    /usr/ccsp/wifi/Heapwalkcheckrss.sh &
   else
     echo "$(date '+%Y-%m-%d %H:%M:%S') Max retries reached. Exiting script." >> "$log_file"
     exit 1
@@ -119,7 +120,7 @@ if [ ! -f "$STATUS_FILE" ]; then
   retry_count=$(cat "$retry_file")
   if [ "$retry_count" -lt "$max_retries" ]; then
     echo $((retry_count + 1)) > "$retry_file"
-    nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
+    /usr/ccsp/wifi/Heapwalkcheckrss.sh &
   else
     echo "$(date '+%Y-%m-%d %H:%M:%S') Max retries reached. Exiting script." >> "$log_file"
     exit 1
@@ -134,7 +135,7 @@ fi
        heapwalk_pid=$(ps | grep "/usr/ccsp/wifi/HeapwalkField.sh" | grep -v grep | awk '{print $1}')
        echo "$(date '+%Y-%m-%d %H:%M:%S') HeapwalkField.sh pid : $heapwalk_pid" >> "$log_file"
           if [ -z "$heapwalk_pid" ]; then
-            nohup bash /usr/ccsp/wifi/HeapwalkField.sh "$HeapwalkDuration" "$HeapwalkInterval" &
+            /usr/ccsp/wifi/HeapwalkField.sh "$HeapwalkDuration" "$HeapwalkInterval" &
             echo "$(date '+%Y-%m-%d %H:%M:%S') RSS increased. Running the other script." >> "$log_file"
             sleep "$HeapwalkDuration"
           else

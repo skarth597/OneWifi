@@ -387,7 +387,7 @@ WiFi_GetParamBoolValue
         return TRUE;
     }
     if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
-        *pBool = rfc_pcfg->MemwrapTool_app_rfc;
+        *pBool = rfc_pcfg->memwraptool_app_rfc;
         return TRUE;
     }
     if (AnscEqualString(ParamName, "WiFi-Interworking", TRUE))
@@ -1134,8 +1134,8 @@ WiFi_SetParamBoolValue
         return TRUE;
     }
     if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
-        if (bValue != rfc_pcfg->MemwrapTool_app_rfc) {
-            push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_MemwrapTool_app_rfc);
+        if (bValue != rfc_pcfg->memwraptool_app_rfc) {
+            push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_memwraptool_app_rfc);
         }
         return TRUE;
     }
@@ -4434,19 +4434,19 @@ BOOL MemwrapTool_GetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, UL
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail\n", __FUNCTION__, __LINE__);
         return FALSE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_RSS_check_Interval", TRUE)) {
+    if (AnscEqualString(ParamName, "RssCheckInterval", TRUE)) {
         *puLong = pcfg->Memwraptool_RSS_check_Interval;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_RSS_Threshold", TRUE)) {
+    if (AnscEqualString(ParamName, "RssThreshold", TRUE)) {
         *puLong = pcfg->Memwraptool_RSS_Threshold;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Duration", TRUE)) {
+    if (AnscEqualString(ParamName, "HeapwalkDuration", TRUE)) {
         *puLong = pcfg->Memwraptool_Heapwalk_Duration;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
+    if (AnscEqualString(ParamName, "HeapwalkInterval", TRUE)) {
         *puLong = pcfg->Memwraptool_Heapwalk_Interval;
         return TRUE;
     }
@@ -4458,7 +4458,7 @@ BOOL MemwrapTool_SetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOO
     UNREFERENCED_PARAMETER(hInsContext);
     wifi_global_param_t *pcfg = (wifi_global_param_t *)get_dml_wifi_global_param();
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
-    if (pcfg == NULL || rfc_pcfg->MemwrapTool_app_rfc == FALSE) {
+    if (pcfg == NULL || rfc_pcfg->memwraptool_app_rfc == FALSE) {
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail or rfc is false\n",
             __FUNCTION__, __LINE__);
         return FALSE;
@@ -4489,21 +4489,21 @@ BOOL MemwrapTool_SetParamUlongValue(ANSC_HANDLE hInsContext, char *ParamName, UL
         wifi_util_dbg_print(WIFI_DMCLI, "%s:%d NULL pointer Get fail\n", __FUNCTION__, __LINE__);
         return FALSE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_RSS_check_Interval", TRUE)) {
+    if (AnscEqualString(ParamName, "RssCheckInterval", TRUE)) {
         pcfg->Memwraptool_RSS_check_Interval = uValue;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_RSS_Threshold", TRUE)) {
+    if (AnscEqualString(ParamName, "RssThreshold", TRUE)) {
         pcfg->Memwraptool_RSS_Threshold = uValue;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Duration", TRUE)) {
+    if (AnscEqualString(ParamName, "HeapwalkDuration", TRUE)) {
         pcfg->Memwraptool_Heapwalk_Duration = uValue;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "Memwraptool_Heapwalk_Interval", TRUE)) {
+    if (AnscEqualString(ParamName, "HeapwalkInterval", TRUE)) {
         if ((ULONG)pcfg->Memwraptool_Heapwalk_Duration <= uValue) {
-            wifi_util_dbg_print(WIFI_DMCLI,
+            wifi_util_error_print(WIFI_DMCLI,
                 "%s:%d Heapwalk interval should be less than Heapwalk duration\n", __FUNCTION__,
                 __LINE__);
             return FALSE;

@@ -1293,7 +1293,6 @@ int push_vap_dml_cache_to_one_wifidb()
 
 int push_memwraptool_config_to_ctrl_queue()
 {
-    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering \n", __func__, __LINE__);
     webconfig_subdoc_data_t data;
     char *str = NULL;
     wifi_mgr_t *g_wifidb = get_wifimgr_obj();

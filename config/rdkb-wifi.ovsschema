@@ -1718,7 +1718,7 @@
             "max": 1
           }
         },
-        "MemwrapTool_app_rfc": {
+        "memwraptool_app_rfc": {
           "type": {
             "key": {
               "type": "boolean"
