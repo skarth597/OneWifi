@@ -1056,7 +1056,6 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
 
     push_rfc_dml_cache_to_one_wifidb(l_passpoint_RFC,wifi_event_type_wifi_passpoint_rfc);
 
-#if defined(FEATURE_MEMWRAPTOOL)
     bool MemwrapTool_RFC;
     char *str1 = NULL;
     str1 = PSM_Get_Record_Status("Device.DeviceInfo.X_RDK_RFC.Feature.MemwrapTool.Enable",
@@ -1068,7 +1067,6 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
         MemwrapTool_RFC = 0;
     }
     push_rfc_dml_cache_to_one_wifidb(MemwrapTool_RFC, wifi_event_type_memwraptool_app_rfc);
-#endif // FEATURE_MEMWRAPTOOL
 
 #if defined (FEATURE_OFF_CHANNEL_SCAN_5G)
     bool q_offchannelscan_RFC;
