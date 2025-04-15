@@ -1057,10 +1057,10 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
     push_rfc_dml_cache_to_one_wifidb(l_passpoint_RFC,wifi_event_type_wifi_passpoint_rfc);
 
     bool MemwrapTool_RFC;
-    char *str1 = NULL;
-    str1 = PSM_Get_Record_Status("Device.DeviceInfo.X_RDK_RFC.Feature.MemwrapTool.Enable",
+    char *str2 = NULL;
+    str2 = PSM_Get_Record_Status("Device.DeviceInfo.X_RDK_RFC.Feature.MemwrapTool.Enable",
         strValue, sizeof(strValue));
-    if (str1 != NULL) {
+    if (str2 != NULL) {
         MemwrapTool_RFC = _ansc_atoi(str1);
     } else {
         /* Set default value */
