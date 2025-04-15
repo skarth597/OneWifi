@@ -386,7 +386,7 @@ WiFi_GetParamBoolValue
         *pBool = rfc_pcfg->wifi_offchannelscan_sm_rfc;
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
+    if (AnscEqualString(ParamName, "MemwrapTool-APP", TRUE)) {
         *pBool = rfc_pcfg->memwraptool_app_rfc;
         return TRUE;
     }
@@ -1133,7 +1133,7 @@ WiFi_SetParamBoolValue
         }
         return TRUE;
     }
-    if (AnscEqualString(ParamName, "MemwrapTool", TRUE)) {
+    if (AnscEqualString(ParamName, "MemwrapTool-APP", TRUE)) {
         if (bValue != rfc_pcfg->memwraptool_app_rfc) {
             push_rfc_dml_cache_to_one_wifidb(bValue, wifi_event_type_memwraptool_app_rfc);
         }

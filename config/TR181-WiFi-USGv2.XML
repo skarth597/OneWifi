@@ -303,7 +303,7 @@
         </parameter>
         <parameter>
         <parameter>
-            <name>MemwrapTool</name>
+            <name>MemwrapTool-APP</name>
             <type>boolean</type>
             <syntax>bool</syntax>
             <writable>true</writable>
