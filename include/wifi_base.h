@@ -141,7 +141,8 @@ typedef enum {
     wifi_app_inst_ocs = wifi_app_inst_base << 15,
     wifi_app_inst_easyconnect = wifi_app_inst_base << 16,
     wifi_app_inst_sta_mgr = wifi_app_inst_base << 17,
-    wifi_app_inst_max = wifi_app_inst_base << 18
+    wifi_app_inst_memwraptool = wifi_app_inst_base << 18,
+    wifi_app_inst_max = wifi_app_inst_base << 19
 } wifi_app_inst_t;
 
 typedef struct {
@@ -421,6 +422,7 @@ typedef struct {
 }levl_config_t;
 
 typedef struct {
+    bool MemwrapTool_app_rfc;
     bool wifi_offchannelscan_app_rfc;
     bool wifi_offchannelscan_sm_rfc;
     bool wifipasspoint_rfc;
@@ -472,6 +474,11 @@ typedef struct {
     int  assoc_gate_time;
     int  whix_log_interval; //seconds
     int  whix_chutility_loginterval; //seconds
+    bool Memwraptool_enable;
+    int Memwraptool_RSS_check_Interval; //seconds
+    int Memwraptool_RSS_Threshold; //bytes
+    int Memwraptool_Heapwalk_Duration; // minutes
+    int Memwraptool_Heapwalk_Interval; // minutes
     int  assoc_monitor_duration;
     bool rapid_reconnect_enable;
     bool vap_stats_feature;

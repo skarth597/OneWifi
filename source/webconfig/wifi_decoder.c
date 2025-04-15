@@ -3999,6 +3999,30 @@ webconfig_error_t decode_blaster_object(const cJSON *blaster_cfg, active_msmt_t 
     return webconfig_error_none;
 }
 
+webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
+    wifi_global_param_t *memwrap_info)
+{
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
+    const cJSON *param;
+    decode_param_bool(memwraptool_cfg, "Memwraptool_enable", param);
+    memwrap_info->Memwraptool_enable = (param->type & cJSON_True) ? true : false;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_RSS_check_Interval", param);
+    memwrap_info->Memwraptool_RSS_check_Interval = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_RSS_Threshold", param);
+    memwrap_info->Memwraptool_RSS_Threshold = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_Heapwalk_Duration", param);
+    memwrap_info->Memwraptool_Heapwalk_Duration = param->valuedouble;
+
+    decode_param_integer(memwraptool_cfg, "Memwraptool_Heapwalk_Interval", param);
+    memwrap_info->Memwraptool_Heapwalk_Interval = param->valuedouble;
+    wifi_util_info_print(WIFI_WEBCONFIG,
+        "%s:%d Memwrap info is sent and decode successfully  completed\n", __func__, __LINE__);
+    return webconfig_error_none;
+}
+
 webconfig_error_t decode_harvester_object(const cJSON *obj, instant_measurement_config_t *harvester)
 {
     const cJSON  *param;

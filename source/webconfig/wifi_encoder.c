@@ -1793,6 +1793,26 @@ webconfig_error_t encode_blaster_object(const active_msmt_t *blaster_info, cJSON
     return webconfig_error_none;
 }
 
+webconfig_error_t encode_memwraptool_object(wifi_global_param_t *memwrap_info, cJSON *memwrap_obj)
+{
+    if (memwrap_info == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
+        return webconfig_error_encode;
+    }
+    cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_RSS_check_Interval",
+        memwrap_info->Memwraptool_RSS_check_Interval);
+    cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_RSS_Threshold",
+        memwrap_info->Memwraptool_RSS_Threshold);
+    cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_Heapwalk_Duration",
+        memwrap_info->Memwraptool_Heapwalk_Duration);
+    cJSON_AddNumberToObject(memwrap_obj, "Memwraptool_Heapwalk_Interval",
+        memwrap_info->Memwraptool_Heapwalk_Interval);
+    cJSON_AddBoolToObject(memwrap_obj, "Memwraptool_enable", memwrap_info->Memwraptool_enable);
+    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d Memwrap info encode is completed\n", __func__,
+        __LINE__);
+    return webconfig_error_none;
+}
+
 webconfig_error_t encode_wifivapcap(wifi_interface_name_idex_map_t *interface_map, cJSON *hal_obj)
 {
     cJSON *object;

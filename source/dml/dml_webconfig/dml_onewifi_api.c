@@ -1291,6 +1291,34 @@ int push_vap_dml_cache_to_one_wifidb()
     return RETURN_OK;
 }
 
+int push_memwraptool_config_to_ctrl_queue()
+{
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering \n", __func__, __LINE__);
+    webconfig_subdoc_data_t data;
+    char *str = NULL;
+    wifi_mgr_t *g_wifidb = get_wifimgr_obj();
+    memset(&data, 0, sizeof(webconfig_subdoc_data_t));
+    memcpy((unsigned char *)&data.u.decoded.config.global_parameters,
+        (unsigned char *)&g_wifidb->global_config.global_parameters, sizeof(wifi_global_param_t));
+    memcpy((unsigned char *)&data.u.decoded.hal_cap, (unsigned char *)&g_wifidb->hal_cap,
+        sizeof(wifi_hal_capability_t));
+
+    if (webconfig_encode(&webconfig_dml.webconfig, &data, webconfig_subdoc_type_memwraptool) ==
+        webconfig_error_none) {
+        str = data.u.encoded.raw;
+        wifi_util_info_print(WIFI_DMCLI, "%s:  Memwraptool subdoc encoded successfully \n",
+            __FUNCTION__);
+        push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
+            wifi_event_webconfig_set_data_dml, NULL);
+    } else {
+        wifi_util_error_print(WIFI_DMCLI, "%s:%d: Webconfig set failed\n", __func__, __LINE__);
+    }
+
+    webconfig_data_free(&data);
+
+    return RETURN_OK;
+}
+
 int push_blaster_config_dml_to_ctrl_queue()
 {
     webconfig_subdoc_data_t data;

@@ -1055,6 +1055,21 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
     }
 
     push_rfc_dml_cache_to_one_wifidb(l_passpoint_RFC,wifi_event_type_wifi_passpoint_rfc);
+
+#if defined(FEATURE_MemwrapTool)
+    bool MemwrapTool_RFC;
+    char *str1 = NULL;
+    str1 = PSM_Get_Record_Status("Device.DeviceInfo.X_RDK_RFC.Feature.MemwrapTool.Enable",
+        strValue);
+    if (str1 != NULL) {
+        MemwrapTool_RFC = _ansc_atoi(str1);
+    } else {
+        /* Set default value */
+        MemwrapTool_RFC = 0;
+    }
+    push_rfc_dml_cache_to_one_wifidb(MemwrapTool_RFC, wifi_event_type_MemwrapTool_app_rfc);
+#endif // FEATURE_MemwrapTool
+
 #if defined (FEATURE_OFF_CHANNEL_SCAN_5G)
     bool q_offchannelscan_RFC;
     char *str1 = NULL;
