@@ -1061,7 +1061,7 @@ void CosaDmlWiFiGetRFCDataFromPSM(void)
     str2 = PSM_Get_Record_Status("Device.DeviceInfo.X_RDK_RFC.Feature.MemwrapTool.Enable",
         strValue, sizeof(strValue));
     if (str2 != NULL) {
-        MemwrapTool_RFC = _ansc_atoi(str1);
+        MemwrapTool_RFC = _ansc_atoi(str2);
     } else {
         /* Set default value */
         MemwrapTool_RFC = 0;
