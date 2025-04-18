@@ -118,8 +118,6 @@ int process_assoc_dev_stats(wifi_mon_stats_args_t *args, hash_map_t *sta_map, vo
     }
 
     sta = (sta_data_t *)calloc(sta_count, sizeof(sta_data_t));
-    wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocation done for  mon_data->bssid_data[%u].sta_map hashmap for MAC: %d  count = %u\n",
-        __func__, __LINE__, args->vap_index, sta->dev_stats.cli_MACAddress, hash_map_count(sta_map));
     if (sta == NULL) {
         wifi_util_error_print(WIFI_MON, "%s : %d Failed to allocate memory for sta structure for %d\n",
                 __func__,__LINE__, args->vap_index);
@@ -136,6 +134,8 @@ int process_assoc_dev_stats(wifi_mon_stats_args_t *args, hash_map_t *sta_map, vo
             memcpy(&sta[count], temp_sta, sizeof(sta_data_t));
             count++;
         }
+        wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocation done for  mon_data->bssid_data[%u].sta_map hashmap for MAC: %d  count = %u\n",
+            __func__, __LINE__, args->vap_index, sta->dev_stats.cli_MACAddress, hash_map_count(sta_map));
         temp_sta = hash_map_get_next(sta_map, temp_sta);
     }
     *stats = sta;
@@ -213,9 +213,9 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                 sta = hash_map_get_next(mon_data->bssid_data[vap_array_index].sta_map, sta);
                 tmp_sta = hash_map_remove(mon_data->bssid_data[vap_array_index].sta_map, sta_key);
                 if (tmp_sta != NULL) {
-                    free(tmp_sta);
                     wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for mon_data->bssid_data[%u] hashmap for MAC : %s\n",
                         __func__, __LINE__, vap_array_index, sta_key);
+                    free(tmp_sta);
                 }
             }
         }
@@ -315,8 +315,6 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                         __func__, __LINE__, sta_key);
                     break;
                 }
-                wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocated for mon_data->bssid_data[%u].sta_map hashmap for MAC: %s, count = %u\n",
-                    __func__, __LINE__, vap_array_index, sta_key, hash_map_count(sta_map));
                 memset(sta, 0, sizeof(sta_data_t));
                 if (mld_mac_present == 0) {
                     memcpy(sta->sta_mac, hal_sta->cli_MACAddress, sizeof(mac_address_t));
@@ -329,6 +327,8 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                     sta->primary_link = 0;
                 }
                 hash_map_put(sta_map, strdup(sta_key), sta);
+                wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocated for mon_data->bssid_data[%u].sta_map hashmap for MAC: %s, count = %u\n",
+                    __func__, __LINE__, vap_array_index, sta_key, hash_map_count(sta_map));
                 sta->last_connected_time.tv_sec = tv_now.tv_sec;
                 sta->last_connected_time.tv_nsec = tv_now.tv_nsec;
             } else {
@@ -496,11 +496,11 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             to_sta_key(tmp_sta->sta_mac, sta_key);
             tmp_sta = hash_map_remove(sta_map, sta_key);
             if (tmp_sta != NULL) {
-                free(tmp_sta);
-                tmp_sta = NULL;
                 wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for "
                     "mon_data->bssid_data[%u].sta_map hashmap for MAC: %s, sta_count = %u\n", __func__, __LINE__,
                     vap_array_index, sta_key, hash_map_count(sta_map));
+                free(tmp_sta);
+                tmp_sta = NULL;
             }
         }
     }
@@ -537,11 +537,11 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             wifi_util_dbg_print(WIFI_MON, "%s:%d device count is %d\n", __func__, __LINE__,
                 dev_count);
             if (assoc_data != NULL) {
-                free(assoc_data);
-                assoc_data = NULL;
                 wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for "
                     "mon_data->bssid_data[%u].sta_map hashmap for MAC: %d, sta_count = %u\n", __func__, __LINE__,
                     args->vap_index, assoc_data->cli_MACAddress, hash_map_count(sta_map));
+                free(assoc_data);
+                assoc_data = NULL;
             }
             wifi_util_dbg_print(WIFI_MON, "%s:%d assoc_data is NULL\n", __func__, __LINE__);
         }
@@ -551,11 +551,11 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             wifi_util_error_print(WIFI_MON, "%s:%d Failed to allocate memory\n", __func__,
                 __LINE__);
             if (assoc_data != NULL) {
-                free(assoc_data);
-                assoc_data = NULL;
                 wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for "
                     "mon_data->bssid_data[%u].sta_map hashmap for MAC: %d, sta_count = %u\n", __func__, __LINE__,
                     args->vap_index, assoc_data->cli_MACAddress, hash_map_count(sta_map));
+                free(assoc_data);
+                assoc_data = NULL;
             }
             return RETURN_ERR;`
         }
@@ -568,10 +568,10 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             collect_stats->args.vap_index);
         push_monitor_response_event_to_ctrl_queue(collect_stats, sizeof(wifi_provider_response_t),
             wifi_event_type_monitor, wifi_event_type_collect_stats, NULL);
+            wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for "
+                "mon_data->bssid_data[%u].sta_map hashmap for MAC: %d, sta_count = %u\n", __func__, __LINE__,
+                args->vap_index, assoc_data->cli_MACAddress, hash_map_count(sta_map));
         free(assoc_data);
-        wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation is freed for "
-            "mon_data->bssid_data[%u].sta_map hashmap for MAC: %d, sta_count = %u\n", __func__, __LINE__,
-            args->vap_index, assoc_data->cli_MACAddress, hash_map_count(sta_map));
         free(collect_stats);
     }
     return RETURN_OK;
@@ -638,8 +638,6 @@ int copy_assoc_client_stats_from_cache(wifi_mon_provider_element_t *p_elem, void
         pthread_mutex_unlock(&mon_cache->data_lock);
         return RETURN_ERR;
     }
-    wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocation done for  mon_data->bssid_data[%u].sta_map hashmap for MAC: %d , count = %u\n",
-        __func__, __LINE__, args->vap_index, sta->dev_stats.cli_MACAddress, hash_map_count(sta_map));
     temp_sta = hash_map_get_first(sta_map);
     while(temp_sta != NULL) {
         memset(sta_key, 0, sizeof(sta_key_t));
@@ -648,6 +646,8 @@ int copy_assoc_client_stats_from_cache(wifi_mon_provider_element_t *p_elem, void
                 __func__, __LINE__, args->vap_index, count, sta_key);
         memcpy(&sta[count], temp_sta, sizeof(sta_data_t));
         count++;
+        wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocation done for  mon_data->bssid_data[%u].sta_map hashmap for MAC: %s , count = %u\n",
+            __func__, __LINE__, args->vap_index,to_sta_key(temp_sta->sta_mac, sta_key) , hash_map_count(sta_map));
         temp_sta = hash_map_get_next(sta_map, temp_sta);
     }
 
