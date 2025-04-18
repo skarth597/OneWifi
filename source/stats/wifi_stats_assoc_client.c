@@ -557,7 +557,7 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
                 free(assoc_data);
                 assoc_data = NULL;
             }
-            return RETURN_ERR;`
+            return RETURN_ERR;
         }
         collect_stats->data_type = mon_stats_type_associated_device_stats;
         collect_stats->args.vap_index = args->vap_index;
