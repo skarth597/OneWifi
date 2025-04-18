@@ -252,6 +252,8 @@ telemetry_data_t *create_wpa3_enhanced_sta_data_hash_map(hash_map_t *sta_map, ma
         return NULL;
     }
     hash_map_put(sta_map, mac_str_dup, sta);
+    wifi_util_info_print(WIFI_MON, "%s:%d Allocated for mon_data->bssid_data[%u].wpa3_sta_map hashmap for MAC: %s, count = %u\n",
+        __func__, __LINE__, g_monitor_module.bssid_data[vap_array_index].sta_map, mac_str_dup, hash_map_count(sta_map));
     wifi_util_dbg_print(WIFI_MON, "Created STA entry for MAC: %s\r\n", mac_str_dup);
     pthread_mutex_unlock(&g_monitor_module.data_lock);
     return sta;
@@ -328,7 +330,9 @@ int update_wpa3_enhanced_sta_data(unsigned int vap_index) {
 	sta = hash_map_get_next(sta_map, sta);
 	tmpsta=hash_map_remove(sta_map,mac_str);
 	if(tmpsta!= NULL) {
-	    free(tmpsta);
+        wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation freed for tmpsta hashmap for MAC: %s, count = %u\n",
+            __func__, __LINE__, mac_str, hash_map_count(sta_map));
+        free(tmpsta);
 	}
     }
     return RETURN_OK;
@@ -918,6 +922,7 @@ sta_data_t *create_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t l_sta_mac)
     }
     memset(sta, 0, sizeof(sta_data_t));
     memcpy(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
+    wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation done for g_monitor_module.bssid_data[vap_array_index].sta_map for MAC %s, sta_map count : %u\r\n", __func__, __LINE__, to_mac_str(l_sta_mac, mac_str), hash_map_count(sta_map));
     hash_map_put(sta_map, strdup(to_mac_str(l_sta_mac, mac_str)), sta);
     pthread_mutex_unlock(&g_monitor_module.data_lock);
     return sta;
@@ -1209,6 +1214,7 @@ void process_connect(unsigned int ap_index, auth_deauth_dev_t *dev)
         memcpy(sta->sta_mac, dev->sta_mac, sizeof(mac_addr_t));
         memcpy(sta->dev_stats.cli_MACAddress, dev->sta_mac, sizeof(mac_addr_t));
         sta->primary_link = 1;
+        wifi_util_info_print(WIFI_BLASTER,"%s:%d Allocation done in hashmap = g_monitor_module.bssid_data[%u].sta_map and hash_map_put for MAC : %s count = %u\n", __func__, __LINE__, vap_array_index, sta->dev_stats.cli_MACAddress,hash_map_count(sta_map));
         hash_map_put(sta_map, strdup(sta_key), sta);
     }
 
@@ -3248,6 +3254,8 @@ void deinit_wifi_monitor()
                 sta = hash_map_get_next(g_monitor_module.bssid_data[i].sta_map, sta);
                 temp_sta = hash_map_remove(g_monitor_module.bssid_data[i].sta_map, key);
                 if (temp_sta != NULL) {
+                    wifi_util_info_print(WIFI_BLASTER, "%s : %d Alloaction is freed for temp _sta (g_monitor_module.bssid_data[i].sta_map for MAC: %s and count : %u",
+                        __func__, __LINE__, to_mac_str(temp_sta->sta_mac, mac_stri), temp_sta->sta_count);
                     free(temp_sta);
                 }
             }

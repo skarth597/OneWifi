@@ -1152,6 +1152,8 @@ void upload_single_client_active_msmt_data(blaster_hashmap_t *sta_info)
         wifi_util_dbg_print(WIFI_BLASTER, "%s:%d removed client %s from sta_map\n", __func__,
             __LINE__, to_sta_key(sta_del->sta_mac, sta_key));
     }
+    wifi_util_info_print(WIFI_BLASTER, "%s:%d Allocation free for MAC %s\n", __func__,
+        __LINE__, to_sta_key(sta_del->sta_mac, sta_key));
     free(sta_data);
 
     /* check for writer size, if buffer is almost full, skip trailing linklist */
