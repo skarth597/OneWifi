@@ -187,6 +187,7 @@
         PJS_OVS_BOOL(dfs_rfc) \
         PJS_OVS_BOOL(wpa3_rfc) \
         PJS_OVS_BOOL(levl_enabled_rfc) \
+        PJS_OVS_BOOL(memwraptool_app_rfc) \
         PJS_OVS_BOOL(twoG80211axEnable_rfc) \
         PJS_OVS_BOOL(hotspot_open_2g_last_enabled) \
         PJS_OVS_BOOL(hotspot_open_5g_last_enabled) \
@@ -2096,6 +2097,7 @@
     COLUMN(dfs_rfc) \
     COLUMN(wpa3_rfc) \
     COLUMN(levl_enabled_rfc) \
+    COLUMN(memwraptool_app_rfc) \
     COLUMN(twoG80211axEnable_rfc) \
     COLUMN(hotspot_open_2g_last_enabled) \
     COLUMN(hotspot_open_5g_last_enabled) \
@@ -3443,6 +3445,7 @@
 #define SCHEMA__Wifi_Rfc_Config__wifi_offchannelscan_app_rfc "wifi_offchannelscan_app_rfc"
 #define SCHEMA__Wifi_Rfc_Config__wifi_offchannelscan_sm_rfc "wifi_offchannelscan_sm_rfc"
 #define SCHEMA__Wifi_Rfc_Config__Levl_rfc "levl_enabled_rfc"
+#define SCHEMA__Wifi_Rfc_Config__memwraptool_app_rfc "memwraptool_app_rfc"
 #define SCHEMA__Wifi_Rfc_Config__tcm_enabled_rfc "tcm_enabled_rfc"
 #define SCHEMA__Wifi_Rfc_Config__wpa3_compatibility_enable "wpa3_compatibility_enable"
 

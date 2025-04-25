@@ -1759,6 +1759,27 @@ webconfig_error_t encode_levl_object(const levl_config_t *levl, cJSON *levl_obj)
     return webconfig_error_none;
 }
 
+webconfig_error_t encode_memwraptool_object(memwraptool_config_t*memwrap_info, cJSON *memwrap_obj)
+{
+    if (memwrap_info == NULL || memwrap_obj == NULL) {
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
+        return webconfig_error_encode;
+    }
+    cJSON_AddNumberToObject(memwrap_obj, "rss_check_interval",
+        memwrap_info->Memwraptool_RSS_check_Interval);
+    cJSON_AddNumberToObject(memwrap_obj, "rss_threshold",
+        memwrap_info->Memwraptool_RSS_Threshold);
+    cJSON_AddNumberToObject(memwrap_obj, "rss_maxlimit",
+        memwrap_info->Memwraptool_Heapwalk_Duration);
+    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_duration",
+        memwrap_info->Memwraptool_Heapwalk_Duration);
+    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_interval",
+        memwrap_info->Memwraptool_Heapwalk_Interval);
+    cJSON_AddBoolToObject(memwrap_obj, "enable", memwrap_info->Memwraptool_enable);
+
+    return webconfig_error_none;
+}
+
 webconfig_error_t encode_blaster_object(const active_msmt_t *blaster_info, cJSON *blaster_obj)
 {
    cJSON *stepobj;

@@ -232,6 +232,7 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
         rfc_param->hotspot_open_6g_last_enabled = new_rec->hotspot_open_6g_last_enabled;
         rfc_param->hotspot_secure_2g_last_enabled = new_rec->hotspot_secure_2g_last_enabled;
         rfc_param->hotspot_secure_5g_last_enabled = new_rec->hotspot_secure_5g_last_enabled;
+        rfc_param->memwraptool_app_rfc = new_rec->memwraptool_app_rfc;
         rfc_param->wifi_offchannelscan_app_rfc = new_rec->wifi_offchannelscan_app_rfc;
         rfc_param->wifi_offchannelscan_sm_rfc = new_rec->wifi_offchannelscan_sm_rfc;
         rfc_param->hotspot_secure_6g_last_enabled = new_rec->hotspot_secure_6g_last_enabled;
@@ -244,7 +245,7 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
             "hotspot_open_2g_last_enabled=%dhotspot_open_5g_last_enabled=%d "
             "hotspot_open_6g_last_enabled=%d hotspot_secure_2g_last_enabled=%d "
             "hotspot_secure_5g_last_enabled=%d hotspot_secure_6g_last_enabled=%d "
-            "wifi_offchannelscan_app_rfc=%d offchannelscan=%d rfc_id=%s "
+            "wifi_offchannelscan_app_rfc=%d offchannelscan=%d rfc_id=%s MemwrapTool=%d "
             "levl_enabled_rfc=%d tcm_enabled_rfc=%d wpa3_compatibility_enable=%d \n",
             __func__, __LINE__, rfc_param->wifipasspoint_rfc, rfc_param->wifiinterworking_rfc,
             rfc_param->radiusgreylist_rfc, rfc_param->dfsatbootup_rfc, rfc_param->dfs_rfc,
@@ -253,8 +254,8 @@ void callback_Wifi_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wifi_Rf
             rfc_param->hotspot_open_6g_last_enabled, rfc_param->hotspot_secure_2g_last_enabled,
             rfc_param->hotspot_secure_5g_last_enabled, rfc_param->hotspot_secure_6g_last_enabled,
             rfc_param->wifi_offchannelscan_app_rfc, rfc_param->wifi_offchannelscan_sm_rfc,
-            rfc_param->rfc_id, rfc_param->levl_enabled_rfc,rfc_param->tcm_enabled_rfc,
-            rfc_param->wpa3_compatibility_enable);
+            rfc_param->rfc_id, rfc_param->memwraptool_app_rfc, rfc_param->levl_enabled_rfc,
+            rfc_param->tcm_enabled_rfc, rfc_param->wpa3_compatibility_enable);
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     }
 }
@@ -1684,6 +1685,7 @@ int wifidb_get_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_info)
     rfc_info->dfsatbootup_rfc = pcfg->dfsatbootup_rfc;
     rfc_info->dfs_rfc = pcfg->dfs_rfc;
     rfc_info->wpa3_rfc = pcfg->wpa3_rfc;
+    rfc_info->memwraptool_app_rfc = pcfg->memwraptool_app_rfc;
     rfc_info->levl_enabled_rfc = pcfg->levl_enabled_rfc;
 #ifdef ALWAYS_ENABLE_AX_2G
     rfc_info->twoG80211axEnable_rfc = true;
@@ -4230,6 +4232,7 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     rfc_config.dfsatbootup_rfc = false;
     rfc_config.dfs_rfc = false;
     rfc_config.levl_enabled_rfc = false;
+    rfc_config.memwraptool_app_rfc = true;
 #if defined(_XB8_PRODUCT_REQ_) || defined(_SR213_PRODUCT_REQ_) || defined(_XER5_PRODUCT_REQ_) || defined (_SCER11BEL_PRODUCT_REQ_)
     rfc_config.wpa3_rfc = true;
 #else
@@ -5464,6 +5467,7 @@ int wifidb_update_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_param)
     cfg.dfsatbootup_rfc = rfc_param->dfsatbootup_rfc;
     cfg.dfs_rfc = rfc_param->dfs_rfc;
     cfg.wpa3_rfc = rfc_param->wpa3_rfc;
+    cfg.memwraptool_app_rfc = rfc_param->memwraptool_app_rfc;
     cfg.levl_enabled_rfc = rfc_param->levl_enabled_rfc;
     cfg.twoG80211axEnable_rfc = rfc_param->twoG80211axEnable_rfc;
     cfg.hotspot_open_2g_last_enabled = rfc_param->hotspot_open_2g_last_enabled;

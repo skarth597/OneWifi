@@ -1646,6 +1646,15 @@
                 "max": 1
             }
         },
+        "memwraptool_app_rfc": {
+          "type": {
+            "key": {
+              "type": "boolean"
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
         "ow_core_thread_rfc": {
           "type": {
             "key": {
