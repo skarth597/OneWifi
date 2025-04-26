@@ -13,17 +13,19 @@
   limitations under the License.
  **************************************************************************/
 
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include "wifi_events.h"
-#include "wifi_apps_mgr.h"
 #include "wifi_util.h"
 #include "wifi_stubs.h"
+#include "wifi_ctrl.h"
+#include "wifi_mgr.h"
 #include "wifi_memwraptool.h"
 #include "wifi_hal.h"
+#include "wifi_util.h"
 #include "wifi_base.h"
 #include "wifi_webconfig.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define MAX_EVENT_NAME_SIZE 200
@@ -412,25 +414,16 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             return bus_error_invalid_input;
         }
         if (memwraptool_cfg->enable == p_data->raw_data.boolean) {
-            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s No change in Enable\n", __func__,
+            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s No change in Memwraptool Enable\n", __func__,
                 __LINE__, name);
             return bus_error_success;
         }
-
-        if (memwraptool_cfg->enable == FALSE) {
             memwraptool_cfg->enable = p_data->raw_data.boolean;
+
             push_memwrap_data_dml_to_ctrl_queue(&memwraptool_cfg);
-            if(memwraptool_cfg != NULL) {
-                free(memwraptool_cfg);
-            }
-        } else {
             wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s MemwrapTool is already enabled\n",
                 __func__, __LINE__, name);
-            if(memwraptool_cfg != NULL) {
-                free(memwraptool_cfg);
-            }
-        }
-        return bus_error_success;
+            return bus_error_success;
     }
     return bus_error_invalid_input;
 }
