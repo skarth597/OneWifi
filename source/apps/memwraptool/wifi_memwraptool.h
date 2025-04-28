@@ -13,6 +13,9 @@
   limitations under the License.
  **************************************************************************/
 
+ #ifndef WIFI_MEMWRAPTOOL_H
+ #define WIFI_MEMWRAPTOOL_H
+
  #define WIFI_MEMWRAPTOOL_RSS_CHECK_INTERVAL "Device.WiFi.MemwrapTool.RSSCheckInterval"
  #define WIFI_MEMWRAPTOOL_RSS_THRESHOLD "Device.WiFi.MemwrapTool.RSSThreshold"
  #define WIFI_MEMWRAPTOOL_RSS_MAXLIMIT "Device.WiFi.MemwrapTool.RSSMaxLimit"
