@@ -308,7 +308,7 @@ wifi_app_descriptor_t app_desc[] = {
     },
     {
         wifi_app_inst_memwraptool, 0,
-        wifi_event_type_webconfig,
+        wifi_event_type_webconfig | wifi_event_type_command,
         true, true,
         "Memwraptool",
         memwraptool_init, memwraptool_event, memwraptool_deinit,

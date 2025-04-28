@@ -13,56 +13,59 @@
   limitations under the License.
  **************************************************************************/
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
 #include "wifi_events.h"
 #include "wifi_util.h"
 #include "wifi_stubs.h"
 #include "wifi_memwraptool.h"
 #include "wifi_apps_mgr.h"
-#include "wifi_ctrl.h"
 #include "wifi_mgr.h"
 #include "wifi_hal.h"
 #include "wifi_util.h"
 #include "wifi_base.h"
 #include "wifi_webconfig.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #define MAX_EVENT_NAME_SIZE 200
 
-static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t **memwraptool)
+static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool)
 {
     webconfig_subdoc_data_t *data;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     char *str = NULL;
 
-    if(*memwraptool == NULL) {
+    if (memwraptool == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d NULL pointer\n", __func__, __LINE__);
         return bus_error_general;
     }
 
-    data = (webconfig_subdoc_data_t *) malloc(sizeof(webconfig_subdoc_data_t));
-    if(data == NULL) {
+    data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
+    if (data == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d malloc failed\n", __func__, __LINE__);
         return bus_error_general;
     }
-    memset(data, 0, sizeof(webconfig_subdoc_data_t));
-    memcpy(&data->u.decoded.memwraptool, *memwraptool, sizeof(memwraptool_config_t));   
 
-    if(webconfig_encode(&ctrl, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
+    memset(data, 0, sizeof(webconfig_subdoc_data_t));
+    memcpy(&data->u.decoded.memwraptool, memwraptool, sizeof(memwraptool_config_t));
+
+    if (webconfig_encode(&ctrl, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
         str = data->u.encoded.raw;
-        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool data encoded successfully\n", __func__, __LINE__);
-        push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig, wifi_event_webconfig_set_data_dml, NULL);
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool data encoded successfully\n",
+            __func__, __LINE__);
+        push_event_to_ctrl_queue(str, strlen(str), wifi_event_type_webconfig,
+            wifi_event_webconfig_set_data_dml, NULL);
     } else {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Webconfig set failed\n", __func__, __LINE__);
-        if(data != NULL) {
+        if (data != NULL) {
             free(data);
         }
         return bus_error_general;
     }
-    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool pushed to queue. Encoded data is %s\n", __func__, __LINE__, str);
-    if(data != NULL) {
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,
+        "%s:%d Memwraptool pushed to queue. Encoded data is %s\n", __func__, __LINE__, str);
+    if (data != NULL) {
         free(data);
     }
     return bus_error_success;
@@ -77,95 +80,114 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
     unsigned int num = 0;
 
     decoded_params = &doc->u.decoded;
-    if(decoded_params == NULL) {
+    if (decoded_params == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Decoded data is NULL\n", __func__, __LINE__);
         return RETURN_ERR;
     }
 
-    switch(doc->type) {
-        case webconfig_subdoc_type_memwraptool:
-            memwraptool_config = &decoded_params->memwraptool;
-            if(memwraptool_config == NULL) {
-                wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__, __LINE__);
+    switch (doc->type) {
+    case webconfig_subdoc_type_memwraptool:
+        memwraptool_config = &decoded_params->memwraptool;
+        if (memwraptool_config == NULL) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__,
+                __LINE__);
+            return RETURN_ERR;
+        }
+        wifi_util_dbg_print(WIFI_MEMWRAPTOOL,
+            "%s:%d Received memwraptool configurations rss_threshold %d, rss_check_interval %d, "
+            "rss_maxlimit %d, heapwalk_duration %d, heapwalk_interval %d\n",
+            __func__, __LINE__, memwraptool_config->rss_threshold,
+            memwraptool_config->rss_check_interval, memwraptool_config->rss_maxlimit,
+            memwraptool_config->heapwalk_duration, memwraptool_config->heapwalk_interval);
+        if (apps->data.u.memwraptool.rss_threshold != memwraptool_config->rss_threshold) {
+            apps->data.u.memwraptool.rss_threshold = memwraptool_config->rss_threshold;
+        }
+        if (apps->data.u.memwraptool.rss_check_interval != memwraptool_config->rss_check_interval) {
+            apps->data.u.memwraptool.rss_check_interval = memwraptool_config->rss_check_interval;
+        }
+        if (apps->data.u.memwraptool.rss_maxlimit != memwraptool_config->rss_maxlimit) {
+            apps->data.u.memwraptool.rss_maxlimit = memwraptool_config->rss_maxlimit;
+        }
+        if (apps->data.u.memwraptool.heapwalk_duration != memwraptool_config->heapwalk_duration) {
+            apps->data.u.memwraptool.heapwalk_duration = memwraptool_config->heapwalk_duration;
+        }
+        if (apps->data.u.memwraptool.heapwalk_interval != memwraptool_config->heapwalk_interval) {
+            if (memwraptool_config->heapwalk_duration < memwraptool_config->heapwalk_interval) {
+                wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                    "%s:%d heapwalk_duration %d is less than heapwalk_interval %d\n", __func__,
+                    __LINE__, memwraptool_config->heapwalk_duration,
+                    memwraptool_config->heapwalk_interval);
                 return RETURN_ERR;
             }
-            wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d Received memwraptool configurations rss_threshold %d, rss_check_interval %d, rss_maxlimit %d, heapwalk_duration %d, heapwalk_interval %d\n",
-                __func__, __LINE__, memwraptool_config->rss_threshold, memwraptool_config->rss_check_interval,
-                memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration, memwraptool_config->heapwalk_interval);
-            if(apps->data.u.memwraptool.rss_threshold != memwraptool_config->rss_threshold) {
-                apps->data.u.memwraptool.rss_threshold = memwraptool_config->rss_threshold;          
-            }
-            if(apps->data.u.memwraptool.rss_check_interval != memwraptool_config->rss_check_interval) {
-                apps->data.u.memwraptool.rss_check_interval = memwraptool_config->rss_check_interval;          
-            }
-            if(apps->data.u.memwraptool.rss_maxlimit != memwraptool_config->rss_maxlimit) {
-                apps->data.u.memwraptool.rss_maxlimit = memwraptool_config->rss_maxlimit;          
-            }
-            if(apps->data.u.memwraptool.heapwalk_duration != memwraptool_config->heapwalk_duration) {
-                apps->data.u.memwraptool.heapwalk_duration = memwraptool_config->heapwalk_duration;          
-            }
-            if(apps->data.u.memwraptool.heapwalk_interval != memwraptool_config->heapwalk_interval) {
-                if(memwraptool_config->heapwalk_duration < memwraptool_config->heapwalk_interval) {
-                    wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d heapwalk_duration %d is less than heapwalk_interval %d\n",
-                        __func__, __LINE__, memwraptool_config->heapwalk_duration, memwraptool_config->heapwalk_interval);
+            apps->data.u.memwraptool.heapwalk_interval = memwraptool_config->heapwalk_interval;
+        }
+        if (apps->data.u.memwraptool.enable != memwraptool_config->enable) {
+            if (memwraptool_config->enable == TRUE) {
+                if (rfc_pcfg->memwraptool_app_rfc == FALSE) {
+                    wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                        "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
                     return RETURN_ERR;
                 }
-                apps->data.u.memwraptool.heapwalk_interval = memwraptool_config->heapwalk_interval;          
-            }
-            if(apps->data.u.memwraptool.enable != memwraptool_config->enable) {
-                if (memwraptool_config->enable == TRUE) {
-                    if(rfc_pcfg->memwraptool_app_rfc == FALSE) {
-                        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
-                        return RETURN_ERR;
-                    }
-                    int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
-                        memwraptool_config->rss_check_interval, memwraptool_config->rss_threshold,
-                        memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration,
-                        memwraptool_config->heapwalk_interval);
-                    if(!ret) {
-                        wifi_util_info_print(WIFI_MEMWRAPTOOL,"%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
-                    }
-                } else {
-                    int ret = v_secure_system("killall Heapwalkcheckrss.sh");
-                    int ret1 = v_secure_system("killall HeapwalkField.sh");
-                    if(!ret && !ret1) {
-                        wifi_util_info_print(WIFI_MEMWRAPTOOL,"%s:%d Heapwalkcheckrss.sh and HeapwalkField.sh script killed successfully\r\n", __func__, __LINE__);
-                    }
+                int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+                    memwraptool_config->rss_check_interval, memwraptool_config->rss_threshold,
+                    memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration,
+                    memwraptool_config->heapwalk_interval);
+                if (!ret) {
+                    wifi_util_info_print(WIFI_MEMWRAPTOOL,
+                        "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__,
+                        __LINE__);
                 }
-                apps->data.u.memwraptool.enable = memwraptool_config->enable;
+            } else {
+                int ret = v_secure_system("killall Heapwalkcheckrss.sh");
+                int ret1 = v_secure_system("killall HeapwalkField.sh");
+                if (!ret && !ret1) {
+                    wifi_util_info_print(WIFI_MEMWRAPTOOL,
+                        "%s:%d Heapwalkcheckrss.sh and HeapwalkField.sh script killed "
+                        "successfully\r\n",
+                        __func__, __LINE__);
+                }
             }
-    }       
+            apps->data.u.memwraptool.enable = memwraptool_config->enable;
+        }
+    }
 }
 
 int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
 {
-    switch(sub_type) {
-        case wifi_event_webconfig_set_data_dml:
+    switch (sub_type) {
+    case wifi_event_webconfig_set_data_dml:
         memwraptool_event_webconfig_set_data(apps, data, sub_type);
         break;
-        default:
-        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__, sub_type);
+    default:
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,
+            sub_type);
         break;
     }
     return RETURN_OK;
 }
 
-static int handle_memwraptool_command_event(wifi_app_t *apps) 
+static int push_memwraptool_config_event_to_monitor_queue(wifi_app_t *apps)
 {
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
-    if(rfc_pcfg->memwraptool_app_rfc == FALSE) {
-        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
+    int ret = 0;
+
+    if (rfc_pcfg->memwraptool_app_rfc == FALSE) {
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_app_rfc is disabled\n", __func__,
+            __LINE__);
         return RETURN_ERR;
     }
-    int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+    ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
         apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
         apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
         apps->data.u.memwraptool.heapwalk_interval);
-    if(!ret) {
-        wifi_util_info_print(WIFI_MEMWRAPTOOL,"%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
+    if (ret == 0) {
+        wifi_util_info_print(WIFI_MEMWRAPTOOL,
+            "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
         apps->data.u.memwraptool.enable = TRUE;
     } else {
-        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Heapwalkscheckrss.sh script execution failed after monitor init\n", __func__, __LINE__);
+        wifi_util_error_print(WIFI_MEMWRAPTOOL,
+            "%s:%d Heapwalkscheckrss.sh script execution failed after monitor init\n", __func__,
+            __LINE__);
         return RETURN_ERR;
     }
     return RETURN_OK;
@@ -173,12 +195,13 @@ static int handle_memwraptool_command_event(wifi_app_t *apps)
 
 int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
 {
-    switch(sub_type) {
-        case wifi_event_type_notify_monitor_done:
+    switch (sub_type) {
+    case wifi_event_type_notify_monitor_done:
         push_memwraptool_config_event_to_monitor_queue(apps);
         break;
-        default:
-        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__, sub_type);
+    default:
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,
+            sub_type);
         break;
     }
     return RETURN_OK;
@@ -193,7 +216,8 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
         command_event_memwraptool(app, event->sub_type);
         break;
     default:
-    wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,event->event_type);
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,
+            event->event_type);
         break;
     }
     return RETURN_OK;
@@ -204,7 +228,6 @@ bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
 {
     (void)user_data;
     bus_error_t ret = bus_error_success;
-    char const *name = event_name;
     char parameter[MAX_EVENT_NAME_SIZE];
     wifi_app_t *wifi_app = NULL;
     wifi_apps_mgr_t *apps_mgr = NULL;
@@ -229,64 +252,33 @@ bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
         return bus_error_general;
     }
 
-    if (name == NULL) {
+    if (event_name == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s %d: invalid bus property name %s\n", __func__,
-            __LINE__, name);
+            __LINE__, event_name);
         return bus_error_invalid_input;
     }
 
     wifi_util_dbg_print(WIFI_CTRL, "%s(): %s\n", __FUNCTION__, name);
-    sscanf(name, "Device.WiFi.MemwrapTool.%200s", parameter);
+    sscanf(event_name, "Device.WiFi.MemwrapTool.%200s", parameter);
 
     if (strcmp(parameter, "RSSThreshold") == 0) {
-        if (wifi_app->data.u.memwraptool.rss_threshold == 0) {
-            memwrapnum = DEFAULT_RSS_THRESHOLD;
-        } else {
-            memwrapnum = wifi_app->data.u.memwraptool.rss_threshold;
-        }
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw_data.u32 = memwrapnum;
-        p_data->raw_data_len = sizeof(memwrapnum);
+        p_data->raw_data.u32 = wifi_app->data.u.memwraptool.rss_threshold;
     } else if (strcmp(parameter, "RSSCheckInterval") == 0) {
-        if (wifi_app->data.u.memwraptool.rss_check_interval == 0) {
-            memwrapnum = DEFAULT_RSS_CHECK_INTERVAL;
-        } else {
-            memwrapnum = wifi_app->data.u.memwraptool.rss_check_interval;
-        }
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw_data.u32 = memwrapnum;
-        p_data->raw_data_len = sizeof(memwrapnum);
+        p_data->raw_data.u32 = wifi_app->data.u.memwraptool.rss_check_interval;
     } else if (strcmp(parameter, "RSSMaxLimit") == 0) {
-        if (wifi_app->data.u.memwraptool.rss_maxlimit == 0) {
-            memwrapnum = DEFAULT_RSS_MAXLIMIT;
-        } else {
-            memwrapnum = wifi_app->data.u.memwraptool.rss_maxlimit;
-        }
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw.data.u32 = memwrapnum;
-        p_data->raw_data_len = sizeof(memwrapnum);
+        p_data->raw.data.u32 = wifi_app->data.u.memwraptool.rss_maxlimit;
     } else if (strcmp(parameter, "HeapWalkDuration") == 0) {
-        if (wifi_app->data.u.memwraptool.heapwalk_duration == 0) {
-            memwrapnum = DEFAULT_HEAPWALK_DURATION;
-        } else {
-            memwrapnum = wifi_app->data.u.memwraptool.heapwalk_duration;
-        }
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw_data.u32 = memwrapnum;
-        p_data->raw_data_len = sizeof(memwrapnum);
+        p_data->raw_data.u32 = wifi_app->data.u.memwraptool.heapwalk_duration;
     } else if (strcmp(parameter, "HeapwalkInterval") == 0) {
-        if (wifi_app->data.u.memwraptool.heapwalk_interval == 0) {
-            memwrapnum = DEFAULT_HEAPWALK_INTERVAL;
-        } else {
-            memwrapnum = wifi_app->data.u.memwraptool.heapwalk_interval;
-        }
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw_data.u32 = memwrapnum;
-        p_data->raw_data_len = sizeof(memwrapnum);
-    } else if(strcmp(parameter, "Enable") == 0) {
+        p_data->raw_data.u32 = wifi_app->data.u.memwraptool.heapwalk_interval;
+    } else if (strcmp(parameter, "Enable") == 0) {
         p_data->data_type = bus_data_type_boolean;
         p_data->raw_data.b = wifi_app->data.u.memwraptool.enable;
-        p_data->raw_data_len = sizeof(wifi_app->data.u.memwraptool.enable);
     }
 }
 
@@ -294,20 +286,13 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
     bus_user_data_t *user_data)
 {
     (void)user_data;
-    char const *name = event_name;
-    char parameter[MAX_EVENT_NAME_SIZE];
-    char const *pTmp = NULL;
-    unsigned int memwrapnum = 0; 
+    char parameter[MAX_EVENT_NAME_SIZE] = NULL;
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
     memwraptool_config_t *memwraptool_cfg = NULL;
     wifi_app_t *wifi_app = NULL;
     wifi_apps_mgr_t *apps_mgr = NULL;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
 
-    if (ctrl == NULL) {
-        wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d NULL Pointer \n", __func__, __LINE__);
-        return bus_error_general;
-    }
     apps_mgr = &ctrl->apps_mgr;
     if (apps_mgr == NULL) {
         wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d NULL Pointer \n", __func__, __LINE__);
@@ -325,77 +310,54 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             __LINE__);
         return bus_error_general;
     }
-    if (!name) {
+    if (event_name == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s %d: invalid bus property name %s\n", __func__,
-            __LINE__, name);
+            __LINE__, event_name);
         return bus_error_invalid_input;
     }
-   memset(memwraptool_cfg, 0, sizeof(memwraptool_config_t));
-   memcpy(memwraptool_cfg, &wifi_app->data.u.memwraptool, sizeof(memwraptool_config_t));
+    memset(memwraptool_cfg, 0, sizeof(memwraptool_config_t));
+    memcpy(memwraptool_cfg, &wifi_app->data.u.memwraptool, sizeof(memwraptool_config_t));
 
-    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s(): %s\n", __FUNCTION__, name);
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s(): %s\n", __FUNCTION__, event_name);
 
     sscanf(name, "Device.WiFi.MemwrapTool.%200s", parameter);
     if (strcmp(parameter, "RSSCheckInterval") == 0) {
-        if (p_data->data_type != bus_data_type_uint32) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
-                __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
+        if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, event_name,
+                p_data->data_type, p_data->raw_data.u32);
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
-        memwrapnum = p_data->raw_data.u32;
-
-        if (memwrapnum == 0) {
-            memwraptool_cfg->rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
-        } else {
-            memwraptool_cfg->rss_check_interval = memwrapnum;
-        }
+        memwraptool_cfg->rss_check_interval = p_data->raw_data.u32;
     } else if (strcmp(parameter, "RSSThreshold") == 0) {
-        if (p_data->data_type != bus_data_type_uint32) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
-                __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
+        if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
+                p_data->data_type, p_data->raw_data.u32);
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
-        memwrapnum = p_data->raw_data.u32;
-
-        if (memwrapnum == 0) {
-            memwraptool_cfg->rss_threshold = DEFAULT_RSS_THRESHOLD;
-        } else {
-            memwraptool_cfg->rss_threshold = memwrapnum;
-        }
+        memwraptool_cfg->rss_threshold = p_data->raw_data.u32;
     } else if (strcmp(parameter, "RSSMaxLimit") == 0) {
-        if (p_data->data_type != bus_data_type_uint32) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
-                __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
+        if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
+                p_data->data_type, p_data->raw_data.u32);
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
-        memwrapnum = p_data->raw_data.u32;
-
-        if (memwrapnum == 0) {
-            memwraptool_cfg->rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
-        } else {
-            memwraptool_cfg->rss_maxlimit = memwrapnum;
-        }
+        memwraptool_cfg->rss_maxlimit = p_data->raw_data.u32;
     } else if (strcmp(parameter, "HeapWalkDuration") == 0) {
-        if (p_data->data_type != bus_data_type_uint32) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
-                __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
-                free(memwraptool_cfg);
-            }
+        if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
+                p_data->data_type, p_data->raw_data.u32);
+            free(memwraptool_cfg);
             return bus_error_invalid_input;
         }
-        memwrapnum = p_data->raw_data.u32;
 
-        if (memwrapnum < DEFAULT_HEAPWALK_INTERVAL) {
+        if (p_data->raw_data.u32 < (unsigned int)DEFAULT_HEAPWALK_INTERVAL) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL,
                 "%s:%d-%s HeapwalkDuration should be greater than HeapWalkInterval\n", __func__,
                 __LINE__, name);
@@ -403,70 +365,57 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             return bus_error_invalid_input;
         }
 
-        if (memwrapnum == 0) {
-            memwraptool_cfg->heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
-        } else {
-            memwraptool_cfg->heapwalk_duration = memwrapnum;
-        }
+        memwraptool_cfg->heapwalk_duration = p_data->raw_data.u32;
     } else if (strcmp(parameter, "HeapwalkInterval") == 0) {
-        if (p_data->data_type != bus_data_type_uint32) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
-                __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
+        if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
+                p_data->data_type, p_data->raw_data.u32);
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
-        memwrapnum = p_data->raw_data.u32;
-
-        if (memwrapnum > memwraptool_cfg->heapwalk_duration) {
+        if (p_data->raw_data.u32 > memwraptool_cfg->heapwalk_duration) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL,
                 "%s:%d-%s HeapwalkDuration should be greater than HeapWalkInterval\n", __func__,
                 __LINE__, name);
             free(memwraptool_cfg);
             return bus_error_invalid_input;
         }
-
-        if (memwrapnum == 0) {
-            memwraptool_cfg->heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
-        } else {
-            memwraptool_cfg->heapwalk_interval = memwrapnum;
-        }
+        memwraptool_cfg->heapwalk_interval = p_data->raw_data.u32;
     } else if (strcmp(parameter, "Enable") == 0) {
         if (p_data->data_type != bus_data_type_boolean) {
-            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s wrong bus data_type:%x\n", __func__,
+            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s invalid bus data_type:%x\n", __func__,
                 __LINE__, name, p_data->data_type);
-            if (memwraptool_cfg != NULL) {
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
+
         if (rfc_pcfg->memwraptool_app_rfc == FALSE) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d-%s RFC is not enabled\n", __func__,
                 __LINE__, name);
-            if (memwraptool_cfg != NULL) {
                 free(memwraptool_cfg);
-            }
-            return bus_error_invalid_input;
+                return bus_error_invalid_input;
         }
         if (memwraptool_cfg->enable == p_data->raw_data.boolean) {
-            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s No change in Memwraptool Enable\n", __func__,
-                __LINE__, name);
-            return bus_error_success;
-        }
-            memwraptool_cfg->enable = p_data->raw_data.boolean;
-
-            push_memwrap_data_dml_to_ctrl_queue(&memwraptool_cfg);
-            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s MemwrapTool is already enabled\n",
+            wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s No change in Memwraptool Enable\n",
                 __func__, __LINE__, name);
             return bus_error_success;
+        }
+        memwraptool_cfg->enable = p_data->raw_data.boolean;
+
+        push_memwrap_data_dml_to_ctrl_queue(memwraptool_cfg);
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s MemwrapTool is already enabled\n",
+            __func__, __LINE__, name);
+        free(memwraptool_cfg);
+        return bus_error_success;
     }
+    free(memwraptool_cfg);
     return bus_error_invalid_input;
 }
 
 int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 {
-    int rc = bus_error_success;
+    bus_error_t rc = bus_error_success;
     char *component_name = "WifiAppsMemwrapTool";
     int num_elements;
 
@@ -491,14 +440,10 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
     if (app_init(app, create_flag) != 0) {
         return RETURN_ERR;
     }
-    wifi_util_info_print(WIFI_APPS, "%s:%d: Init Levl\n", __func__, __LINE__);
+    wifi_util_info_print(WIFI_APPS, "%s:%d: Init Memwraptool\n", __func__, __LINE__);
 
     wifi_app_t *memwraptool_app = NULL;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    if (ctrl == NULL) {
-        wifi_util_error_print(WIFI_APPS, "%s:%d: NULL Pointer\n", __func__, __LINE__);
-        return RETURN_ERR;
-    }
 
     wifi_apps_mgr_t *apps_mgr = &ctrl->apps_mgr;
     if (apps_mgr == NULL) {

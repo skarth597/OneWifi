@@ -22,3 +22,5 @@
  #define WIFI_MEMWRAPTOOL_HEAPWALK_DURATION "Device.WiFi.MemwrapTool.HeapWalkDuration"
  #define WIFI_MEMWRAPTOOL_HEAPWALK_INTERVAL "Device.WiFi.MemwrapTool.HeapWalkInterval"
  #define WIFI_MEMWRAPTOOL_ENABLE "Device.WiFi.MemwrapTool.Enable"
+
+ #endif
