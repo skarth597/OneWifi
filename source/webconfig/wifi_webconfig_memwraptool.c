@@ -14,10 +14,9 @@
 **************************************************************************/
 
 #include "collection.h"
-#include "wifi_ctrl.h"
-#include "wifi_monitor.h"
-#include "wifi_util.h"
 #include "wifi_webconfig.h"
+#include "wifi_util.h"
+#include "wifi_ctrl.h"
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
