@@ -113,8 +113,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                 apps->data.u.memwraptool.heapwalk_interval = memwraptool_config->heapwalk_interval;          
             }
             if(apps->data.u.memwraptool.enable != memwraptool_config->enable) {
-                if(apps->data.u.memwraptool.enable == FALSE)
-                {
+                if (memwraptool_config->enable == TRUE) {
                     if(rfc_pcfg->memwraptool_app_rfc == FALSE) {
                         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
                         return RETURN_ERR;
@@ -138,7 +137,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
     }       
 }
 
-int webconfig_event_memwraptool(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
+int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
 {
     switch(sub_type) {
         case wifi_event_webconfig_set_data_dml:
@@ -151,11 +150,47 @@ int webconfig_event_memwraptool(wifi_app_t *apps, wifi_event_subtype_t sub_type,
     return RETURN_OK;
 }
 
+static int handle_memwraptool_command_event(wifi_app_t *apps) 
+{
+    wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
+    if(rfc_pcfg->memwraptool_app_rfc == FALSE) {
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+    int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+        apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
+        apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
+        apps->data.u.memwraptool.heapwalk_interval);
+    if(!ret) {
+        wifi_util_info_print(WIFI_MEMWRAPTOOL,"%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
+        apps->data.u.memwraptool.enable = TRUE;
+    } else {
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Heapwalkscheckrss.sh script execution failed after monitor init\n", __func__, __LINE__);
+        return RETURN_ERR;
+    }
+    return RETURN_OK;
+}
+
+int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
+{
+    switch(sub_type) {
+        case wifi_event_type_notify_monitor_done:
+        push_memwraptool_config_event_to_monitor_queue(apps);
+        break;
+        default:
+        wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__, sub_type);
+        break;
+    }
+    return RETURN_OK;
+}
 int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
     case wifi_event_type_webconfig:
-        webconfig_event_memwraptool(app, event->sub_type, event->u.webconfig_data);
+        handle_memwraptool_webconfig_event(app, event->sub_type, event->u.webconfig_data);
+        break;
+    case wifi_event_type_command:
+        command_event_memwraptool(app, event->sub_type);
         break;
     default:
     wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,event->event_type);
@@ -483,6 +518,7 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
     app->data.memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
     app->data.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
     app->data.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
+    app->data.memwraptool.enable = FALSE;
 
     rc = get_bus_descriptor()->bus_open_fn(&app->handle, component_name);
     if (rc != bus_error_success) {
