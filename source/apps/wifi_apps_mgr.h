@@ -47,7 +47,6 @@ extern "C" {
 #ifdef ONEWIFI_BLASTER_APP_SUPPORT
 #include "wifi_blaster.h"
 #endif
-#include "wifi_memwraptool.h"
 #ifdef ONEWIFI_EASYCONNECT_APP_SUPPORT
 #include "wifi_easyconnect.h"
 #endif // ONEWIFI_EASYCONNECT_APP_SUPPORT
