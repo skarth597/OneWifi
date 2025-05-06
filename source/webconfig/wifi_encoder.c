@@ -1771,7 +1771,7 @@ webconfig_error_t encode_memwraptool_object(memwraptool_config_t *memwrap_info, 
     cJSON_AddNumberToObject(memwrap_obj, "rss_maxlimit", memwrap_info->rss_maxlimit);
     cJSON_AddNumberToObject(memwrap_obj, "heapwalk_duration", memwrap_info->heapwalk_duration);
     cJSON_AddNumberToObject(memwrap_obj, "heapwalk_interval", memwrap_info->heapwalk_interval);
-    cJSON_AddBoolToObject(memwrap_obj, "enable", memwrap_info->Memwraptool_enable);
+    cJSON_AddBoolToObject(memwrap_obj, "enable", memwrap_info->enable);
 
     return webconfig_error_none;
 }
