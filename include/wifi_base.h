@@ -100,12 +100,6 @@ extern "C" {
 #define MIN_DIAG_INTERVAL   5000
 #define CSI_PING_INTERVAL   100
 
-#define DEFAULT_RSS_CHECK_INTERVAL  5
-#define DEFAULT_RSS_THRESHOLD       1000
-#define DEFAULT_RSS_MAXLIMIT       80000
-#define DEFAULT_HEAPWALK_DURATION   60
-#define DEFAULT_HEAPWALK_INTERVAL   15
-
 #define wifi_sub_component_base     0x01
 #define wifi_app_inst_base          0x01
 
@@ -504,6 +498,7 @@ typedef struct {
     char cli_stat_list[MAX_BUF_LENGTH];
     char snr_list[MAX_BUF_LENGTH];
     char txrx_rate_list[MAX_BUF_LENGTH];
+    memwraptool_config_t memwraptool;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {

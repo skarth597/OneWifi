@@ -17,9 +17,9 @@
 #include "wifi_util.h"
 #include "wifi_stubs.h"
 #include "wifi_memwraptool.h"
+#include "wifi_hal.h"
 #include "wifi_apps_mgr.h"
 #include "wifi_mgr.h"
-#include "wifi_hal.h"
 #include "wifi_util.h"
 #include "wifi_base.h"
 #include "wifi_webconfig.h"
@@ -48,7 +48,7 @@ static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool
     }
 
     memset(data, 0, sizeof(webconfig_subdoc_data_t));
-    memcpy(&data->u.decoded.memwraptool, memwraptool, sizeof(memwraptool_config_t));
+    memcpy(&data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
 
     if (webconfig_encode(&ctrl, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
         str = data->u.encoded.raw;
@@ -87,7 +87,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
 
     switch (doc->type) {
     case webconfig_subdoc_type_memwraptool:
-        memwraptool_config = &decoded_params->memwraptool;
+        memwraptool_config = &decoded_params->config.global_parameters.memwraptool;
         if (memwraptool_config == NULL) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__,
                 __LINE__);
@@ -197,7 +197,13 @@ int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_
 {
     switch (sub_type) {
     case wifi_event_type_notify_monitor_done:
-        push_memwraptool_config_event_to_monitor_queue(apps);
+        if (apps->data.u.memwraptool.enable != TRUE) {
+            wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool is not enabled\n", __func__,
+                __LINE__);
+            return RETURN_ERR;
+        } else {
+            push_memwraptool_config_event_to_monitor_queue(apps);
+        }
         break;
     default:
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,
@@ -418,6 +424,7 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
     bus_error_t rc = bus_error_success;
     char *component_name = "WifiAppsMemwrapTool";
     int num_elements;
+    wifi_global_param_t *pcfg = (wifi_global_param_t *) get_wifidb_wifi_global_param();
 
     bus_data_element_t dataElements[] = {
         { WIFI_MEMWRAPTOOL_RSSCHECKINTERVAL, bus_element_type_property,
@@ -458,12 +465,12 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
         return RETURN_ERR;
     }
 
-    app->data.memwraptool.rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
-    app->data.memwraptool.rss_threshold = DEFAULT_RSS_THRESHOLD;
-    app->data.memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
-    app->data.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
-    app->data.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
-    app->data.memwraptool.enable = FALSE;
+    app->data.memwraptool.rss_check_interval = pcfg->memwraptool.rss_check_interval;
+    app->data.memwraptool.rss_threshold = pcfg->memwraptool.rss_threshold;
+    app->data.memwraptool.rss_maxlimit = pcfg->memwraptool.rss_maxlimit;
+    app->data.memwraptool.heapwalk_duration = pcfg->memwraptool.heapwalk_duration;
+    app->data.memwraptool.heapwalk_interval = pcfg->memwraptool.heapwalk_interval;
+    app->data.memwraptool.enable = pcfg->memwraptool.enable;
 
     rc = get_bus_descriptor()->bus_open_fn(&app->handle, component_name);
     if (rc != bus_error_success) {

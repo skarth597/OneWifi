@@ -67,7 +67,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         return webconfig_error_encode;
     }
 
-    params = &data->u.decoded;
+    params = &data->u.decoded.config.global_parameters;
     if (params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
         return webconfig_error_encode;
@@ -115,7 +115,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     webconfig_subdoc_decoded_data_t *params;
     cJSON *obj_config;
     cJSON *json;
-    params = &data->u.decoded;
+    params = &data->u.decoded.config.global_parameters;
     if (params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
         return webconfig_error_decode;
@@ -128,7 +128,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
 
     memset(&params->memwraptool, 0, sizeof(wifi_global_param_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
-    if (decode_memwraptool_object(obj_config, &params->config.global_parameters) !=
+    if (decode_memwraptool_object(obj_config, &params->config.global_parameters.memwraptool) !=
         webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
             __LINE__);

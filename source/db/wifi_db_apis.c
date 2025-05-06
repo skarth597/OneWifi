@@ -65,6 +65,11 @@
 #define OFFCHAN_DEFAULT_TSCAN_IN_MSEC 63
 #define OFFCHAN_DEFAULT_NSCAN_IN_SEC 10800
 #define OFFCHAN_DEFAULT_TIDLE_IN_SEC 5
+#define DEFAULT_RSS_CHECK_INTERVAL  5
+#define DEFAULT_RSS_THRESHOLD       1000
+#define DEFAULT_RSS_MAXLIMIT       80000
+#define DEFAULT_HEAPWALK_DURATION   60
+#define DEFAULT_HEAPWALK_INTERVAL   15
 #define BOOTSTRAP_INFO_FILE             "/opt/secure/bootstrap.json"
 #define COUNTRY_CODE_LEN 4
 #define RDKB_CCSP_SUCCESS               100
@@ -78,6 +83,7 @@
 #define ONEWIFI_DB_VERSION_WPA3_COMP_FLAG 100032
 #define WPA3_COMPATIBILITY 8192
 #define ONEWIFI_DB_VERSION_HOSTAP_MGMT_FRAME_CTRL_FLAG 100033
+#define ONEWIFI_DB_VERSION_MEMWRAPTOOL_FLAG 100034
 
 ovsdb_table_t table_Wifi_Radio_Config;
 ovsdb_table_t table_Wifi_VAP_Config;
@@ -1145,6 +1151,12 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
         g_wifidb->global_config.global_parameters.wifi_active_msmt_pktsize = new_rec->wifi_active_msmt_pktsize;
         g_wifidb->global_config.global_parameters.wifi_active_msmt_num_samples = new_rec->wifi_active_msmt_num_samples;
         g_wifidb->global_config.global_parameters.wifi_active_msmt_sample_duration = new_rec->wifi_active_msmt_sample_duration;
+        g_wifidb->global_config.global_parameters.memwraptool.rss_check_interval = new_rec->rss_check_interval;
+        g_wifidb->global_config.global_parameters.memwraptool.rss_check_threshold = new_rec->rss_threshold;
+        g_wifidb->global_config.global_parameters.memwraptool.rss_maxlimit = new_rec->rss_maxlimit;
+        g_wifidb->global_config.global_parameters.memwraptool.heapwalk_duration = new_rec->heapwalk_duration;
+        g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval = new_rec->heapwalk_interval;
+        g_wifidb->global_config.global_parameters.memwraptool.enable = new_rec->memwraptool_enable;
         g_wifidb->global_config.global_parameters.vlan_cfg_version = new_rec->vlan_cfg_version;
 #ifdef FEATURE_SUPPORT_WPS
         if (strlen(new_rec->wps_pin) != 0) {
@@ -2942,6 +2954,12 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     cfg.wifi_active_msmt_pktsize = config->wifi_active_msmt_pktsize;
     cfg.wifi_active_msmt_num_samples = config->wifi_active_msmt_num_samples;
     cfg.wifi_active_msmt_sample_duration = config->wifi_active_msmt_sample_duration;
+    cfg.rss_check_interval = config->memwraptool.rss_check_interval;
+    cfg.rss_threshold = config->memwraptool.rss_threshold;
+    cfg.rss_maxlimit = config->memwraptool.rss_maxlimit;
+    cfg.heapwalk_duration = config->memwraptool.heapwalk_duration;
+    cfg.heapwalk_interval = config->memwraptool.heapwalk_interval;
+    cfg.heapwalk_enable = config->memwraptool.enable;
     cfg.vlan_cfg_version = config->vlan_cfg_version;
     strncpy(cfg.wps_pin,config->wps_pin,sizeof(cfg.wps_pin)-1);
     cfg.bandsteering_enable = config->bandsteering_enable;
@@ -4296,6 +4314,17 @@ static void wifidb_global_config_upgrade()
             wifi_util_error_print(WIFI_DB,":%s:%d str value for whix_chutility_loginterval is null \r\n", __func__, __LINE__);
         }
     }
+
+    if(g_wifidb->db_version < ONEWIFI_DB_VERSION_MEMWRAPTOOL_FLAG) {
+        wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__, __LINE__, g_wifidb->db_version);
+
+    g_wifidb->global_config.global_parameters.memwraptool.rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
+    g_wifidb->global_config.global_parameters.memwraptool.rss_threshold = DEFAULT_RSS_THRESHOLD;
+    g_wifidb->global_config.global_parameters.memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
+    g_wifidb->global_config.global_parameters.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
+    g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
+    }
+
 }
 
 /************************************************************************************
@@ -6867,6 +6896,12 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.assoc_gate_time  = 0;
     cfg.whix_log_interval = 3600;
     cfg.whix_chutility_loginterval = 900;
+    cfg->memwraptool.rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
+    cfg->memwraptool.rss_threshold = DEFAULT_RSS_THRESHOLD;
+    cfg->memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
+    cfg->memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
+    cfg->memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
+    cfg->memwraptool.enable = false;
     cfg.assoc_monitor_duration = 0;
     cfg.rapid_reconnect_enable = true;
     cfg.vap_stats_feature =  true;

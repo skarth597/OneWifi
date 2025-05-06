@@ -3607,22 +3607,22 @@ webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
     const cJSON *param;
 
     decode_param_bool(memwraptool_cfg, "enable", param);
-    memwrap_info->Memwraptool_enable = (param->type & cJSON_True) ? true : false;
+    memwrap_info->enable = (param->type & cJSON_True) ? true : false;
 
     decode_param_integer(memwraptool_cfg, "rss_check_interval", param);
-    memwrap_info->Memwraptool_RSS_check_Interval = param->valuedouble;
+    memwrap_info->rss_check_interval = param->valuedouble;
 
     decode_param_integer(memwraptool_cfg, "rss_threshold", param);
-    memwrap_info->Memwraptool_RSS_Threshold = param->valuedouble;
+    memwrap_info->rss_threshold = param->valuedouble;
 
     decode_param_integer(memwraptool_cfg, "rss_maxlimit", param);
-    memwrap_info->Memwraptool_RSS_Threshold = param->valuedouble;
+    memwrap_info->rss_maxlimit = param->valuedouble;
 
     decode_param_integer(memwraptool_cfg, "heapwalk_duration", param);
-    memwrap_info->Memwraptool_Heapwalk_Duration = param->valuedouble;
+    memwrap_info->heapwalk_duration = param->valuedouble;
 
     decode_param_integer(memwraptool_cfg, "heapwalk_interval", param);
-    memwrap_info->Memwraptool_Heapwalk_Interval = param->valuedouble;
+    memwrap_info->heapwalk_interval = param->valuedouble;
 
     return webconfig_error_none;
 }
