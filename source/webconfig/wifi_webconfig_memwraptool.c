@@ -126,9 +126,9 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         return webconfig_error_decode;
     }
 
-    memset(&params->memwraptool, 0, sizeof(wifi_global_param_t));
+    memset(&params->memwraptool, 0, sizeof(memwraptool_config_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
-    if (decode_memwraptool_object(obj_config, &params->config.global_parameters.memwraptool) !=
+    if (decode_memwraptool_object(obj_config, &params->memwraptool) !=
         webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
             __LINE__);

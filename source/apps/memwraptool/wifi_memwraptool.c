@@ -166,7 +166,7 @@ int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t su
     return RETURN_OK;
 }
 
-static int push_memwraptool_config_event_to_monitor_queue(wifi_app_t *apps)
+static int memwraptool_monitor_done_event(wifi_app_t *apps)
 {
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
     int ret = 0;
@@ -183,7 +183,6 @@ static int push_memwraptool_config_event_to_monitor_queue(wifi_app_t *apps)
     if (ret == 0) {
         wifi_util_info_print(WIFI_MEMWRAPTOOL,
             "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
-        apps->data.u.memwraptool.enable = TRUE;
     } else {
         wifi_util_error_print(WIFI_MEMWRAPTOOL,
             "%s:%d Heapwalkscheckrss.sh script execution failed after monitor init\n", __func__,
@@ -202,7 +201,7 @@ int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_
                 __LINE__);
             return RETURN_ERR;
         } else {
-            push_memwraptool_config_event_to_monitor_queue(apps);
+            memwraptool_monitor_done_event(apps);
         }
         break;
     default:
@@ -219,7 +218,7 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
         handle_memwraptool_webconfig_event(app, event->sub_type, event->u.webconfig_data);
         break;
     case wifi_event_type_command:
-        command_event_memwraptool(app, event->sub_type);
+        handle_memwraptool_command_event(app, event->sub_type);
         break;
     default:
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid event type %d\n", __func__, __LINE__,

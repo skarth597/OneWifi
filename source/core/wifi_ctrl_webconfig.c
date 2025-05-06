@@ -1290,12 +1290,12 @@ int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data
     bool memwraptool_param_changed = false;
     memwraptool_param_changed = ismemwraptoolParamChanged(data_global_config);
 
-    if (ismemwraptoolParamChanged == 0) {
+    if (memwraptool_param_changed == 0) {
         wifi_util_dbg_print(WIFI_CTRL, "memwraptool param is not modified\n");
         return RETURN_ERR;
     }
 
-    if (ismemwraptoolParamChanged) {
+    if (memwraptool_param_changed) {
         wifi_util_dbg_print(WIFI_CTRL,
             "memwraptool param is modified hence update the memwraptool config in DB\n");
         if (update_wifi_global_config(&data_global_config->global_parameters) ==

@@ -6915,7 +6915,7 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg->memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
     cfg->memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
     cfg->memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
-    cfg->memwraptool.enable = false;
+    cfg->memwraptool.enable = true;
     cfg.assoc_monitor_duration = 0;
     cfg.rapid_reconnect_enable = true;
     cfg.vap_stats_feature =  true;
