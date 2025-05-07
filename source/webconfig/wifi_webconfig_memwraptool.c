@@ -67,7 +67,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         return webconfig_error_encode;
     }
 
-    params = &data->u.decoded.config.global_parameters;
+    params = data->u.decoded;
     if (params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
         return webconfig_error_encode;
@@ -86,7 +86,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(json, "Parameters", obj);
 
-    if (encode_memwraptool_object(&params->memwraptool, obj) != webconfig_error_none) {
+    if (encode_memwraptool_object(params->config.global_parameters.memwraptool, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode memwraptool config\n",
             __func__, __LINE__);
         cJSON_Delete(json);
@@ -115,7 +115,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     webconfig_subdoc_decoded_data_t *params;
     cJSON *obj_config;
     cJSON *json;
-    params = &data->u.decoded.config.global_parameters;
+    params = data->u.decoded;
     if (params == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
         return webconfig_error_decode;
@@ -126,9 +126,9 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         return webconfig_error_decode;
     }
 
-    memset(&params->memwraptool, 0, sizeof(memwraptool_config_t));
+    memset(params->config.global_parameters.memwraptool, 0, sizeof(memwraptool_config_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
-    if (decode_memwraptool_object(obj_config, &params->memwraptool) !=
+    if (decode_memwraptool_object(obj_config, params->config.global_parameters.memwraptool) !=
         webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config object validation failed\n", __func__,
             __LINE__);
