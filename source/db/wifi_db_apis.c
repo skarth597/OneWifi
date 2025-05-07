@@ -1152,7 +1152,7 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
         g_wifidb->global_config.global_parameters.wifi_active_msmt_num_samples = new_rec->wifi_active_msmt_num_samples;
         g_wifidb->global_config.global_parameters.wifi_active_msmt_sample_duration = new_rec->wifi_active_msmt_sample_duration;
         g_wifidb->global_config.global_parameters.memwraptool.rss_check_interval = new_rec->rss_check_interval;
-        g_wifidb->global_config.global_parameters.memwraptool.rss_check_threshold = new_rec->rss_threshold;
+        g_wifidb->global_config.global_parameters.memwraptool.rss_threshold = new_rec->rss_threshold;
         g_wifidb->global_config.global_parameters.memwraptool.rss_maxlimit = new_rec->rss_maxlimit;
         g_wifidb->global_config.global_parameters.memwraptool.heapwalk_duration = new_rec->heapwalk_duration;
         g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval = new_rec->heapwalk_interval;
@@ -6910,12 +6910,12 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     cfg.assoc_gate_time  = 0;
     cfg.whix_log_interval = 3600;
     cfg.whix_chutility_loginterval = 900;
-    cfg->memwraptool.rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
-    cfg->memwraptool.rss_threshold = DEFAULT_RSS_THRESHOLD;
-    cfg->memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
-    cfg->memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
-    cfg->memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
-    cfg->memwraptool.enable = true;
+    cfg.memwraptool.rss_check_interval = DEFAULT_RSS_CHECK_INTERVAL;
+    cfg.memwraptool.rss_threshold = DEFAULT_RSS_THRESHOLD;
+    cfg.memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
+    cfg.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
+    cfg.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
+    cfg.memwraptool.enable = true;
     cfg.assoc_monitor_duration = 0;
     cfg.rapid_reconnect_enable = true;
     cfg.vap_stats_feature =  true;
