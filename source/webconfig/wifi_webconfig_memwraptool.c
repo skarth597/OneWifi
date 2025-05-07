@@ -126,7 +126,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         return webconfig_error_decode;
     }
 
-    memset(params->config.global_parameters.memwraptool, 0, sizeof(memwraptool_config_t));
+    memset(&params->config.global_parameters.memwraptool, 0, sizeof(memwraptool_config_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
     if (decode_memwraptool_object(obj_config, &params->config.global_parameters.memwraptool) !=
         webconfig_error_none) {
