@@ -86,6 +86,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
 
     switch (doc->type) {
     case webconfig_subdoc_type_memwraptool:
+        memwraptool_config = (memwraptool_config_t *)malloc(sizeof(memwraptool_config_t));
         memset(memwraptool_config, 0, sizeof(memwraptool_config_t));
         memcpy(memwraptool_config, &decoded_params->config.global_parameters.memwraptool, sizeof(memwraptool_config_t));
         if (memwraptool_config == NULL) {
@@ -117,6 +118,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                     "%s:%d heapwalk_duration %d is less than heapwalk_interval %d\n", __func__,
                     __LINE__, memwraptool_config->heapwalk_duration,
                     memwraptool_config->heapwalk_interval);
+                free(memwraptool_config);
                 return RETURN_ERR;
             }
             apps->data.u.memwraptool.heapwalk_interval = memwraptool_config->heapwalk_interval;
@@ -126,6 +128,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                 if (rfc_pcfg->memwraptool_app_rfc == FALSE) {
                     wifi_util_error_print(WIFI_MEMWRAPTOOL,
                         "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
+                    free(memwraptool_config);
                     return RETURN_ERR;
                 }
                 int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
@@ -155,6 +158,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
             doc->type);
         break;
     }
+    free(memwraptool_config);
     return RETURN_OK;
 }
 
