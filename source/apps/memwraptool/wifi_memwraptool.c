@@ -86,6 +86,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
 
     switch (doc->type) {
     case webconfig_subdoc_type_memwraptool:
+        memset(memwraptool_config, 0, sizeof(memwraptool_config_t));
         memcpy(memwraptool_config, &decoded_params->config.global_parameters.memwraptool, sizeof(memwraptool_config_t));
         if (memwraptool_config == NULL) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__,
