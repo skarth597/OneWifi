@@ -2954,7 +2954,7 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     cfg.rss_maxlimit = config->memwraptool.rss_maxlimit;
     cfg.heapwalk_duration = config->memwraptool.heapwalk_duration;
     cfg.heapwalk_interval = config->memwraptool.heapwalk_interval;
-    cfg.heapwalk_enable = config->memwraptool.enable;
+    cfg.memwraptool_enable = config->memwraptool.enable;
     cfg.vlan_cfg_version = config->vlan_cfg_version;
     strncpy(cfg.wps_pin,config->wps_pin,sizeof(cfg.wps_pin)-1);
     cfg.bandsteering_enable = config->bandsteering_enable;

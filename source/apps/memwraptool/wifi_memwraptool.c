@@ -48,9 +48,9 @@ static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool
     }
 
     memset(data, 0, sizeof(webconfig_subdoc_data_t));
-    memcpy(&data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
+    memcpy(data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
 
-    if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
+    if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
         str = data->u.encoded.raw;
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool data encoded successfully\n",
             __func__, __LINE__);
@@ -77,7 +77,6 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
     webconfig_subdoc_data_t *doc = (webconfig_subdoc_data_t *)arg;
     webconfig_subdoc_decoded_data_t *decoded_params = NULL;
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
-    unsigned int num = 0;
 
     decoded_params = &doc->u.decoded;
     if (decoded_params == NULL) {
@@ -87,11 +86,11 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
 
     switch (doc->type) {
     case webconfig_subdoc_type_memwraptool:
-        memwraptool_config = &decoded_params->config.global_parameters.memwraptool;
+        memcpy(memwraptool_config, &decoded_params->config.global_parameters.memwraptool, sizeof(memwraptool_config_t));
         if (memwraptool_config == NULL) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__,
                 __LINE__);
-            return RETURN_ERR
+            return RETURN_ERR;
         }
         wifi_util_dbg_print(WIFI_MEMWRAPTOOL,
             "%s:%d Received memwraptool configurations rss_threshold %d, rss_check_interval %d, "
