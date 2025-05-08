@@ -50,7 +50,7 @@ static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool
     memset(data, 0, sizeof(webconfig_subdoc_data_t));
     memcpy(&data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
 
-    if (webconfig_encode(&ctrl, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
+    if (webconfig_encode(&ctrl->webconfig, &data, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
         str = data->u.encoded.raw;
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Memwraptool data encoded successfully\n",
             __func__, __LINE__);
@@ -91,7 +91,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
         if (memwraptool_config == NULL) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d memwraptool_config is NULL\n", __func__,
                 __LINE__);
-            return RETURN_ERR;
+            return RETURN_ERR
         }
         wifi_util_dbg_print(WIFI_MEMWRAPTOOL,
             "%s:%d Received memwraptool configurations rss_threshold %d, rss_check_interval %d, "
@@ -149,7 +149,13 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
             }
             apps->data.u.memwraptool.enable = memwraptool_config->enable;
         }
+        break;
+    default:
+        wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d Invalid subdoc type %d\n", __func__, __LINE__,
+            doc->type);
+        break;
     }
+    return RETURN_OK;
 }
 
 int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
@@ -192,7 +198,7 @@ static int memwraptool_monitor_done_event(wifi_app_t *apps)
     return RETURN_OK;
 }
 
-int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *data)
+int handle_memwraptool_command_event(wifi_app_t *apps, wifi_event_subtype_t sub_type)
 {
     switch (sub_type) {
     case wifi_event_type_notify_monitor_done:
@@ -215,7 +221,7 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
     case wifi_event_type_webconfig:
-        handle_memwraptool_webconfig_event(app, event->sub_type, event->u.webconfig_data);
+        handle_memwraptool_webconfig_event(app, event->sub_type, &event->u.webconfig_data);
         break;
     case wifi_event_type_command:
         handle_memwraptool_command_event(app, event->sub_type);
@@ -236,14 +242,13 @@ bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
     char parameter[MAX_EVENT_NAME_SIZE];
     wifi_app_t *wifi_app = NULL;
     wifi_apps_mgr_t *apps_mgr = NULL;
-    unsigned int memwrapnum = 0;
 
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     if (ctrl == NULL) {
         wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d NULL Pointer \n", __func__, __LINE__);
         return bus_error_general;
     }
-
+    memset(parameter, 0, sizeof(parameter));
     apps_mgr = &ctrl->apps_mgr;
     if (apps_mgr == NULL) {
         wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d NULL Pointer \n", __func__, __LINE__);
@@ -263,7 +268,7 @@ bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
         return bus_error_invalid_input;
     }
 
-    wifi_util_dbg_print(WIFI_CTRL, "%s(): %s\n", __FUNCTION__, name);
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s(): %s\n", __func__, event_name);
     sscanf(event_name, "Device.WiFi.MemwrapTool.%200s", parameter);
 
     if (strcmp(parameter, "RSSThreshold") == 0) {
@@ -274,24 +279,26 @@ bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
         p_data->raw_data.u32 = wifi_app->data.u.memwraptool.rss_check_interval;
     } else if (strcmp(parameter, "RSSMaxLimit") == 0) {
         p_data->data_type = bus_data_type_uint32;
-        p_data->raw.data.u32 = wifi_app->data.u.memwraptool.rss_maxlimit;
+        p_data->raw_data.u32 = wifi_app->data.u.memwraptool.rss_maxlimit;
     } else if (strcmp(parameter, "HeapWalkDuration") == 0) {
         p_data->data_type = bus_data_type_uint32;
         p_data->raw_data.u32 = wifi_app->data.u.memwraptool.heapwalk_duration;
-    } else if (strcmp(parameter, "HeapwalkInterval") == 0) {
+    } else if (strcmp(parameter, "HeapWalkInterval") == 0) {
         p_data->data_type = bus_data_type_uint32;
         p_data->raw_data.u32 = wifi_app->data.u.memwraptool.heapwalk_interval;
     } else if (strcmp(parameter, "Enable") == 0) {
         p_data->data_type = bus_data_type_boolean;
         p_data->raw_data.b = wifi_app->data.u.memwraptool.enable;
     }
+    return ret;
 }
 
 bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
     bus_user_data_t *user_data)
 {
     (void)user_data;
-    char parameter[MAX_EVENT_NAME_SIZE] = NULL;
+    char const* name = event_name;
+    char parameter[MAX_EVENT_NAME_SIZE];
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
     memwraptool_config_t *memwraptool_cfg = NULL;
     wifi_app_t *wifi_app = NULL;
@@ -309,6 +316,7 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             __func__, __LINE__);
         return bus_error_general;
     }
+    memset(parameter, 0, sizeof(parameter));
     memwraptool_cfg = (memwraptool_config_t *)malloc(sizeof(memwraptool_config_t));
     if (memwraptool_cfg == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s %d: failed to allocate memory\n", __func__,
@@ -317,19 +325,19 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
     }
     if (event_name == NULL) {
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s %d: invalid bus property name %s\n", __func__,
-            __LINE__, event_name);
+            __LINE__, name);
         return bus_error_invalid_input;
     }
     memset(memwraptool_cfg, 0, sizeof(memwraptool_config_t));
     memcpy(memwraptool_cfg, &wifi_app->data.u.memwraptool, sizeof(memwraptool_config_t));
 
-    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s(): %s\n", __FUNCTION__, event_name);
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s(): %s\n", __func__, name);
 
     sscanf(name, "Device.WiFi.MemwrapTool.%200s", parameter);
     if (strcmp(parameter, "RSSCheckInterval") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL,
-                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, event_name,
+                "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
                 p_data->data_type, p_data->raw_data.u32);
                 free(memwraptool_cfg);
                 return bus_error_invalid_input;
@@ -371,7 +379,7 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
         }
 
         memwraptool_cfg->heapwalk_duration = p_data->raw_data.u32;
-    } else if (strcmp(parameter, "HeapwalkInterval") == 0) {
+    } else if (strcmp(parameter, "HeapWalkInterval") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
             wifi_util_error_print(WIFI_MEMWRAPTOOL,
                 "%s:%d-%s invalid bus data_type:%x or value: %u\n", __func__, __LINE__, name,
@@ -401,12 +409,12 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
                 free(memwraptool_cfg);
                 return bus_error_invalid_input;
         }
-        if (memwraptool_cfg->enable == p_data->raw_data.boolean) {
+        if (memwraptool_cfg->enable == p_data->raw_data.b) {
             wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s No change in Memwraptool Enable\n",
                 __func__, __LINE__, name);
             return bus_error_success;
         }
-        memwraptool_cfg->enable = p_data->raw_data.boolean;
+        memwraptool_cfg->enable = p_data->raw_data.b;
 
         push_memwrap_data_dml_to_ctrl_queue(memwraptool_cfg);
         wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s MemwrapTool is already enabled\n",
@@ -427,20 +435,23 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 
     bus_data_element_t dataElements[] = {
         { WIFI_MEMWRAPTOOL_RSSCHECKINTERVAL, bus_element_type_property,
-         { levl_get_handler, levl_set_handler, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-         { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL } },
         { WIFI_MEMWRAPTOOL_RSSTHRESHOLD,     bus_element_type_property,
-         { levl_get_handler, levl_set_handler, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-         { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL } },
         { WIFI_MEMWRAPTOOL_RSSMAXLIMIT,      bus_element_type_property,
-         { levl_get_handler, levl_set_handler, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-         { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL } },
         { WIFI_MEMWRAPTOOL_HEAPWALKDURATION, bus_element_type_property,
-         { levl_get_handler, levl_set_handler, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-         { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL } },
         { WIFI_MEMWRAPTOOL_HEAPWALKINTERVAL, bus_element_type_property,
-         { levl_get_handler, levl_set_handler, NULL, NULL, NULL, NULL }, slow_speed, ZERO_TABLE,
-         { bus_data_type_uint32, true, 0, 0, 0, NULL } }
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL } },
+        { WIFI_MEMWRAPTOOL_ENABLE, bus_element_type_property,
+         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
+         slow_speed, ZERO_TABLE, { bus_data_type_boolean, true, 0, 0, 0, NULL } }
     };
 
     if (app_init(app, create_flag) != 0) {
@@ -464,12 +475,12 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
         return RETURN_ERR;
     }
 
-    app->data.memwraptool.rss_check_interval = pcfg->memwraptool.rss_check_interval;
-    app->data.memwraptool.rss_threshold = pcfg->memwraptool.rss_threshold;
-    app->data.memwraptool.rss_maxlimit = pcfg->memwraptool.rss_maxlimit;
-    app->data.memwraptool.heapwalk_duration = pcfg->memwraptool.heapwalk_duration;
-    app->data.memwraptool.heapwalk_interval = pcfg->memwraptool.heapwalk_interval;
-    app->data.memwraptool.enable = pcfg->memwraptool.enable;
+    app->data.u.memwraptool.rss_check_interval = pcfg->memwraptool.rss_check_interval;
+    app->data.u.memwraptool.rss_threshold = pcfg->memwraptool.rss_threshold;
+    app->data.u.memwraptool.rss_maxlimit = pcfg->memwraptool.rss_maxlimit;
+    app->data.u.memwraptool.heapwalk_duration = pcfg->memwraptool.heapwalk_duration;
+    app->data.u.memwraptool.heapwalk_interval = pcfg->memwraptool.heapwalk_interval;
+    app->data.u.memwraptool.enable = pcfg->memwraptool.enable;
 
     rc = get_bus_descriptor()->bus_open_fn(&app->handle, component_name);
     if (rc != bus_error_success) {

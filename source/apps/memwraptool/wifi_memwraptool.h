@@ -16,11 +16,11 @@
  #ifndef WIFI_MEMWRAPTOOL_H
  #define WIFI_MEMWRAPTOOL_H
 
- #define WIFI_MEMWRAPTOOL_RSS_CHECK_INTERVAL "Device.WiFi.MemwrapTool.RSSCheckInterval"
- #define WIFI_MEMWRAPTOOL_RSS_THRESHOLD "Device.WiFi.MemwrapTool.RSSThreshold"
- #define WIFI_MEMWRAPTOOL_RSS_MAXLIMIT "Device.WiFi.MemwrapTool.RSSMaxLimit"
- #define WIFI_MEMWRAPTOOL_HEAPWALK_DURATION "Device.WiFi.MemwrapTool.HeapWalkDuration"
- #define WIFI_MEMWRAPTOOL_HEAPWALK_INTERVAL "Device.WiFi.MemwrapTool.HeapWalkInterval"
+ #define WIFI_MEMWRAPTOOL_RSSCHECKINTERVAL "Device.WiFi.MemwrapTool.RSSCheckInterval"
+ #define WIFI_MEMWRAPTOOL_RSSTHRESHOLD "Device.WiFi.MemwrapTool.RSSThreshold"
+ #define WIFI_MEMWRAPTOOL_RSSMAXLIMIT "Device.WiFi.MemwrapTool.RSSMaxLimit"
+ #define WIFI_MEMWRAPTOOL_HEAPWALKDURATION "Device.WiFi.MemwrapTool.HeapWalkDuration"
+ #define WIFI_MEMWRAPTOOL_HEAPWALKINTERVAL "Device.WiFi.MemwrapTool.HeapWalkInterval"
  #define WIFI_MEMWRAPTOOL_ENABLE "Device.WiFi.MemwrapTool.Enable"
 
  #endif
