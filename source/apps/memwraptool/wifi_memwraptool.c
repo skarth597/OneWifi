@@ -48,7 +48,7 @@ static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool
     }
 
     memset(data, 0, sizeof(webconfig_subdoc_data_t));
-    memcpy(data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
+    memcpy(&data->u.decoded.config.global_parameters.memwraptool, memwraptool, sizeof(memwraptool_config_t));
 
     if (webconfig_encode(&ctrl->webconfig, data, webconfig_subdoc_type_memwraptool) == webconfig_error_none) {
         str = data->u.encoded.raw;
