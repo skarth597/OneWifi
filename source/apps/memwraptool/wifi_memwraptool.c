@@ -32,6 +32,8 @@
 
 static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool)
 {
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering\n",
+        __func__, __LINE__);
     webconfig_subdoc_data_t *data;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     char *str = NULL;
@@ -346,6 +348,8 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
                 free(memwraptool_cfg);
                 return bus_error_invalid_input;
         }
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s RSSCheckInterval is changed \n",
+            __func__, __LINE__, name);
         memwraptool_cfg->rss_check_interval = p_data->raw_data.u32;
     } else if (strcmp(parameter, "RSSThreshold") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
@@ -355,6 +359,8 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
                 free(memwraptool_cfg);
                 return bus_error_invalid_input;
         }
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s RSSThreshold is changed \n",
+            __func__, __LINE__, name);
         memwraptool_cfg->rss_threshold = p_data->raw_data.u32;
     } else if (strcmp(parameter, "RSSMaxLimit") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
@@ -364,6 +370,8 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
                 free(memwraptool_cfg);
                 return bus_error_invalid_input;
         }
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s RSSMaxLimit is changed \n",
+            __func__, __LINE__, name);
         memwraptool_cfg->rss_maxlimit = p_data->raw_data.u32;
     } else if (strcmp(parameter, "HeapWalkDuration") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
@@ -381,7 +389,8 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             free(memwraptool_cfg);
             return bus_error_invalid_input;
         }
-
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s HeapwalkDuration is changed \n",
+            __func__, __LINE__, name);
         memwraptool_cfg->heapwalk_duration = p_data->raw_data.u32;
     } else if (strcmp(parameter, "HeapWalkInterval") == 0) {
         if ((p_data->data_type != bus_data_type_uint32) && (p_data->raw_data.u32 == 0)) {
@@ -419,7 +428,11 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             return bus_error_success;
         }
         memwraptool_cfg->enable = p_data->raw_data.b;
+        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s Enable is changed\n",
+            __func__, __LINE__, name);
     }
+    wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d values are pushed to push_memwrap_data_dml_to_ctrl_queue\n",
+        __func__, __LINE__);
         push_memwrap_data_dml_to_ctrl_queue(memwraptool_cfg);
         free(memwraptool_cfg);
         return bus_error_success;
