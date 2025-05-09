@@ -419,15 +419,10 @@ bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
             return bus_error_success;
         }
         memwraptool_cfg->enable = p_data->raw_data.b;
-
+    }
         push_memwrap_data_dml_to_ctrl_queue(memwraptool_cfg);
-        wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d-%s MemwrapTool is already enabled\n",
-            __func__, __LINE__, name);
         free(memwraptool_cfg);
         return bus_error_success;
-    }
-    free(memwraptool_cfg);
-    return bus_error_invalid_input;
 }
 
 int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
