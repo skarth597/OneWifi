@@ -1762,6 +1762,7 @@ webconfig_error_t encode_levl_object(const levl_config_t *levl, cJSON *levl_obj)
 
 webconfig_error_t encode_memwraptool_object(memwraptool_config_t *memwrap_info, cJSON *memwrap_obj)
 {
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
     if (memwrap_info == NULL || memwrap_obj == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
         return webconfig_error_encode;
@@ -1772,7 +1773,7 @@ webconfig_error_t encode_memwraptool_object(memwraptool_config_t *memwrap_info, 
     cJSON_AddNumberToObject(memwrap_obj, "heapwalk_duration", memwrap_info->heapwalk_duration);
     cJSON_AddNumberToObject(memwrap_obj, "heapwalk_interval", memwrap_info->heapwalk_interval);
     cJSON_AddBoolToObject(memwrap_obj, "enable", memwrap_info->enable);
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Exiting\n", __func__, __LINE__);
     return webconfig_error_none;
 }
 

@@ -61,7 +61,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     cJSON *obj;
     char *str;
     webconfig_subdoc_decoded_data_t *params;
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
     if (data == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL data pointer\n", __func__, __LINE__);
         return webconfig_error_encode;
@@ -86,6 +86,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     obj = cJSON_CreateObject();
     cJSON_AddItemToObject(json, "Parameters", obj);
 
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering into encode_memwraptool_object before function\n", __func__, __LINE__);
     if (encode_memwraptool_object(&params->config.global_parameters.memwraptool, obj) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Failed to encode memwraptool config\n",
             __func__, __LINE__);
@@ -102,7 +103,7 @@ webconfig_error_t encode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         cJSON_Delete(json);
         return webconfig_error_encode;
     }
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: encode_memwraptool_object completed\n", __func__, __LINE__);
     memcpy(data->u.encoded.raw, str, strlen(str));
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: Encoded success %s\n", __func__, __LINE__, str);
     cJSON_free(str);
@@ -125,7 +126,7 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL json pointer\n", __func__, __LINE__);
         return webconfig_error_decode;
     }
-
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Decoding memwraptool config\n", __func__, __LINE__);
     memset(&params->config.global_parameters.memwraptool, 0, sizeof(memwraptool_config_t));
     obj_config = cJSON_GetObjectItem(json, "Parameters");
     if (decode_memwraptool_object(obj_config, &params->config.global_parameters.memwraptool) !=
