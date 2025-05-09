@@ -285,7 +285,7 @@
         </parameter>
         <parameter>
             <name>Memwraptool</name>
-            <type>Boolean</type>
+            <type>boolean</type>
             <syntax>bool</syntax>
             <writable>true</writable>
         </parameter>
