@@ -434,7 +434,7 @@ typedef struct {
     unsigned int heapwalk_duration;
     unsigned int heapwalk_interval;
     bool enable;
-}memwraptool_config_t;
+} __attribute__((packed)) memwraptool_config_t;
 
 typedef struct {
     bool wifi_offchannelscan_app_rfc;
