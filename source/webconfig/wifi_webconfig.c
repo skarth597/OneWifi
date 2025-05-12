@@ -563,7 +563,7 @@ webconfig_error_t webconfig_init(webconfig_t *config)
 #endif //ONEWIFI_LEVL_APP_SUPPORT
 
     config->subdocs[webconfig_subdoc_type_memwraptool].type = webconfig_subdoc_type_memwraptool;
-    strcpy(config->subdocs[webconfig_subdoc_type_memwraptool].name, "memwraptool data");
+    strcpy(config->subdocs[webconfig_subdoc_type_memwraptool].name, "memwraptool config");
     config->subdocs[webconfig_subdoc_type_memwraptool].major = 1;
     config->subdocs[webconfig_subdoc_type_memwraptool].minor = 1;
     config->subdocs[webconfig_subdoc_type_memwraptool].init_subdoc = init_memwraptool_subdoc;
