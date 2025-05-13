@@ -85,7 +85,8 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
         wifi_util_error_print(WIFI_MEMWRAPTOOL, "%s:%d Decoded data is NULL\n", __func__, __LINE__);
         return RETURN_ERR;
     }
-
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,
+        "%s:%d Entering and subdoc type is %d\n", __func__, __LINE__, doc->type);
     switch (doc->type) {
     case webconfig_subdoc_type_memwraptool:
         memwraptool_config = (memwraptool_config_t *)malloc(sizeof(memwraptool_config_t));
@@ -168,6 +169,8 @@ int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t su
 {
     switch (sub_type) {
     case wifi_event_webconfig_set_data_dml:
+        wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d Entering and subdoc type is %d\n", __func__,
+            __LINE__, ((webconfig_subdoc_data_t *)data)->type);
         memwraptool_event_webconfig_set_data(apps, data, sub_type);
         break;
     default:
@@ -227,6 +230,7 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
 {
     switch (event->event_type) {
     case wifi_event_type_webconfig:
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d Entering and subdoc type is %d\n", __func__, __LINE__, event->u.webconfig_data->type);
         handle_memwraptool_webconfig_event(app, event->sub_type, &event->u.webconfig_data);
         break;
     case wifi_event_type_command:
