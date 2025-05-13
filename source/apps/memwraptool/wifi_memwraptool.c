@@ -231,7 +231,7 @@ int memwraptool_event(wifi_app_t *app, wifi_event_t *event)
     switch (event->event_type) {
     case wifi_event_type_webconfig:
     wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d Entering and subdoc type is %d\n", __func__, __LINE__, event->u.webconfig_data->type);
-        handle_memwraptool_webconfig_event(app, event->sub_type, &event->u.webconfig_data);
+        handle_memwraptool_webconfig_event(app, event->sub_type, event->u.webconfig_data);
         break;
     case wifi_event_type_command:
         handle_memwraptool_command_event(app, event->sub_type);
