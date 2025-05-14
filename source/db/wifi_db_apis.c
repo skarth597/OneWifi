@@ -3061,6 +3061,12 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
         config->assoc_gate_time = pcfg->assoc_gate_time;
         config->whix_log_interval = pcfg->whix_log_interval;
         config->whix_chutility_loginterval = pcfg->whix_chutility_loginterval;
+        config->memwraptool.rss_check_interval = pcfg->rss_check_interval;
+        config->memwraptool.rss_threshold = pcfg->rss_threshold;
+        config->memwraptool.rss_maxlimit = pcfg->rss_maxlimit;
+        config->memwraptool.heapwalk_duration = pcfg->heapwalk_duration;
+        config->memwraptool.heapwalk_interval = pcfg->heapwalk_interval;
+        config->memwraptool.enable = pcfg->memwraptool_enable;
         config->assoc_monitor_duration = pcfg->assoc_monitor_duration;
         config->rapid_reconnect_enable = pcfg->rapid_reconnect_enable;
         config->vap_stats_feature = pcfg->vap_stats_feature;
