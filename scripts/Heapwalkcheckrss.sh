@@ -140,7 +140,7 @@ fi
        heapwalk_pid=$(ps | grep "/usr/ccsp/wifi/HeapwalkField.sh" | grep -v grep | awk '{print $1}')
        echo "$(date '+%Y-%m-%d %H:%M:%S') HeapwalkField.sh pid : $heapwalk_pid" >> "$log_file"
           if [ -z "$heapwalk_pid" ]; then
-            /usr/ccsp/wifi/HeapwalkField.sh "$RSSInterval" "$RSSThreshold" "RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
+            /usr/ccsp/wifi/HeapwalkField.sh "$RSSInterval" "$RSSThreshold" "$RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
             echo "$(date '+%Y-%m-%d %H:%M:%S') RSS increased. Running the other script." >> "$log_file"
             sleep "$HeapwalkDuration"
           else
