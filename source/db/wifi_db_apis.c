@@ -1200,6 +1200,7 @@ void callback_Wifi_Global_Config(ovsdb_update_monitor_t *mon,
             g_wifidb->global_config.global_parameters.txrx_rate_list[sizeof(g_wifidb->global_config.global_parameters.txrx_rate_list)-1] = '\0';
         }
         wifi_util_dbg_print(WIFI_DB,"%s:%d  notify_wifi_changes %d  prefer_private %d  prefer_private_configure %d  factory_reset %d  tx_overflow_selfheal %d  inst_wifi_client_enabled %d  inst_wifi_client_reporting_period %d  inst_wifi_client_mac = %s inst_wifi_client_def_reporting_period %d  wifi_active_msmt_enabled %d  wifi_active_msmt_pktsize %d  wifi_active_msmt_num_samples %d  wifi_active_msmt_sample_duration %d  vlan_cfg_version %d  wps_pin = %s bandsteering_enable %d  good_rssi_threshold %d  assoc_count_threshold %d  assoc_gate_time %d whix_loginterval %d assoc_monitor_duration %d  rapid_reconnect_enable %d  vap_stats_feature %d  mfp_config_feature %d  force_disable_radio_feature %d  force_disable_radio_status %d  fixed_wmm_params %d  wifi_region_code %s diagnostic_enable %d  validate_ssid %d device_network_mode:%d normalized_rssi_list %s snr_list %s cli_stat_list %s txrx_rate_list %s\r\n", __func__, __LINE__, new_rec->notify_wifi_changes,new_rec->prefer_private,new_rec->prefer_private_configure,new_rec->factory_reset,new_rec->tx_overflow_selfheal,new_rec->inst_wifi_client_enabled,new_rec->inst_wifi_client_reporting_period,new_rec->inst_wifi_client_mac, new_rec->inst_wifi_client_def_reporting_period,new_rec->wifi_active_msmt_enabled,new_rec->wifi_active_msmt_pktsize,new_rec->wifi_active_msmt_num_samples,new_rec->wifi_active_msmt_sample_duration,new_rec->vlan_cfg_version,new_rec->wps_pin, new_rec->bandsteering_enable,new_rec->good_rssi_threshold,new_rec->assoc_count_threshold,new_rec->assoc_gate_time, new_rec->whix_log_interval, new_rec->assoc_monitor_duration,new_rec->rapid_reconnect_enable,new_rec->vap_stats_feature,new_rec->mfp_config_feature,new_rec->force_disable_radio_feature,new_rec->force_disable_radio_status,new_rec->fixed_wmm_params,new_rec->wifi_region_code,new_rec->diagnostic_enable,new_rec->validate_ssid, new_rec->device_network_mode, new_rec->normalized_rssi_list, new_rec->snr_list, new_rec->cli_stat_list, new_rec->txrx_rate_list);
+        wifi_util_dbg_print(WIFI_DB,"%s:%d: rss_check_interval%d rss_threshold:%d rss_maxlimit:%d heapwalk_duration:%d heapwalk_interval:%d\n", __func__, __LINE__, new_rec->memwraptool.rss_check_interval, new_rec->memwraptool.rss_threshold, new_rec->memwraptool.rss_maxlimit, new_rec->memwraptool.heapwalk_duration, new_rec->memwraptool.heapwalk_interval);
         pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     }
     else
@@ -4287,7 +4288,8 @@ void wifidb_init_rfc_config_default(wifi_rfc_dml_parameters_t *config)
     pthread_mutex_lock(&g_wifidb->data_cache_lock);
     memcpy(config,&rfc_config,sizeof(wifi_rfc_dml_parameters_t));
     pthread_mutex_unlock(&g_wifidb->data_cache_lock);
-
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d: Memwraptool rfc = %d\n", __func__, __LINE__, rfc_config.memwraptool_app_rfc);
+    
 }
 
 static void wifidb_global_config_upgrade()
@@ -5503,6 +5505,7 @@ int wifidb_update_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_param)
         update = true;
         free(pcfg);
     }
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d: Memwraptool rfc = %d\n", __func__, __LINE__, rfc_param->memwraptool_app_rfc);
     cfg.wifipasspoint_rfc = rfc_param->wifipasspoint_rfc;
     cfg.wifiinterworking_rfc = rfc_param->wifiinterworking_rfc;
     cfg.radiusgreylist_rfc = rfc_param->radiusgreylist_rfc;
@@ -5522,6 +5525,7 @@ int wifidb_update_rfc_config(UINT rfc_id, wifi_rfc_dml_parameters_t *rfc_param)
     cfg.wifi_offchannelscan_sm_rfc = rfc_param->wifi_offchannelscan_sm_rfc;
     cfg.tcm_enabled_rfc = rfc_param->tcm_enabled_rfc;
     cfg.wpa3_compatibility_enable = rfc_param->wpa3_compatibility_enable;
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,"%s:%d: The value of memwraptool_rfc : %d\n", __func__, __LINE__, cfg.memwraptool_app_rfc);
     if (update == true) {
         where = onewifi_ovsdb_tran_cond(OCLM_STR, "rfc_id", OFUNC_EQ, index); 
         ret = onewifi_ovsdb_table_update_where(g_wifidb->wifidb_sock_path, &table_Wifi_Rfc_Config, where, &cfg);
@@ -7120,6 +7124,7 @@ void wifidb_init_default_value()
     wifidb_reset_macfilter_hashmap();
     wifidb_init_gas_config_default(&g_wifidb->global_config.gas_config);
     wifidb_init_rfc_config_default(&g_wifidb->rfc_dml_parameters);
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,"%s:%d: The value of memwraptool_rfc : %d\n", __func__, __LINE__, g_wifidb->rfc_dml_parameters.memwraptool_app_rfc);
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi db update completed\n",__func__, __LINE__);
 
 }
