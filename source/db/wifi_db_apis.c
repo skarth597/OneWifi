@@ -7125,7 +7125,8 @@ void wifidb_init_default_value()
     wifidb_reset_macfilter_hashmap();
     wifidb_init_gas_config_default(&g_wifidb->global_config.gas_config);
     wifidb_init_rfc_config_default(&g_wifidb->rfc_dml_parameters);
-    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,"%s:%d: The value of memwraptool_rfc : %d\n", __func__, __LINE__, g_wifidb->rfc_dml_parameters.memwraptool_app_rfc);
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,"%s:%d: The value of memwraptool_rfc : %d, addresss: %p\n", __func__, __LINE__, g_wifidb->rfc_dml_parameters.memwraptool_app_rfc,
+    &g_wifidb->rfc_dml_parameters);
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi db update completed\n",__func__, __LINE__);
 
 }
@@ -7154,7 +7155,8 @@ void init_wifidb_data()
     wifi_vap_info_map_t *l_vap_param_cfg = NULL;
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
-    wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
+    
+
     char country_code[COUNTRY_CODE_LEN] = {0};
 
     wifi_util_info_print(WIFI_DB,"%s:%d No of radios %d\n",__func__, __LINE__,getNumberRadios());
@@ -7165,6 +7167,9 @@ void init_wifidb_data()
         return;
     }
     wifidb_init_default_value();
+
+    wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
+    wifi_util_dbg_print(WIFI_MEMWRAPTOOL,"%s:%d: rfc_param %p\n", __func__, __LINE__, *rfc_param);
 
     if ((access(ONEWIFI_FR_REBOOT_FLAG, F_OK) == 0) && (access(ONEWIFI_FR_WIFIDB_RESET_DONE_FLAG, F_OK) != 0)) {
         wifidb_update_rfc_config(0, rfc_param);
