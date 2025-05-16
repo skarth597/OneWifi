@@ -4143,12 +4143,13 @@ int wifidb_init_interworking_config_default(int vapIndex,void /*wifi_Interworkin
     strcpy(interworking.hessid,"11:22:33:44:55:66");
     if (isVapHotspot(vapIndex))    //Xfinity hotspot vaps
     {
-         interworking.accessNetworkType = 2;
+        interworking.accessNetworkType = 2;
+        interworking.venueOptionPresent = 1;
     } else {
-         interworking.accessNetworkType = 0;
+        interworking.accessNetworkType = 0;
+        interworking.venueOptionPresent = 0;
     }
 
-    interworking.venueOptionPresent = 1;
     interworking.venueGroup = 0;
     interworking.venueType = 0;
 
@@ -4560,7 +4561,7 @@ void wifidb_vap_config_correction(wifi_vap_info_map_t *l_vap_map_param)
 
         if (isVapPrivate(vap_config->vap_index) &&
             is_sec_mode_personal(vap_config->u.bss_info.security.mode)) {
-#ifdef FEATURE_SUPPORT_WPS
+#if defined(FEATURE_SUPPORT_WPS) &&  !defined(_SR213_PRODUCT_REQ_)
             if (vap_config->u.bss_info.wps.enable == false) {
                 vap_config->u.bss_info.wps.enable = true;
                 wifi_util_info_print(WIFI_DB, "%s:%d: force wps enabled for private_vap:%d\r\n",
