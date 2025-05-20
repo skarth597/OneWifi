@@ -3004,7 +3004,7 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     p_desc->push_data_to_ssp_queue_fn(config, sizeof(wifi_global_param_t), ssp_event_type_psm_write, global_config);
 #endif // NEWPLATFORM_PORT
     wifi_util_dbg_print(WIFI_DB,"\n %s:%d  notify_wifi_changes %d  prefer_private %d  prefer_private_configure %d  factory_reset %d  tx_overflow_selfheal %d  inst_wifi_client_enabled %d  inst_wifi_client_reporting_period %d  inst_wifi_client_mac = %s inst_wifi_client_def_reporting_period %d  wifi_active_msmt_enabled %d  wifi_active_msmt_pktsize %d  wifi_active_msmt_num_samples %d  wifi_active_msmt_sample_duration %d  vlan_cfg_version %d  wps_pin = %s bandsteering_enable %d  good_rssi_threshold %d  assoc_count_threshold %d  assoc_gate_time %d  assoc_monitor_duration %d  rapid_reconnect_enable %d  vap_stats_feature %d  mfp_config_feature %d  force_disable_radio_feature %d  force_disable_radio_status %d  fixed_wmm_params %d  wifi_region_code %s diagnostic_enable %d  validate_ssid %d device_network_mode:%d normalized_rssi_list %s snr_list %s cli_stat_list %s txrx_rate_list %s\r\n", __func__, __LINE__, config->notify_wifi_changes,config->prefer_private,config->prefer_private_configure,config->factory_reset,config->tx_overflow_selfheal,config->inst_wifi_client_enabled,config->inst_wifi_client_reporting_period,config->inst_wifi_client_mac, config->inst_wifi_client_def_reporting_period,config->wifi_active_msmt_enabled,config->wifi_active_msmt_pktsize,config->wifi_active_msmt_num_samples,config->wifi_active_msmt_sample_duration,config->vlan_cfg_version,config->wps_pin, config->bandsteering_enable,config->good_rssi_threshold,config->assoc_count_threshold,config->assoc_gate_time,config->assoc_monitor_duration,config->rapid_reconnect_enable,config->vap_stats_feature,config->mfp_config_feature,config->force_disable_radio_feature,config->force_disable_radio_status,config->fixed_wmm_params,config->wifi_region_code,config->diagnostic_enable,config->validate_ssid, config->device_network_mode,config->normalized_rssi_list,config->snr_list,config->cli_stat_list,config->txrx_rate_list);
-
+    wifi_util_dbg_print(WIFI_DB,"%s:%d: Memwraptool_enable %d rss_check_interval %d rss_threshold %d rss_maxlimit %d heapwalk_duration %d heapwalk_interval %d\n", __func__, __LINE__, config->memwraptool.enable, config->memwraptool.rss_check_interval, config->memwraptool.rss_threshold, config->memwraptool.rss_maxlimit, config->memwraptool.heapwalk_duration, config->memwraptool.heapwalk_interval);
     if (wifidb_update_table_entry(NULL,NULL,OCLM_UUID,&table_Wifi_Global_Config,&cfg,filter_global) <= 0)
     {
         wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Global Config table \n",__func__, __LINE__);
@@ -4338,6 +4338,7 @@ static void wifidb_global_config_upgrade()
     g_wifidb->global_config.global_parameters.memwraptool.rss_maxlimit = DEFAULT_RSS_MAXLIMIT;
     g_wifidb->global_config.global_parameters.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
     g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
+    g_wifidb->global_config.global_parameters.memwraptool.enable = true;
     }
 
 }

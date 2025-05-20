@@ -37,7 +37,6 @@ done
     # Check if PID is provided
     if [ -z "$initial_pid" ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') Onewifi process not found." >> "$log_file"
-		/usr/ccsp/wifi/Heapwalkcheckrss.sh "$RSSInterval" "$RSSThreshold" "RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
         exit 1
     fi
 
@@ -50,13 +49,11 @@ done
         current_pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
         if [ -z "$current_pid" ]; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') Onewifi process not found." >> "$log_file"
-			/usr/ccsp/wifi/Heapwalkcheckrss.sh "$RSSInterval" "$RSSThreshold" "RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
             exit 1
         fi
 
         if [ "$current_pid" != "$initial_pid" ]; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') PID has changed. Exiting." >> "$log_file"
-			/usr/ccsp/wifi/Heapwalkcheckrss.sh "$RSSInterval" "$RSSThreshold" "RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
             exit 1
         else
             # Run memleakutil with input provided directly in the script
