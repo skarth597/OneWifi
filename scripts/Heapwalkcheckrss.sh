@@ -49,10 +49,11 @@ onewifi_pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{
 
     memleakutil <<EOF> /tmp/HeapResultField.txt
 $onewifi_pid
-3
+4
+7
 EOF
 echo "$(date '+%Y-%m-%d %H:%M:%S') Overall HEAPWALK is marked as walked at starting" >> "$log_file"
-sleep 900
+sleep 300
 
 STATUS_FILE="/proc/$onewifi_pid/status"
 if [ ! -f "$STATUS_FILE" ]; then
@@ -63,8 +64,8 @@ fi
 initial_vmrss=$(grep -i 'VmRSS' "$STATUS_FILE" | awk '{print $2}')
 echo "$(date '+%Y-%m-%d %H:%M:%S') Initial RSS : $initial_vmrss" >> "$log_file"
 while true; do
-    sleep $RSSInterval
     echo "$(date '+%Y-%m-%d %H:%M:%S') Sleeping for $RSSInterval" >> "$log_file"
+    sleep $RSSInterval
     onewifi_pid2=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
 
 if [ -z "$onewifi_pid2" ]; then

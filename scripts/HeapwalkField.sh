@@ -60,6 +60,8 @@ done
             memleakutil <<EOF > /tmp/HeapResultField.txt
 $current_pid
 1
+0
+7
 EOF
             echo "$(date '+%Y-%m-%d %H:%M:%S') Output has been sent to HeapResultField.txt" >> "$log_file"
 
@@ -100,7 +102,6 @@ EOF
     pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
     if [ -z "$pid" ]; then
         echo "$(date '+%Y-%m-%d %H:%M:%S') Onewifi process not found while entering the memory map usage" >> "$log_file"
-        nohup bash /usr/ccsp/wifi/Heapwalkcheckrss.sh &
         exit 1
     fi
         echo "$(date '+%Y-%m-%d %H:%M:%S') Entering the Memory map phase" >> "$log_file"
