@@ -1787,22 +1787,12 @@ webconfig_error_t encode_memwraptool_object(memwraptool_config_t *memwrap_info, 
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
         return webconfig_error_encode;
     }
-    cJSON_AddNumberToObject(memwrap_obj, "rss_check_interval", 
-        memwrap_info->rss_check_interval);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with rss_check_interval : %d cJSON \n", __func__, __LINE__, memwrap_info->rss_check_interval);
+    cJSON_AddNumberToObject(memwrap_obj, "rss_check_interval", memwrap_info->rss_check_interval);
     cJSON_AddNumberToObject(memwrap_obj, "rss_threshold", memwrap_info->rss_threshold);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with rss_threshold : %d cJSON \n", __func__, __LINE__, memwrap_info->rss_threshold);
     cJSON_AddNumberToObject(memwrap_obj, "rss_maxlimit", memwrap_info->rss_maxlimit);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with rss_maxlimit : %d cJSON \n", __func__, __LINE__, memwrap_info->rss_maxlimit);
-    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_duration", 
-        memwrap_info->heapwalk_duration);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with Heapwalk_duration : %d cJSON \n", __func__, __LINE__, memwrap_info->heapwalk_duration);
-    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_interval", 
-        memwrap_info->heapwalk_interval);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with Heapwalk_interval : %d cJSON \n", __func__, __LINE__, memwrap_info->heapwalk_interval);
+    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_duration", memwrap_info->heapwalk_duration);
+    cJSON_AddNumberToObject(memwrap_obj, "heapwalk_interval", memwrap_info->heapwalk_interval);
     cJSON_AddBoolToObject(memwrap_obj, "enable", memwrap_info->enable);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Done with Enable : %d cJSON \n", __func__, __LINE__, memwrap_info->enable);
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Exiting\n", __func__, __LINE__);
     return webconfig_error_none;
 }
 

@@ -2415,8 +2415,6 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
                     __LINE__);
             } else {
                 ret = webconfig_memwraptool_apply(ctrl, &data->u.decoded);
-                wifi_util_dbg_print(WIFI_MGR,
-                    "%s:%d: webconfig_memwraptool_apply is not called and not implemented\n", __func__, __LINE__);
             }
             break;
 

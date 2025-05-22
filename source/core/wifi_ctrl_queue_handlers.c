@@ -3498,7 +3498,6 @@ void handle_webconfig_event(wifi_ctrl_t *ctrl, const char *raw, unsigned int len
         }
 
         subdoc_type = find_subdoc_type(config, cJSON_Parse(raw));
-        wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d: subdoc_type %d\n", __func__, __LINE__, subdoc_type);
         switch (subdoc_type) {
         case webconfig_subdoc_type_private:
             num_ssid += get_list_of_private_ssid(&mgr->hal_cap.wifi_prop, MAX_NUM_RADIOS,
@@ -3541,7 +3540,6 @@ void handle_webconfig_event(wifi_ctrl_t *ctrl, const char *raw, unsigned int len
             wifi_event->event_type = wifi_event_type_webconfig;
             wifi_event->sub_type = subtype;
             wifi_event->u.webconfig_data = &data;
-            wifi_util_dbg_print(WIFI_MEMWRAPTOOL, "%s:%d: pushing event to apps_mgr and the doc_type is %d\n", __func__, __LINE__, wifi_event->u.webconfig_data->type);
             apps_mgr_event(&ctrl->apps_mgr, wifi_event);
             if (wifi_event != NULL) {
                 free(wifi_event);
