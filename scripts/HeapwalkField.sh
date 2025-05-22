@@ -9,8 +9,7 @@ current_date=$(date)
 echo "Current date and time: $current_date" >> "$log_file"
 
     # Convert the input values to seconds
-    RSSInterval_minutes=$1
-    RSSInterval=$((RSSInterval_minutes * 60))
+    RSSInterval=$1
     RSSThreshold=$2
     RSSMaxLimit=$3
     HeapwalkDuration=$4

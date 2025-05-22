@@ -116,7 +116,7 @@ webconfig_error_t decode_wifi_config_subdoc(webconfig_t *config, webconfig_subdo
     cJSON *obj_config;
     cJSON *json;
     params = &data->u.decoded;
-    wifi_mgr_t *g_wifi_mgr = get_wifi_mgr_obj();
+    wifi_mgr_t *g_wifi_mgr = (wifi_mgr_t *)get_wifimgr_obj();
 
     if (g_wifi_mgr == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL g_wifi_mgr pointer\n", __func__,
@@ -134,8 +134,7 @@ webconfig_error_t decode_wifi_config_subdoc(webconfig_t *config, webconfig_subdo
     }
 
     memset(&params->config, 0, sizeof(wifi_global_config_t));
-    memcpy(&params->config, g_wifi_mgr->global_config,
-        sizeof(wifi_global_config_t));
+    memcpy(&params->config, &g_wifi_mgr->global_config, sizeof(wifi_global_config_t));
     obj_config = cJSON_GetObjectItem(json, "WifiConfig");
     if (decode_config_object(obj_config, &params->config) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Config Object validation failed\n",

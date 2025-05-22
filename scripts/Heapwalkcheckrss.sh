@@ -88,7 +88,7 @@ fi
     rss_diff=$((current_vmrss - initial_vmrss))
     echo "$(date '+%Y-%m-%d %H:%M:%S') RSS Diff: $rss_diff" >> "$log_file"
     if [ "$rss_diff" -gt "$RSShreshold" ] || [ "$current_vmrss" -gt "$RSSMaxLimit" ]; then
-       heapwalk_pid=$(ps | grep "/usr/ccsp/wifi/HeapwalkField.sh" | grep -v grep | awk '{print $1}')
+       heapwalk_pid=$(ps | grep -i "HeapwalkField" | grep -v grep |  awk '{print $1}')
        echo "$(date '+%Y-%m-%d %H:%M:%S') HeapwalkField.sh pid : $heapwalk_pid" >> "$log_file"
           if [ -z "$heapwalk_pid" ]; then
             /usr/ccsp/wifi/HeapwalkField.sh "$RSSInterval" "$RSSThreshold" "$RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
