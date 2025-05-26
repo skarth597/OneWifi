@@ -135,10 +135,13 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                         "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
                     free(memwraptool_config);
                     return RETURN_ERR;
-                }                int ret = get_stubs_descriptor()->v_secure_system_fn("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+                }
+                char cmd[256];
+                snprintf(cmd, sizeof(cmd), "/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
                     memwraptool_config->rss_check_interval, memwraptool_config->rss_threshold,
                     memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration,
                     memwraptool_config->heapwalk_interval);
+                int ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
                 if (!ret) {
                     wifi_util_info_print(WIFI_MEMWRAPTOOL,
                         "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__,
@@ -192,10 +195,12 @@ static int memwraptool_monitor_done_event(wifi_app_t *apps)
             __LINE__);
         return RETURN_ERR;
     }
-    ret = get_stubs_descriptor()->v_secure_system_fn("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
         apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
         apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
         apps->data.u.memwraptool.heapwalk_interval);
+    int ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
     if (ret == 0) {
         wifi_util_info_print(WIFI_MEMWRAPTOOL,
             "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
