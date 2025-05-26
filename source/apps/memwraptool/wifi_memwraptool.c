@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <secure_wrapper.h>
 
 #define MAX_EVENT_NAME_SIZE 200
 
