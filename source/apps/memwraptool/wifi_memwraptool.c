@@ -15,7 +15,6 @@
 
 #include "wifi_events.h"
 #include "wifi_util.h"
-#include "secure_wrapper.h"
 #include "wifi_stubs.h"
 #include "wifi_memwraptool.h"
 #include "wifi_hal.h"
