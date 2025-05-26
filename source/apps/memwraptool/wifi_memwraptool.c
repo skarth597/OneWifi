@@ -200,7 +200,7 @@ static int memwraptool_monitor_done_event(wifi_app_t *apps)
         apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
         apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
         apps->data.u.memwraptool.heapwalk_interval);
-    int ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
+    ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
     if (ret == 0) {
         wifi_util_info_print(WIFI_MEMWRAPTOOL,
             "%s:%d Heapwalkscheckrss.sh script executed successfully\r\n", __func__, __LINE__);
