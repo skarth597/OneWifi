@@ -183,7 +183,7 @@ HOSTAP_LIB_FLAGS +=  -DHOSTAPD_2_10 -DCONFIG_WEP -DFEATURE_SUPPORT_RADIUSGREYLIS
 # wifi agent rules
 
 LDFLAGS = $(LIBDIRS) $(LIBS)
-LDFLAGS += -lsecure_wrapper
+
 PROGRAM = $(INSTALLDIR)/bin/OneWifi
 
 INCLUDEDIRS = \
@@ -268,7 +268,7 @@ else
 LIBDIRS += -L$(INSTALLDIR)/lib/platform/darwin
 endif
 
-LIBS = -lm -luuid -lwifihal  -lpthread -ldl -ljansson -lev -lssl -lcrypto -lnl-3 -lnl-genl-3 -lnl-route-3 -lavro -lcjson
+LIBS = -lm -luuid -lwifihal  -lpthread -ldl -ljansson -lev -lssl -lcrypto -lnl-3 -lnl-genl-3 -lnl-route-3 -lavro -lcjson -lsecure_wrapper
 
 #
 # The CXXSOURCES macro contains a list of source files.
