@@ -270,10 +270,6 @@ endif
 
 LIBS = -lm -luuid -lwifihal  -lpthread -ldl -ljansson -lev -lssl -lcrypto -lnl-3 -lnl-genl-3 -lnl-route-3 -lavro -lcjson
 
-AM_LDFLAGS =  -L$(top_builddir)/../hal/lib
-AM_LDFLAGS += -lwebconfig_framework
-AM_LDFLAGS += -lsecure_wrapper
-
 #
 # The CXXSOURCES macro contains a list of source files.
 #

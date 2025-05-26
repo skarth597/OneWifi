@@ -15,6 +15,7 @@
 
 #include "wifi_events.h"
 #include "wifi_util.h"
+#include "secure_wrapper.h"
 #include "wifi_stubs.h"
 #include "wifi_memwraptool.h"
 #include "wifi_hal.h"
@@ -27,7 +28,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <secure_wrapper.h>
 
 #define MAX_EVENT_NAME_SIZE 200
 
@@ -136,8 +136,7 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                         "%s:%d memwraptool_app_rfc is disabled\n", __func__, __LINE__);
                     free(memwraptool_config);
                     return RETURN_ERR;
-                }
-                int ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+                }                int ret = get_stubs_descriptor()->v_secure_system_fn("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
                     memwraptool_config->rss_check_interval, memwraptool_config->rss_threshold,
                     memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration,
                     memwraptool_config->heapwalk_interval);
@@ -147,8 +146,8 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                         __LINE__);
                 }
             } else {
-                int ret = v_secure_system("killall Heapwalkcheckrss.sh");
-                int ret1 = v_secure_system("killall HeapwalkField.sh");
+                int ret = get_stubs_descriptor()->v_secure_system_fn("killall Heapwalkcheckrss.sh");
+                int ret1 = get_stubs_descriptor()->v_secure_system_fn("killall HeapwalkField.sh");
                 if (!ret && !ret1) {
                     wifi_util_info_print(WIFI_MEMWRAPTOOL,
                         "%s:%d Heapwalkcheckrss.sh and HeapwalkField.sh script killed "
@@ -194,7 +193,7 @@ static int memwraptool_monitor_done_event(wifi_app_t *apps)
             __LINE__);
         return RETURN_ERR;
     }
-    ret = v_secure_system("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
+    ret = get_stubs_descriptor()->v_secure_system_fn("/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
         apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
         apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
         apps->data.u.memwraptool.heapwalk_interval);
