@@ -428,11 +428,11 @@ typedef struct {
 }levl_config_t;
 
 typedef struct {
-    unsigned int rss_check_interval;
-    unsigned int rss_threshold;
-    unsigned int rss_maxlimit;
-    unsigned int heapwalk_duration;
-    unsigned int heapwalk_interval;
+    unsigned int rss_check_interval; //minutes
+    unsigned int rss_threshold; //kbytes
+    unsigned int rss_maxlimit; //kbytes
+    unsigned int heapwalk_duration; //minutes
+    unsigned int heapwalk_interval; //minutes
     bool enable;
 } __attribute__((packed)) memwraptool_config_t;
 

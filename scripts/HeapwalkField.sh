@@ -8,12 +8,18 @@ current_date=$(date)
 # Echo the date and time
 echo "Current date and time: $current_date" >> "$log_file"
 
-# Convert the input values to seconds
 RSSInterval=$1
 RSSThreshold=$2
 RSSMaxLimit=$3
 HeapwalkDuration=$4
 HeapwalkInterval=$5
+
+device=`deviceinfo.sh -mo`
+if [[ $device == "CGM4331COM" ]]; then
+    max_radio=16
+else
+    max_radio=24
+fi
 
 # Convert the input values to seconds
 duration=$((HeapwalkDuration * 60))  # Convert duration from minutes to seconds
@@ -26,7 +32,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') End Time: $end_time seconds" >> "$log_file"
 
     #to get the assoclist
 echo "Assoclist at starting of the HeapwalkField Script" >> "$log_file"
-for((i=1;i<=24;i++)); do
+for((i=1;i<=max_radio;i++)); do
     numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
     echo "VAP INDEX $i : $numdevices" >> "$log_file"
 done

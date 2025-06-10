@@ -45,9 +45,16 @@ echo "Heapwalk Duration: $HeapwalkDuration" >> "$log_file"
 echo "Heapwalk Interval: $HeapwalkInterval" >> "$log_file"
 
 
+device=`deviceinfo.sh -mo`
+if [[ $device == "CGM4331COM" ]]; then
+    max_radio=16
+else
+    max_radio=24
+fi
+
 #to get the assoclist
 echo "AssocList Before starting RSS script : " >> "$log_file"
-for((i=1;i<=24;i++)); do
+for((i=1;i<=max_radio;i++)); do
     numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
     echo "VAP INDEX $i : $numdevices" >> "$log_file"
 done

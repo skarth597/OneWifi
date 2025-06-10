@@ -76,6 +76,7 @@ static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool
 
 int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event_subtype_t sub_type)
 {
+    char cmd[256];
     memwraptool_config_t *memwraptool_config = NULL;
     webconfig_subdoc_data_t *doc = (webconfig_subdoc_data_t *)arg;
     webconfig_subdoc_decoded_data_t *decoded_params = NULL;
@@ -136,7 +137,6 @@ int memwraptool_event_webconfig_set_data(wifi_app_t *apps, void *arg, wifi_event
                     free(memwraptool_config);
                     return RETURN_ERR;
                 }
-                char cmd[256];
                 snprintf(cmd, sizeof(cmd), "/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
                     memwraptool_config->rss_check_interval, memwraptool_config->rss_threshold,
                     memwraptool_config->rss_maxlimit, memwraptool_config->heapwalk_duration,
@@ -187,6 +187,7 @@ int handle_memwraptool_webconfig_event(wifi_app_t *apps, wifi_event_subtype_t su
 
 static int memwraptool_monitor_done_event(wifi_app_t *apps)
 {
+    char cmd[256];
     wifi_rfc_dml_parameters_t *rfc_pcfg = (wifi_rfc_dml_parameters_t *)get_wifi_db_rfc_parameters();
     int ret = 0;
 
@@ -195,7 +196,6 @@ static int memwraptool_monitor_done_event(wifi_app_t *apps)
             __LINE__);
         return RETURN_ERR;
     }
-    char cmd[256];
     snprintf(cmd, sizeof(cmd), "/usr/ccsp/wifi/Heapwalkcheckrss.sh %d %d %d %d %d &",
         apps->data.u.memwraptool.rss_check_interval, apps->data.u.memwraptool.rss_threshold,
         apps->data.u.memwraptool.rss_maxlimit, apps->data.u.memwraptool.heapwalk_duration,
