@@ -79,7 +79,7 @@ void print_wifi_hal_bss_vap_data(wifi_dbg_type_t log_file_type, char *prefix,
             "uapsd_enabled=%d\n beacon_rate=%d\n bridge_name=%s\n mac=%s\n wmm_noack=%d\n "
             "wep_key_length=%d\n bss_hotspot=%d\n wps_push_button=%d\n beacon_rate_ctl=%s\n "
             "network_initiated_greylist=%d\n mcast2ucast=%d\n exists=%d\n "
-            "hostap_mgt_frame_ctrl=%d\n mbo_enabled=%d\n",
+            "hostap_mgt_frame_ctrl=%d\n interop_ctrl =%d\n mbo_enabled=%d\n inum_sta=%d\n",
             __func__, __LINE__, prefix, l_vap_info->radio_index, l_vap_info->vap_name,
             l_vap_info->vap_index, l_bss_info->ssid, l_bss_info->enabled, l_bss_info->showSsid,
             l_bss_info->isolation, l_bss_info->mgmtPowerControl, l_bss_info->bssMaxSta,
@@ -90,7 +90,7 @@ void print_wifi_hal_bss_vap_data(wifi_dbg_type_t log_file_type, char *prefix,
             l_vap_info->bridge_name, l_bssid_str, l_bss_info->wmmNoAck, l_bss_info->wepKeyLength,
             l_bss_info->bssHotspot, l_bss_info->wpsPushButton, l_bss_info->beaconRateCtl,
             l_bss_info->network_initiated_greylist, l_bss_info->mcast2ucast, l_rdk_vap_info->exists,
-            l_bss_info->hostap_mgt_frame_ctrl, l_bss_info->mbo_enabled);
+            l_bss_info->hostap_mgt_frame_ctrl, l_bss_info->interop_ctrl, l_bss_info->mbo_enabled, l_bss_info->inum_sta);
     }
 }
 
@@ -1311,6 +1311,7 @@ int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data
 int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
 {
     wifi_util_dbg_print(WIFI_CTRL,"Inside webconfig_global_config_apply\n");
+    wifi_global_param_t *param;
     wifi_global_config_t *data_global_config;
     data_global_config = &data->config;
     bool global_param_changed = false;
@@ -1325,9 +1326,16 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     }
 
     if (global_param_changed) {
-        wifi_util_dbg_print(WIFI_CTRL,"Global config value is changed hence update the global config in DB\n");
-        if(update_wifi_global_config(&data_global_config->global_parameters) == -1) {
-            wifi_util_dbg_print(WIFI_CTRL,"Global config value is not updated in DB\n");
+        param = &data_global_config->global_parameters;
+
+        wifi_hal_set_mgt_frame_rate_limit(param->mgt_frame_rate_limit_enable,
+            param->mgt_frame_rate_limit, param->mgt_frame_rate_limit_window_size,
+            param->mgt_frame_rate_limit_cooldown_time);
+
+        wifi_util_dbg_print(WIFI_CTRL,
+            "Global config value is changed hence update the global config in DB\n");
+        if (update_wifi_global_config(param) == -1) {
+            wifi_util_dbg_print(WIFI_CTRL, "Global config value is not updated in DB\n");
             return RETURN_ERR;
         }
     }

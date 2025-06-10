@@ -42,7 +42,7 @@ extern "C" {
 #define WIFI_WAN_FAILOVER_TEST              "Device.WiFi.WanFailoverTest"
 #define WIFI_LMLITE_NOTIFY                  "Device.Hosts.X_RDKCENTRAL-COM_LMHost_Sync_From_WiFi"
 #define WIFI_HOTSPOT_NOTIFY                 "Device.X_COMCAST-COM_GRE.Hotspot.ClientChange"
-#define WIFI_NOTIFY_ASSOCIATED_ENTRIES      "Device.NotifyComponent.SetNotifi_ParamName"
+#define WIFI_NOTIFY_SYNC_COMPONENT          "Device.NotifyComponent.SetNotifi_ParamName"
 #define WIFI_NOTIFY_FORCE_DISASSOCIATION    "Device.WiFi.ConnectionControl.ClientForceDisassociation"
 #define WIFI_NOTIFY_DENY_ASSOCIATION        "Device.WiFi.ConnectionControl.ClientDenyAssociation"
 #define MESH_STATUS                         "Device.DeviceInfo.X_RDKCENTRAL-COM_xOpsDeviceMgmt.Mesh.Enable"
@@ -105,6 +105,9 @@ extern "C" {
 #define DEFAULT_RSS_MAXLIMIT 80000
 #define DEFAULT_HEAPWALK_DURATION 60
 #define DEFAULT_HEAPWALK_INTERVAL 15
+
+#define RSS_MEM_THRESHOLD1_DEFAULT 81920 /*Threshold1 is 80MB*/
+#define RSS_MEM_THRESHOLD2_DEFAULT 112640 /*Threshold2 is 110MB*/
 
 #define wifi_sub_component_base     0x01
 #define wifi_app_inst_base          0x01
@@ -489,6 +492,8 @@ typedef struct {
     int  assoc_gate_time;
     int  whix_log_interval; //seconds
     int  whix_chutility_loginterval; //seconds
+    ULONG rss_memory_restart_threshold_low;
+    ULONG rss_memory_restart_threshold_high;
     int  assoc_monitor_duration;
     bool rapid_reconnect_enable;
     bool vap_stats_feature;
@@ -505,6 +510,10 @@ typedef struct {
     char snr_list[MAX_BUF_LENGTH];
     char txrx_rate_list[MAX_BUF_LENGTH];
     memwraptool_config_t memwraptool;
+    bool mgt_frame_rate_limit_enable;
+    int mgt_frame_rate_limit;
+    int mgt_frame_rate_limit_window_size;
+    int mgt_frame_rate_limit_cooldown_time;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {
@@ -796,6 +805,15 @@ typedef struct {
     int num_detected;
     long long int timestamp;
 } __attribute__((packed)) radarInfo_t;
+
+typedef struct {
+    mac_address_t sta_mac;
+    mac_address_t ap_mac;
+    int sta_status_counts[6];
+    int sta_reason_counts[9];
+    int ap_status_counts[6];
+    int ap_reason_counts[9];
+} interop_data_t;
 
 typedef struct {
     char    name[16];
@@ -1300,6 +1318,14 @@ typedef struct {
 } ap_metrics_t;
 
 typedef struct {
+    mac_addr_t ruid;
+    unsigned char noise;
+    unsigned char transmit;
+    unsigned char receive_self;
+    unsigned char receive_other;
+} radio_metrics_t;
+
+typedef struct {
     ap_metrics_t vap_metrics;
     int sta_cnt;
     bool is_sta_traffic_stats_enabled;
@@ -1310,6 +1336,7 @@ typedef struct {
 
 typedef struct {
     int radio_index;
+    radio_metrics_t radio_metrics;
     em_vap_metrics_t vap_reports[MAX_NUM_VAP_PER_RADIO];
 } em_ap_metrics_report_t;
 

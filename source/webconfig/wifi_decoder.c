@@ -1594,6 +1594,9 @@ webconfig_error_t decode_vap_common_object(const cJSON *vap, wifi_vap_info_t *va
     decode_param_integer(vap, "ManagementFramePowerControl", param);
     vap_info->u.bss_info.mgmtPowerControl = param->valuedouble;
 
+    decode_param_integer(vap, "InteropNumSta", param);
+    vap_info->u.bss_info.inum_sta = param->valuedouble;
+
     // BssMaxNumSta
     decode_param_integer(vap, "BssMaxNumSta", param);
     vap_info->u.bss_info.bssMaxSta = param->valuedouble;
@@ -1705,6 +1708,9 @@ webconfig_error_t decode_vap_common_object(const cJSON *vap, wifi_vap_info_t *va
     // HostapMgtFrameCtrl
     decode_param_bool(vap, "HostapMgtFrameCtrl", param);
     vap_info->u.bss_info.hostap_mgt_frame_ctrl = (param->type & cJSON_True) ? true : false;
+
+    decode_param_bool(vap, "InteropCtrl", param);
+    vap_info->u.bss_info.interop_ctrl = (param->type & cJSON_True) ? true : false;
 
     decode_param_bool(vap, "MboEnabled", param);
     vap_info->u.bss_info.mbo_enabled = (param->type & cJSON_True) ? true : false;
@@ -2300,6 +2306,12 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     decode_param_integer(global_cfg, "whix_chutility_loginterval", param);
     global_info->whix_chutility_loginterval = param->valuedouble;
 
+    //Rss threshold
+    decode_param_integer(global_cfg, "rss_memory_restart_threshold_low", param);
+    global_info->rss_memory_restart_threshold_low = param->valuedouble;
+
+    decode_param_integer(global_cfg, "rss_memory_restart_threshold_high", param);
+    global_info->rss_memory_restart_threshold_high = param->valuedouble;
 
     //AssocMonitorDuration
     decode_param_integer(global_cfg, "AssocMonitorDuration", param);
@@ -2328,6 +2340,22 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     //FixedWmmParams
     decode_param_integer(global_cfg, "FixedWmmParams", param);
     global_info->fixed_wmm_params = param->valuedouble;
+
+    // MgtFrameRateLimitEnable
+    decode_param_bool(global_cfg, "MgtFrameRateLimitEnable", param);
+    global_info->mgt_frame_rate_limit_enable = (param->type & cJSON_True) ? true : false;
+
+    // MgtFrameRateLimit
+    decode_param_integer(global_cfg, "MgtFrameRateLimit", param);
+    global_info->mgt_frame_rate_limit = param->valuedouble;
+
+    // MgtFrameRateLimitWindowSize
+    decode_param_integer(global_cfg, "MgtFrameRateLimitWindowSize", param);
+    global_info->mgt_frame_rate_limit_window_size = param->valuedouble;
+
+    // MgtFrameRateLimitCooldownTime
+    decode_param_integer(global_cfg, "MgtFrameRateLimitCooldownTime", param);
+    global_info->mgt_frame_rate_limit_cooldown_time = param->valuedouble;
 
 #ifndef EASY_MESH_NODE
     //WifiRegionCode
@@ -5777,7 +5805,7 @@ webconfig_error_t decode_em_sta_link_metrics_object(const cJSON *em_sta_link, em
                 sta_link_metrics->per_sta_metrics[i].assoc_sta_link_metrics.assoc_sta_link_metrics_data[j].est_mac_rate_down = param->valuedouble;
     
                 decode_param_integer(bssid_metrics_arr_item, "Estimated Mac Rate Up", param);
-                sta_link_metrics->per_sta_metrics[i].assoc_sta_link_metrics.assoc_sta_link_metrics_data[j].est_mac_rate_down = param->valuedouble;
+                sta_link_metrics->per_sta_metrics[i].assoc_sta_link_metrics.assoc_sta_link_metrics_data[j].est_mac_rate_up = param->valuedouble;
     
                 decode_param_integer(bssid_metrics_arr_item, "RCPI", param);
                 sta_link_metrics->per_sta_metrics[i].assoc_sta_link_metrics.assoc_sta_link_metrics_data[j].rcpi = param->valuedouble;
