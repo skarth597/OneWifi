@@ -3072,6 +3072,7 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
     wifidml_desc_t *p_desc = &get_wifidml_obj()->desc;
     p_desc->push_data_to_ssp_queue_fn(config, sizeof(wifi_global_param_t), ssp_event_type_psm_write, global_config);
 #endif // NEWPLATFORM_PORT
+#endif
     wifi_util_dbg_print(WIFI_DB,
         "%s:%d notify_wifi_changes %d prefer_private %d prefer_private_configure %d "
         "factory_reset %d tx_overflow_selfheal %d inst_wifi_client_enabled %d "
