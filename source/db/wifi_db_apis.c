@@ -3103,9 +3103,9 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
         config->normalized_rssi_list, config->snr_list, config->cli_stat_list,
         config->txrx_rate_list, config->mgt_frame_rate_limit_enable, config->mgt_frame_rate_limit,
         config->mgt_frame_rate_limit_window_size, config->mgt_frame_rate_limit_cooldown_time,
-        config->memwraptool.enable, config->memwraptool.rss_check_interval,
-        config->memwraptool.rss_threshold, config->memwraptool.rss_maxlimit,
-        config->memwraptool.heapwalk_duration, config->memwraptool.heapwalk_interval);
+        config->memwraptool.rss_check_interval, config->memwraptool.rss_threshold,
+        config->memwraptool.rss_maxlimit, config->memwraptool.heapwalk_duration,
+        config->memwraptool.heapwalk_interval);
 
     if (wifidb_update_table_entry(NULL,NULL,OCLM_UUID,&table_Wifi_Global_Config,&cfg,filter_global) <= 0)
     {
@@ -4480,6 +4480,7 @@ static void wifidb_global_config_upgrade()
         g_wifidb->global_config.global_parameters.memwraptool.heapwalk_duration = DEFAULT_HEAPWALK_DURATION;
         g_wifidb->global_config.global_parameters.memwraptool.heapwalk_interval = DEFAULT_HEAPWALK_INTERVAL;
         g_wifidb->global_config.global_parameters.memwraptool.enable = true;
+    }
 
     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_RSS_MEMORY_THRESHOLD_FLAG) {
         wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__,
@@ -4497,7 +4498,6 @@ static void wifidb_global_config_upgrade()
         g_wifidb->global_config.global_parameters.mgt_frame_rate_limit = 10;
         g_wifidb->global_config.global_parameters.mgt_frame_rate_limit_window_size = 1;
         g_wifidb->global_config.global_parameters.mgt_frame_rate_limit_cooldown_time = 30;
-
     }
 }
 
