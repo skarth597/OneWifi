@@ -44,17 +44,8 @@ echo "RSS Max Limit : $RSSMaxLimit" >> "$log_file"
 echo "Heapwalk Duration: $HeapwalkDuration" >> "$log_file"
 echo "Heapwalk Interval: $HeapwalkInterval" >> "$log_file"
 
-
-device=`deviceinfo.sh -mo`
-if [[ $device == "CGM4331COM" ]]; then
-    max_radio=16
-else
-    max_radio=24
-fi
-
 #to check for onewifi process
 onewifi_pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
-
 
     memleakutil <<EOF> /tmp/HeapResultField.txt
 $onewifi_pid
@@ -96,6 +87,12 @@ while true; do
         heapwalk_pid=$(ps | grep -i "HeapwalkField" | grep -v grep |  awk '{print $1}')
         echo "$(date '+%Y-%m-%d %H:%M:%S') HeapwalkField.sh pid : $heapwalk_pid" >> "$log_file"
         if [ -z "$heapwalk_pid" ]; then
+            device=`deviceinfo.sh -mo`
+            if [[ $device == "CGM4331COM" ]]; then
+                max_radio=16
+            else
+                max_radio=24
+            fi
             #to get the assoclist
             echo "AssocList Before starting RSS script : " >> "$log_file"
             for((i=1;i<=max_radio;i++)); do
