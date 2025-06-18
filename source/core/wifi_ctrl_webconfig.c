@@ -958,7 +958,7 @@ bool ismemwraptoolParamChanged(wifi_global_config_t *data_config)
     data_memwraptool_config = data_config->global_parameters.memwraptool;
     if (memcmp(&mgr_memwraptool_config, &data_memwraptool_config, sizeof(memwraptool_config_t)) !=
         0) {
-        wifi_util_dbg_print(WIFI_CTRL, "memwraptool param changed\n");
+        wifi_util_info_print(WIFI_CTRL, "memwraptool param changed\n");
         return true;
     }
     return false;
@@ -1325,15 +1325,13 @@ int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data
     memwraptool_param_changed = ismemwraptoolParamChanged(data_global_config);
 
     if (memwraptool_param_changed == 0) {
-        wifi_util_dbg_print(WIFI_CTRL, "memwraptool param is not modified\n");
+        wifi_util_info_print(WIFI_CTRL, "memwraptool param is not modified\n");
         return RETURN_ERR;
     }
 
     if (memwraptool_param_changed) {
-        wifi_util_dbg_print(WIFI_CTRL,
-            "memwraptool param is modified hence update the memwraptool config in DB\n");
         if (update_wifi_global_config(&data_global_config->global_parameters) == -1) {
-            wifi_util_dbg_print(WIFI_CTRL, "memwraptool config value is not updated in DB\n");
+            wifi_util_error_print(WIFI_CTRL, "memwraptool config value is not updated in DB\n");
             return RETURN_ERR;
         }
     }

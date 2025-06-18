@@ -52,14 +52,6 @@ else
     max_radio=24
 fi
 
-#to get the assoclist
-echo "AssocList Before starting RSS script : " >> "$log_file"
-for((i=1;i<=max_radio;i++)); do
-    numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
-    echo "VAP INDEX $i : $numdevices" >> "$log_file"
-done
-
-
 #to check for onewifi process
 onewifi_pid=$(ps | grep "/usr/bin/OneWifi -subsys eRT\." | grep -v grep | awk '{print $1}')
 
@@ -104,6 +96,12 @@ while true; do
         heapwalk_pid=$(ps | grep -i "HeapwalkField" | grep -v grep |  awk '{print $1}')
         echo "$(date '+%Y-%m-%d %H:%M:%S') HeapwalkField.sh pid : $heapwalk_pid" >> "$log_file"
         if [ -z "$heapwalk_pid" ]; then
+            #to get the assoclist
+            echo "AssocList Before starting RSS script : " >> "$log_file"
+            for((i=1;i<=max_radio;i++)); do
+                numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
+                echo "VAP INDEX $i : $numdevices" >> "$log_file"
+            done
             /usr/ccsp/wifi/HeapwalkField.sh "$RSSInterval" "$RSSThreshold" "$RSSMaxLimit" "$HeapwalkDuration" "$HeapwalkInterval" &
             echo "$(date '+%Y-%m-%d %H:%M:%S') RSS increased. Running the other script." >> "$log_file"
             sleep "$HeapwalkDurationInSeconds"

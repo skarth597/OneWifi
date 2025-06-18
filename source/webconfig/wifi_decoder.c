@@ -3727,7 +3727,6 @@ webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
     memwraptool_config_t *memwrap_info)
 {
     const cJSON *param;
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Entering\n", __func__, __LINE__);
     decode_param_bool(memwraptool_cfg, "enable", param);
     memwrap_info->enable = (param->type & cJSON_True) ? true : false;
 
@@ -3745,7 +3744,6 @@ webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
 
     decode_param_integer(memwraptool_cfg, "heapwalk_interval", param);
     memwrap_info->heapwalk_interval = param->valuedouble;
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: Exiting\n", __func__, __LINE__);
     return webconfig_error_none;
 }
 

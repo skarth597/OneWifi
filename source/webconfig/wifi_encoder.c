@@ -1813,7 +1813,6 @@ webconfig_error_t encode_levl_object(const levl_config_t *levl, cJSON *levl_obj)
 
 webconfig_error_t encode_memwraptool_object(memwraptool_config_t *memwrap_info, cJSON *memwrap_obj)
 {
-    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Entering\n", __func__, __LINE__);
     if (memwrap_info == NULL || memwrap_obj == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Memwrap info is NULL\n", __func__, __LINE__);
         return webconfig_error_encode;
