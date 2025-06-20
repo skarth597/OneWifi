@@ -89,13 +89,13 @@ while true; do
         if [ -z "$heapwalk_pid" ]; then
             device=`deviceinfo.sh -mo`
             if [[ $device == "CGM4331COM" ]]; then
-                max_radio=16
+                max_vaps=16
             else
-                max_radio=24
+                max_vaps=24
             fi
             #to get the assoclist
             echo "AssocList Before starting RSS script : " >> "$log_file"
-            for((i=1;i<=max_radio;i++)); do
+            for((i=1;i<=max_vaps;i++)); do
                 numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
                 echo "VAP INDEX $i : $numdevices" >> "$log_file"
             done

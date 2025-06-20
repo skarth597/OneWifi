@@ -2258,7 +2258,7 @@ void process_prefer_private_rfc(bool type)
     }
 }
 
-void process_memwraptool_app_rfc(bool type)
+static void process_memwraptool_app_rfc(bool type)
 {
     wifi_util_dbg_print(WIFI_DB, "WIFI Enter RFC Func %s: %d : bool %d\n", __FUNCTION__, __LINE__,
         type);

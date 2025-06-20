@@ -949,18 +949,19 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     return false;
 }
 
-bool ismemwraptoolParamChanged(wifi_global_config_t *data_config)
+static bool ismemwraptoolParamChanged(wifi_global_config_t *data_config)
 {
-    wifi_global_config_t *mgr_global_config;
-    mgr_global_config = get_wifidb_wifi_global_config();
-    memwraptool_config_t mgr_memwraptool_config, data_memwraptool_config;
-    mgr_memwraptool_config = mgr_global_config->global_parameters.memwraptool;
-    data_memwraptool_config = data_config->global_parameters.memwraptool;
-    if (memcmp(&mgr_memwraptool_config, &data_memwraptool_config, sizeof(memwraptool_config_t)) !=
+    wifi_global_config_t *mgr_global_config = get_wifidb_wifi_global_config();
+    memwraptool_config_t *mgr_memwraptool_config =
+        &mgr_global_config->global_parameters.memwraptool;
+    memwraptool_config_t *data_memwraptool_config = &data_config->global_parameters.memwraptool;
+
+    if (memcmp(mgr_memwraptool_config, data_memwraptool_config, sizeof(memwraptool_config_t)) !=
         0) {
         wifi_util_info_print(WIFI_CTRL, "memwraptool param changed\n");
         return true;
     }
+
     return false;
 }
 
@@ -1316,25 +1317,20 @@ int webconfig_vif_neighbors_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     return ret;
 }
 
-int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
+static int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
 {
-    wifi_util_dbg_print(WIFI_CTRL, "Inside webconfig_memwraptool_apply\n");
-    wifi_global_config_t *data_global_config;
-    data_global_config = &data->config;
-    bool memwraptool_param_changed = false;
-    memwraptool_param_changed = ismemwraptoolParamChanged(data_global_config);
+    wifi_global_config_t *data_global_config = &data->config;
 
-    if (memwraptool_param_changed == 0) {
-        wifi_util_info_print(WIFI_CTRL, "memwraptool param is not modified\n");
+    if (!is_mem_wraptool_param_changed(data_global_config)) {
+        return RETURN_OK;
+    }
+
+    if (update_wifi_global_config(&data_global_config->global_parameters) == -1) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d memwraptool config value is not updated in DB\n",
+            __func__, __LINE__);
         return RETURN_ERR;
     }
 
-    if (memwraptool_param_changed) {
-        if (update_wifi_global_config(&data_global_config->global_parameters) == -1) {
-            wifi_util_error_print(WIFI_CTRL, "memwraptool config value is not updated in DB\n");
-            return RETURN_ERR;
-        }
-    }
     return RETURN_OK;
 }
 
