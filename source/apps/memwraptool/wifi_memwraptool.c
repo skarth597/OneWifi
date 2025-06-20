@@ -30,6 +30,32 @@
 
 #define MAX_EVENT_NAME_SIZE 200
 
+static bus_error_t memwraptool_get_handler(char *event_name, raw_data_t *p_data,
+    bus_user_data_t *user_data);
+static bus_error_t memwraptool_set_handler(char *event_name, raw_data_t *p_data,
+    bus_user_data_t *user_data);
+
+bus_data_element_t dataElements[] = {
+    { WIFI_MEMWRAPTOOL_RSSCHECKINTERVAL, bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
+    { WIFI_MEMWRAPTOOL_RSSTHRESHOLD,     bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
+    { WIFI_MEMWRAPTOOL_RSSMAXLIMIT,      bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
+    { WIFI_MEMWRAPTOOL_HEAPWALKDURATION, bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
+    { WIFI_MEMWRAPTOOL_HEAPWALKINTERVAL, bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
+    { WIFI_MEMWRAPTOOL_ENABLE,           bus_element_type_property,
+     { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL }, slow_speed,
+     ZERO_TABLE, { bus_data_type_boolean, true, 0, 0, 0, NULL } }
+};
+
 static int push_memwrap_data_dml_to_ctrl_queue(memwraptool_config_t *memwraptool)
 {
     wifi_util_info_print(WIFI_MEMWRAPTOOL, "%s:%d Entering\n", __func__, __LINE__);
@@ -458,27 +484,6 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
     wifi_apps_mgr_t *apps_mgr = &ctrl->apps_mgr;
     wifi_global_param_t *pcfg = (wifi_global_param_t *)get_wifidb_wifi_global_param();
 
-    bus_data_element_t dataElements[] = {
-        { WIFI_MEMWRAPTOOL_RSSCHECKINTERVAL, bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
-        { WIFI_MEMWRAPTOOL_RSSTHRESHOLD,     bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
-        { WIFI_MEMWRAPTOOL_RSSMAXLIMIT,      bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
-        { WIFI_MEMWRAPTOOL_HEAPWALKDURATION, bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
-        { WIFI_MEMWRAPTOOL_HEAPWALKINTERVAL, bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_uint32, true, 0, 0, 0, NULL }  },
-        { WIFI_MEMWRAPTOOL_ENABLE,           bus_element_type_property,
-         { memwraptool_get_handler, memwraptool_set_handler, NULL, NULL, NULL, NULL },
-         slow_speed, ZERO_TABLE, { bus_data_type_boolean, true, 0, 0, 0, NULL } }
-    };
-
     if (app_init(app, create_flag) != 0) {
         return RETURN_ERR;
     }
@@ -527,8 +532,20 @@ int memwraptool_init(wifi_app_t *app, unsigned int create_flag)
 int memwraptool_deinit(wifi_app_t *app)
 {
     bus_error_t rc = bus_error_success;
+    int num_elements;
 
     wifi_util_info_print(WIFI_APPS, "%s:%d: Deinit Levl\n", __func__, __LINE__);
+    num_elements = (sizeof(dataElements) / sizeof(bus_data_element_t));
+
+    rc = get_bus_descriptor()->bus_unreg_data_element_fn(&app->handle, num_elements, dataElements);
+    if (rc != bus_error_success) {
+        wifi_util_dbg_print(WIFI_APPS, "%s:%d bus_unreg_data_element_fn failed, rc:%d\n", __func__,
+            __LINE__, rc);
+    } else {
+        wifi_util_info_print(WIFI_APPS, "%s:%d Apps bus_unregDataElement success\n", __func__,
+            __LINE__);
+    }
+
     rc = get_bus_descriptor()->bus_close_fn(&app->handle);
     if (rc != bus_error_success) {
         wifi_util_dbg_print(WIFI_APPS, "%s:%d: Unable to close Levl bus handle\n", __func__,
