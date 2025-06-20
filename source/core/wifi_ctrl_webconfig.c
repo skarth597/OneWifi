@@ -1321,7 +1321,7 @@ static int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decod
 {
     wifi_global_config_t *data_global_config = &data->config;
 
-    if (!is_mem_wraptool_param_changed(data_global_config)) {
+    if (!smemwraptoolParamChanged(data_global_config)) {
         return RETURN_OK;
     }
 
