@@ -1,34 +1,37 @@
 #!/bin/sh
 
+log_file="/rdklogs/logs/Heapwalkrss_log.txt"
+
+echo "Starting heapwalkcheckrss.sh script" >> "log_file"
 
 tmpfile1="/tmp/HeapResultField.txt"
 tmpfile2="/tmp/HeapwalkFinalResultField.txt"
 tmpfile3="/tmp/HeapwalkFinalOutputField.txt"
 
-
 if [ -f "$tmpfile1" ]; then
     rm "$tmpfile1"
 fi
+echo "Removed $tmpfile1 if present" >> "$log_file"
 if [ -f "$tmpfile2" ]; then
     rm "$tmpfile2"
 fi
+echo "Removed $tmpfile2 if present" >> "$log_file"
 if [ -f "$tmpfile3" ]; then
     rm "$tmpfile3"
 fi
+echo "Removed $tmpfile3 if present" >> "$log_file"
 
-
-sleep 300
-
-
-log_file="/rdklogs/logs/Heapwalkrss_log.txt"
-
+echo "Removed files from /tmp if present" >> "$log_file"
 
 # Get the current date and time
 current_date=$(date)
 
-
 # Echo the date and time
 echo "Current date and time: $current_date" >> "$log_file"
+
+# Wait for 5 minutes before starting the script
+sleep 300
+
 RSSInterval_minutes=$1
 RSSInterval=$((RSSInterval_minutes * 60))
 RSSThreshold=$2
