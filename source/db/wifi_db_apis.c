@@ -7405,7 +7405,6 @@ void init_wifidb_data()
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
     char country_code[COUNTRY_CODE_LEN] = {0};
-    wifi_rfc_dml_parameters_t *rfc_param;
 
     wifi_util_info_print(WIFI_DB,"%s:%d No of radios %d\n",__func__, __LINE__,getNumberRadios());
 
@@ -7415,7 +7414,7 @@ void init_wifidb_data()
         return;
     }
     wifidb_init_default_value();
-    rfc_param = get_wifi_db_rfc_parameters();
+    wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
 
     if ((access(ONEWIFI_FR_REBOOT_FLAG, F_OK) == 0) && (access(ONEWIFI_FR_WIFIDB_RESET_DONE_FLAG, F_OK) != 0)) {
         wifidb_update_rfc_config(0, rfc_param);
