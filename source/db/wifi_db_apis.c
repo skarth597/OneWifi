@@ -7459,6 +7459,7 @@ void init_wifidb_data()
     wifi_vap_info_map_t *l_vap_param_cfg = NULL;
     wifi_radio_operationParam_t *l_radio_cfg = NULL;
     wifi_radio_feature_param_t *f_radio_cfg = NULL;
+    wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
     char country_code[COUNTRY_CODE_LEN] = {0};
 
     wifi_util_info_print(WIFI_DB,"%s:%d No of radios %d\n",__func__, __LINE__,getNumberRadios());
@@ -7469,7 +7470,6 @@ void init_wifidb_data()
         return;
     }
     wifidb_init_default_value();
-    wifi_rfc_dml_parameters_t *rfc_param = get_wifi_db_rfc_parameters();
 
     if ((access(ONEWIFI_FR_REBOOT_FLAG, F_OK) == 0) && (access(ONEWIFI_FR_WIFIDB_RESET_DONE_FLAG, F_OK) != 0)) {
         wifidb_update_rfc_config(0, rfc_param);
@@ -7528,10 +7528,18 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
-        pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
         create_onewifi_fr_wifidb_reset_done_flag();
         wifi_util_info_print(WIFI_DB,"%s:%d FactoryReset done. wifidb updated with default values.\n",__func__, __LINE__);
+        dbwritten = true;
+        wifidb_update_rfc_config(0, rfc_param);
+        if (wifidb_update_wifi_global_config(&g_wifidb->global_config.global_parameters) != RETURN_OK) {
+            wifi_util_error_print(WIFI_DB,"%s:%d error in updating global config for second time\n", __func__,__LINE__);
+            pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+            return;
+        }
+
+        pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     }
     else {
         dbwritten = true;
@@ -7638,7 +7646,6 @@ void init_wifidb_data()
 
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi data init complete\n",__func__, __LINE__);
     db_param_init = true;
-    dbwritten = true;
 }
 
 /************************************************************************************
