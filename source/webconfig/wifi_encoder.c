@@ -795,21 +795,21 @@ webconfig_error_t encode_wifi_global_config(const wifi_global_param_t *global_in
         global_info->mgt_frame_rate_limit_cooldown_time);
 
     // RSSCheckInterval
-    cJSON_AddNumberToObject(global_obj, "RSSCheckInterval",
+    cJSON_AddNumberToObject(global_obj, "rss_check_interval",
         global_info->memwraptool.rss_check_interval);
 
     // RSSThreshold
-    cJSON_AddNumberToObject(global_obj, "RSSThreshold", global_info->memwraptool.rss_threshold);
+    cJSON_AddNumberToObject(global_obj, "rss_threshold", global_info->memwraptool.rss_threshold);
 
     // RSSMaxLimit
-    cJSON_AddNumberToObject(global_obj, "RSSMaxlimit", global_info->memwraptool.rss_maxlimit);
+    cJSON_AddNumberToObject(global_obj, "rss_maxlimit", global_info->memwraptool.rss_maxlimit);
 
     // HeapwalkDuration
-    cJSON_AddNumberToObject(global_obj, "Heapwalk_duration",
+    cJSON_AddNumberToObject(global_obj, "heapwalk_duration",
         global_info->memwraptool.heapwalk_duration);
 
     // HeapwalkInterval
-    cJSON_AddNumberToObject(global_obj, "Heapwalk_interval",
+    cJSON_AddNumberToObject(global_obj, "heapwalk_interval",
         global_info->memwraptool.heapwalk_interval);
 
     // MemwrapToolEnable
