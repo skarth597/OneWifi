@@ -212,7 +212,7 @@ onewifi_mem_restart() {
     if [ "$vmrss" -ge "$threshold2" ]; then
         if [ "$time_since_last_restart" -ge 86400 ]; then
             echo_t "RSS Memory of Onewifi exceeds RSS threshold2 value and restarting Onewifi [Rss : ($vmrss kB) Threshold2 : ($threshold2 kB)]" >> $LOG_FILE
-            systemctl restart onewifi.service
+            #systemctl restart onewifi.service
             onewifi_last_restart=$now
         else
             echo_t "OneWifi restart skipped for RSS threshold2 since last restart time is less than 24 hrs [Rss : ($vmrss kB) Threshold2 : ($threshold2 kB)]" >> $LOG_FILE
@@ -220,7 +220,7 @@ onewifi_mem_restart() {
     elif [ "$vmrss" -ge "$threshold1" ] && [ "$m_win" -eq 1 ]; then
         if [ "$time_since_last_restart" -ge 86400 ]; then
             echo_t "RSS Memory of Onewifi exceeds RSS threshold1 value during maintenance window and restarting Onewifi [Rss : ($vmrss kB) Threshold1 : ($threshold1 kB)]" >> $LOG_FILE
-            systemctl restart onewifi.service
+            #systemctl restart onewifi.service
             onewifi_last_restart=$now
         else
             echo_t "OneWifi restart skipped for RSS threshold1 since last restart time is less than 24 hrs [Rss : ($vmrss kB) Threshold1 : ($threshold1 kB)]" >> $LOG_FILE
