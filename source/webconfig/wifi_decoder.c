@@ -2387,6 +2387,24 @@ webconfig_error_t decode_wifi_global_config(const cJSON *global_cfg, wifi_global
     decode_param_integer(global_cfg, "MgtFrameRateLimitCooldownTime", param);
     global_info->mgt_frame_rate_limit_cooldown_time = param->valuedouble;
 
+    decode_param_bool(global_cfg, "MemwrapToolEnable", param);
+    global_info->memwraptool.enable = (param->type & cJSON_True) ? true : false;
+
+    decode_param_integer(global_cfg, "rss_check_interval", param);
+    global_info->memwraptool.rss_check_interval = param->valuedouble;
+
+    decode_param_integer(global_cfg, "rss_threshold", param);
+    global_info->memwraptool.rss_threshold = param->valuedouble;
+
+    decode_param_integer(global_cfg, "rss_maxlimit", param);
+    global_info->memwraptool.rss_maxlimit = param->valuedouble;
+
+    decode_param_integer(global_cfg, "heapwalk_duration", param);
+    global_info->memwraptool.heapwalk_duration = param->valuedouble;
+
+    decode_param_integer(global_cfg, "heapwalk_interval", param);
+    global_info->memwraptool.heapwalk_interval = param->valuedouble;
+
 #ifndef EASY_MESH_NODE
     //WifiRegionCode
     decode_param_string(global_cfg, "WifiRegionCode", param);

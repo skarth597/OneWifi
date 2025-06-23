@@ -7528,18 +7528,10 @@ void init_wifidb_data()
             return;
         }
         wifidb_update_gas_config(g_wifidb->global_config.gas_config.AdvertisementID, &g_wifidb->global_config.gas_config);
+        pthread_mutex_unlock(&g_wifidb->data_cache_lock);
         remove_onewifi_factory_reset_reboot_flag();
         create_onewifi_fr_wifidb_reset_done_flag();
         wifi_util_info_print(WIFI_DB,"%s:%d FactoryReset done. wifidb updated with default values.\n",__func__, __LINE__);
-        dbwritten = true;
-        wifidb_update_rfc_config(0, rfc_param);
-        if (wifidb_update_wifi_global_config(&g_wifidb->global_config.global_parameters) != RETURN_OK) {
-            wifi_util_error_print(WIFI_DB,"%s:%d error in updating global config for second time\n", __func__,__LINE__);
-            pthread_mutex_unlock(&g_wifidb->data_cache_lock);
-            return;
-        }
-
-        pthread_mutex_unlock(&g_wifidb->data_cache_lock);
     }
     else {
         dbwritten = true;
@@ -7646,6 +7638,7 @@ void init_wifidb_data()
 
     wifi_util_info_print(WIFI_DB,"%s:%d Wifi data init complete\n",__func__, __LINE__);
     db_param_init = true;
+    dbwritten = true;
 }
 
 /************************************************************************************
