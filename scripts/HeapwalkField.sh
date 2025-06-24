@@ -16,9 +16,9 @@ HeapwalkInterval=$5
 
 device=`deviceinfo.sh -mo`
 if [[ $device == "CGM4331COM" ]]; then
-    max_radio=16
+    max_vaps=16
 else
-    max_radio=24
+    max_vaps=24
 fi
 
 # Convert the input values to seconds
@@ -32,7 +32,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') End Time: $end_time seconds" >> "$log_file"
 
     #to get the assoclist
 echo "Assoclist at starting of the HeapwalkField Script" >> "$log_file"
-for((i=1;i<=max_radio;i++)); do
+for((i=1;i<=max_vaps;i++)); do
     numdevices=`dmcli eRT getv Device.WiFi.AccessPoint.$i.AssociatedDeviceNumberOfEntries | grep "value:" | cut -f2- -d:| cut -f2- -d:`
     echo "VAP INDEX $i : $numdevices" >> "$log_file"
 done
