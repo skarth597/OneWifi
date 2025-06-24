@@ -337,7 +337,6 @@ WEBCONFIG_SOURCES = $(ONE_WIFI_HOME)/source/webconfig/wifi_decoder.c	\
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_radio_stats.c		\
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_neighbor_stats.c	\
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_assocdevice_stats.c	\
-	$(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_memwraptool.c          \
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_radio_temperature.c    \
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_radiodiag_stats.c    \
         $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_multivap.c    \
@@ -396,6 +395,11 @@ ifdef ONEWIFI_STA_MGR_APP_SUPPORT
 	CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/sta_mgr/*.c)
 endif
 
+ifdef ONEWIFI_MEMWRAPTOOL_APP_SUPPORT
+    CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/memwraptool/*.c)    \
+    WEBCONFIG_SOURCES += $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_memwraptool.c
+endif
+
 ifdef EM_APP
     #INCLUDEDIRS +=  -I$(ONE_WIFI_HOME)/source/apps/em
 	CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/em/*.c)
@@ -405,8 +409,6 @@ ifdef EM_APP
                 $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_em_sta_link_metrics.c \
                 $(ONE_WIFI_HOME)/source/webconfig/wifi_webconfig_em_ap_metrics_report.c
 endif
-
-CSOURCES += $(wildcard $(ONE_WIFI_HOME)/source/apps/memwraptool/*.c)
 
 COBJECTS = $(CSOURCES:.c=.o)  # expands to list of object files
 

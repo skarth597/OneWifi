@@ -118,10 +118,6 @@ webconfig_error_t decode_memwraptool_subdoc(webconfig_t *config, webconfig_subdo
     cJSON *json;
 
     params = &data->u.decoded;
-    if (params == NULL) {
-        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL pointer\n", __func__, __LINE__);
-        return webconfig_error_decode;
-    }
     json = data->u.encoded.json;
     if (json == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: NULL json pointer\n", __func__, __LINE__);

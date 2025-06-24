@@ -3745,6 +3745,7 @@ webconfig_error_t decode_memwraptool_object(const cJSON *memwraptool_cfg,
     memwraptool_config_t *memwrap_info)
 {
     const cJSON *param;
+
     decode_param_bool(memwraptool_cfg, "enable", param);
     memwrap_info->enable = (param->type & cJSON_True) ? true : false;
 

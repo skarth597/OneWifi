@@ -143,7 +143,9 @@ endif
 if FEATURE_OFF_CHANNEL_SCAN_5G
 OneWifi_SOURCES += $(top_srcdir)/source/apps/ocs/wifi_ocs.c
 endif
+if ONEWIFI_MEMWRAPTOOL_APP_SUPPORT
 OneWifi_SOURCES += $(top_srcdir)/source/apps/memwraptool/wifi_memwraptool.c
+endif
 if EM_APP_SUPPORT
 OneWifi_SOURCES += $(top_srcdir)/source/apps/em/wifi_em.c $(top_srcdir)/source/apps/em/wifi_em_utils.c
 OneWifi_CPPFLAGS += -I$(top_srcdir)/source/apps/em/

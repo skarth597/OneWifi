@@ -951,7 +951,7 @@ bool isglobalParamChanged(wifi_global_config_t *data_config)
     return false;
 }
 
-static bool ismemwraptoolParamChanged(wifi_global_config_t *data_config)
+static bool is_memwraptool_param_changed(wifi_global_config_t *data_config)
 {
     wifi_global_config_t *mgr_global_config = get_wifidb_wifi_global_config();
     memwraptool_config_t *mgr_memwraptool_config =
@@ -960,7 +960,7 @@ static bool ismemwraptoolParamChanged(wifi_global_config_t *data_config)
 
     if (memcmp(mgr_memwraptool_config, data_memwraptool_config, sizeof(memwraptool_config_t)) !=
         0) {
-        wifi_util_info_print(WIFI_CTRL, "memwraptool param changed\n");
+        wifi_util_dbg_print(WIFI_CTRL, "memwraptool param changed\n");
         return true;
     }
 
@@ -1323,7 +1323,7 @@ static int webconfig_memwraptool_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decod
 {
     wifi_global_config_t *data_global_config = &data->config;
 
-    if (!ismemwraptoolParamChanged(data_global_config)) {
+    if (!is_memwraptool_param_changed(data_global_config)) {
         return RETURN_OK;
     }
 

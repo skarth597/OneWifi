@@ -176,7 +176,7 @@ static char *Tidle = "Device.WiFi.Radio.%d.Radio_X_RDK_OffChannelTidle";
 
 #ifdef ONEWIFI_DB_SUPPORT
 
-bool dbwritten = false;
+static bool dbwritten = false;
 
 void wifidb_init_gas_config_default(wifi_GASConfiguration_t *config);
 
