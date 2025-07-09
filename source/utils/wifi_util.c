@@ -2749,6 +2749,7 @@ int get_on_channel_scan_list(wifi_freq_bands_t band, wifi_channelBandwidth_t ban
                 return -1;
             }
         } else if (bandwidth == WIFI_CHANNELBANDWIDTH_320MHZ) {
+            wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: 6Ghz 320MHz channel list requested for primary channel %d\n", __func__, __LINE__, primary_channel);
             for (unsigned int i = 0; i < ARRAY_SZ(channels_6g_320_mhz); i++) {
                 for (int j = 0; j < 4; j++) {
                     if (primary_channel == channels_6g_320_mhz[i][j]) {
@@ -2764,6 +2765,7 @@ int get_on_channel_scan_list(wifi_freq_bands_t band, wifi_channelBandwidth_t ban
             if (found_idx != -1) {
                 for (int i = 0; i < 4; i++) {
                     channel_list[i] = channels_6g_320_mhz[found_idx][i];
+                    wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: channel_list[%d] = %d\n", __func__, __LINE__, i, channel_list[i]);
                 }
                 return 0;
             } else {
