@@ -837,12 +837,6 @@ int execute_radio_channel_api(wifi_mon_collector_element_t *c_elem, wifi_monitor
         return RETURN_ERR;
     }
 
-    if ((args->radio_index == 0) || (args->radio_index ==  2))
-    {
-	wifi_util_info_print(WIFI_MON, "%s:%d radio is 2g and 6g so skipping the radios\n",__func__, __LINE__);
-	return RETURN_OK;
-    }
-
     if (mon_data->radio_presence[args->radio_index] == false) {
         wifi_util_info_print(WIFI_MON, "%s:%d radio_presence is false for radio : %d\n", __func__,
             __LINE__, args->radio_index);
