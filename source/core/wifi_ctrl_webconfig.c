@@ -80,7 +80,7 @@ void print_wifi_hal_bss_vap_data(wifi_dbg_type_t log_file_type, char *prefix,
             "uapsd_enabled=%d\n beacon_rate=%d\n bridge_name=%s\n mac=%s\n wmm_noack=%d\n "
             "wep_key_length=%d\n bss_hotspot=%d\n wps_push_button=%d\n beacon_rate_ctl=%s\n "
             "network_initiated_greylist=%d\n mcast2ucast=%d\n exists=%d\n "
-            "hostap_mgt_frame_ctrl=%d\n mbo_enabled=%d\n",
+            "hostap_mgt_frame_ctrl=%d\n interop_ctrl =%d\n mbo_enabled=%d\n inum_sta=%d\n",
             __func__, __LINE__, prefix, l_vap_info->radio_index, l_vap_info->vap_name,
             l_vap_info->vap_index, l_bss_info->ssid, l_bss_info->enabled, l_bss_info->showSsid,
             l_bss_info->isolation, l_bss_info->mgmtPowerControl, l_bss_info->bssMaxSta,
@@ -91,7 +91,7 @@ void print_wifi_hal_bss_vap_data(wifi_dbg_type_t log_file_type, char *prefix,
             l_vap_info->bridge_name, l_bssid_str, l_bss_info->wmmNoAck, l_bss_info->wepKeyLength,
             l_bss_info->bssHotspot, l_bss_info->wpsPushButton, l_bss_info->beaconRateCtl,
             l_bss_info->network_initiated_greylist, l_bss_info->mcast2ucast, l_rdk_vap_info->exists,
-            l_bss_info->hostap_mgt_frame_ctrl, l_bss_info->mbo_enabled);
+            l_bss_info->hostap_mgt_frame_ctrl, l_bss_info->interop_ctrl, l_bss_info->mbo_enabled, l_bss_info->inum_sta);
     }
 }
 
@@ -111,7 +111,9 @@ void print_wifi_hal_vap_security_param(wifi_dbg_type_t log_file_type, char *pref
 
 void print_wifi_hal_vap_wps_data(wifi_dbg_type_t log_file_type, char *prefix, unsigned int vap_index, wifi_wps_t *l_wifi_wps)
 {
+#ifdef FEATURE_SUPPORT_WPS
     wifi_util_info_print(log_file_type,"%s:%d: [%s] Wifi_wps_Config vap_index=%d\n enable:%d\n methods:%d\r\n", __func__, __LINE__, prefix, vap_index, l_wifi_wps->enable, l_wifi_wps->methods);
+#endif
 }
 
 #define WEBCONFIG_DML_SUBDOC_STATES                         \
@@ -154,6 +156,38 @@ void webconfig_init_subdoc_data(webconfig_subdoc_data_t *data)
     memcpy((unsigned char *)&data->u.decoded.config, (unsigned char *)&mgr->global_config, sizeof(wifi_global_config_t));
     memcpy((unsigned char *)&data->u.decoded.hal_cap, (unsigned char *)&mgr->hal_cap, sizeof(wifi_hal_capability_t));
     data->u.decoded.num_radios = getNumberRadios();
+}
+
+int update_vap_params_to_hal_and_db(wifi_vap_info_t *vap, bool enable_or_disable) {
+    if (!vap) {
+        return RETURN_ERR;
+    }
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+    wifi_vap_info_map_t tmp_vap_map;
+    memset((unsigned char *)&tmp_vap_map, 0, sizeof(wifi_vap_info_map_t));
+    tmp_vap_map.num_vaps = 1;
+    memcpy(&tmp_vap_map.vap_array[0], vap, sizeof(wifi_vap_info_t));
+
+    rdk_wifi_vap_info_t *rdk_vap_info = get_wifidb_rdk_vap_info(vap->vap_index);
+    if (!rdk_vap_info) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get rdk vap info for index %d\n",
+                              __func__, __LINE__, vap->vap_index);
+        return RETURN_ERR;
+    }
+    tmp_vap_map.vap_array[0].u.bss_info.enabled = enable_or_disable;
+    vap_svc_t *svc = get_svc_by_name(ctrl, vap->vap_name);
+    if (!svc) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d: Service not found for vap_name %s\n", __func__, __LINE__, vap->vap_name);
+        return -1;
+    }
+
+    if (svc && svc->update_fn(svc, vap->radio_index, &tmp_vap_map, rdk_vap_info) == RETURN_OK) {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d VAP Update done for Lnf VAP %s\n", __func__, __LINE__, vap->vap_name);
+    } else {
+        wifi_util_info_print(WIFI_CTRL, "%s:%d VAP Update failed for Lnf VAP %s\n", __func__, __LINE__, vap->vap_name);
+        return RETURN_ERR;
+    }
+    return RETURN_OK;
 }
 
 int webconfig_send_wifi_config_status(wifi_ctrl_t *ctrl)
@@ -241,6 +275,7 @@ int  webconfig_free_vap_object_diff_assoc_client_entries(webconfig_subdoc_data_t
                 wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: rdk_vap_info is null", __func__, __LINE__);
                 return RETURN_ERR;
             }
+            pthread_mutex_lock(rdk_vap_info->associated_devices_lock);
             if (rdk_vap_info->associated_devices_diff_map != NULL) {
                 assoc_dev_data = hash_map_get_first(rdk_vap_info->associated_devices_diff_map);
                 while(assoc_dev_data != NULL) {
@@ -257,10 +292,12 @@ int  webconfig_free_vap_object_diff_assoc_client_entries(webconfig_subdoc_data_t
             //Clearing the global memory
             tmp_rdk_vap_info = get_wifidb_rdk_vap_info(decoded_params->radios[i].vaps.rdk_vap_array[j].vap_index);
             if (tmp_rdk_vap_info == NULL) {
+                pthread_mutex_unlock(rdk_vap_info->associated_devices_lock);
                 wifi_util_error_print(WIFI_CTRL,"%s:%d NULL rdk_vap_info pointer\n", __func__, __LINE__);
                 return RETURN_ERR;
             }
             tmp_rdk_vap_info->associated_devices_diff_map = NULL;
+            pthread_mutex_unlock(tmp_rdk_vap_info->associated_devices_lock);
         }
     }
     return RETURN_OK;
@@ -740,11 +777,13 @@ int webconfig_hal_vap_apply_by_name(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_
                     print_wifi_hal_vap_security_param(WIFI_WEBCONFIG, "Old", tgt_vap_index, &mgr_vap_info->u.bss_info.security);
                     print_wifi_hal_vap_security_param(WIFI_WEBCONFIG, "New", tgt_vap_index, &vap_info->u.bss_info.security);
                 }
+#ifdef FEATURE_SUPPORT_WPS
                 if (memcmp(&mgr_vap_info->u.bss_info.wps, &vap_info->u.bss_info.wps, sizeof(wifi_wps_t))) {
                     print_wifi_hal_vap_wps_data(WIFI_WEBCONFIG, "Old", tgt_vap_index, &mgr_vap_info->u.bss_info.wps);
                     print_wifi_hal_vap_wps_data(WIFI_WEBCONFIG, "New", tgt_vap_index, &vap_info->u.bss_info.wps);
                 }
-            }
+#endif
+            } 
 
             p_tgt_vap_map = (wifi_vap_info_map_t *) malloc(sizeof(wifi_vap_info_map_t));
             if(p_tgt_vap_map == NULL ) {
@@ -1196,6 +1235,7 @@ int webconfig_vif_neighbors_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
 int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data)
 {
     wifi_util_dbg_print(WIFI_CTRL,"Inside webconfig_global_config_apply\n");
+    wifi_global_param_t *param;
     wifi_global_config_t *data_global_config;
     data_global_config = &data->config;
     bool global_param_changed = false;
@@ -1210,9 +1250,16 @@ int webconfig_global_config_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_da
     }
 
     if (global_param_changed) {
-        wifi_util_dbg_print(WIFI_CTRL,"Global config value is changed hence update the global config in DB\n");
-        if(update_wifi_global_config(&data_global_config->global_parameters) == -1) {
-            wifi_util_dbg_print(WIFI_CTRL,"Global config value is not updated in DB\n");
+        param = &data_global_config->global_parameters;
+
+        wifi_hal_set_mgt_frame_rate_limit(param->mgt_frame_rate_limit_enable,
+            param->mgt_frame_rate_limit, param->mgt_frame_rate_limit_window_size,
+            param->mgt_frame_rate_limit_cooldown_time);
+
+        wifi_util_dbg_print(WIFI_CTRL,
+            "Global config value is changed hence update the global config in DB\n");
+        if (update_wifi_global_config(param) == -1) {
+            wifi_util_dbg_print(WIFI_CTRL, "Global config value is not updated in DB\n");
             return RETURN_ERR;
         }
     }
@@ -1589,7 +1636,9 @@ static bool is_radio_param_config_changed(wifi_radio_operationParam_t *old , wif
 void ecomode_telemetry_update_and_reboot(unsigned int index, bool active)
 {
     CHAR eventName[32] = {0};
+#ifndef DISABLE_ECO_REBOOT
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
+#endif
 
     snprintf(eventName, sizeof(eventName), "WIFI_RADIO_%d_ECOPOWERMODE", index + 1);
     get_stubs_descriptor()->t2_event_s_fn(eventName, active ? "Active" : "Inactive");
@@ -1726,6 +1775,7 @@ int webconfig_hal_radio_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t
                 ctrl->webconfig_state |= ctrl_webconfig_state_radio_cfg_rsp_pending;
                 return RETURN_ERR;
             }
+            wifi_util_dbg_print(WIFI_MGR, "%s:%d: config applied.\n", __func__, __LINE__);
 
             start_wifi_sched_timer(mgr_radio_data->vaps.radio_index, ctrl, wifi_radio_sched);
 
@@ -1786,6 +1836,46 @@ void webconfig_analytic_event_data_to_hal_apply(webconfig_subdoc_data_t *data)
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
     apps_mgr_analytics_event(&ctrl->apps_mgr, wifi_event_type_webconfig, wifi_event_webconfig_data_to_hal_apply, data);
     return;
+}
+
+
+void process_managed_wifi_enable()
+{
+    wifi_vap_info_t *hotspot5g_vap_info = NULL;
+    for (UINT rIdx = 1; rIdx < getNumberRadios(); rIdx++) {
+        UINT lnf_ap_index = getApFromRadioIndex(rIdx, VAP_PREFIX_LNF_PSK);
+        UINT hotspot_ap_index = getApFromRadioIndex(rIdx, VAP_PREFIX_HOTSPOT_SECURE);
+
+        wifi_vap_info_t *lnf_vap_info = get_wifidb_vap_parameters(lnf_ap_index);
+        wifi_vap_info_t *hotspot_vap_info = get_wifidb_vap_parameters(hotspot_ap_index);
+
+        if (!lnf_vap_info || !hotspot_vap_info) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get LNF or Hotspot VAP info for radio %u\n", __func__, __LINE__, rIdx);
+            continue;
+        }
+        if (isVapHotspotSecure5g(hotspot_ap_index)) {
+            hotspot5g_vap_info = hotspot_vap_info;
+        }
+        if (should_process_hotspot_config_change(lnf_vap_info, hotspot_vap_info)) {
+            update_vap_params_to_hal_and_db(lnf_vap_info, hotspot_vap_info->u.bss_info.enabled);
+            wifi_util_info_print(WIFI_CTRL,"%s:%d LnF VAP %s config changed as per %s event\n",__func__,__LINE__,lnf_vap_info->vap_name, hotspot_vap_info->u.bss_info.enabled?"Hotspot VAP Up":"Hotspot VAP Down");
+        }
+    }
+
+    UINT lnf_ap_index_0 = getApFromRadioIndex(0, VAP_PREFIX_LNF_PSK);
+    wifi_vap_info_t *lnf_vap_info_0 = get_wifidb_vap_parameters(lnf_ap_index_0);
+    if (!lnf_vap_info_0) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Failed to get LNF VAP info for index %u\n", __func__, __LINE__, lnf_ap_index_0);
+        return;
+    }
+    if (!hotspot5g_vap_info) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d Hotspot 5G Secure VAP info not found, cannot update LNF radio 0\n", __func__, __LINE__);
+        return;
+    }
+    if (should_process_hotspot_config_change(lnf_vap_info_0, hotspot5g_vap_info)) {
+        update_vap_params_to_hal_and_db(lnf_vap_info_0, hotspot5g_vap_info->u.bss_info.enabled);
+        wifi_util_info_print(WIFI_CTRL,"%s:%d LnF VAP %s config changed as per %s event\n",__func__,__LINE__,lnf_vap_info_0->vap_name, hotspot5g_vap_info->u.bss_info.enabled?"Hotspot VAP Up":"Hotspot VAP Down");
+    }
 }
 
 webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc_data_t *data)
@@ -1895,6 +1985,7 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
                     bool status = ((ret == RETURN_OK) ? true : false);
                     hotspot_cfg_sem_signal(status);
                     wifi_util_info_print(WIFI_CTRL,":%s:%d xfinity blob cfg status:%d\n", __func__, __LINE__, ret);
+                    process_managed_wifi_enable();
                     webconfig_cac_apply(ctrl, &data->u.decoded);
                     if (is_6g_supported_device((&(get_wifimgr_obj())->hal_cap.wifi_prop))) {
                         wifi_util_info_print(WIFI_CTRL,"6g supported device add rnr of 6g\n");

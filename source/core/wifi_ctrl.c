@@ -73,7 +73,7 @@ void deinit_wifi_ctrl(wifi_ctrl_t *ctrl)
     }
 
     pthread_mutexattr_destroy(&ctrl->attr);
-    pthread_mutex_destroy(&ctrl->lock);
+    pthread_mutex_destroy(&ctrl->queue_lock);
     pthread_cond_destroy(&ctrl->cond);
     pthread_mutex_destroy(&ctrl->events_bus_data.events_bus_lock);
 }
@@ -146,12 +146,15 @@ int get_ap_index_from_clientmac(mac_address_t mac_addr)
                 wifi_util_error_print(WIFI_CTRL,"%s:%d NULL pointers\n", __func__,__LINE__);
                 return -1;
             }
+            pthread_mutex_lock(rdk_vap_info->associated_devices_lock);
             if (rdk_vap_info->associated_devices_map) {
                 assoc_dev_data = hash_map_get(rdk_vap_info->associated_devices_map, mac_str);
                 if (assoc_dev_data != NULL) {
+                    pthread_mutex_unlock(rdk_vap_info->associated_devices_lock);
                     return vap_index;
                 }
             }
+            pthread_mutex_unlock(rdk_vap_info->associated_devices_lock);
         }
     }
     return -1;
@@ -289,7 +292,7 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
     int rc = 0;
     wifi_event_t *event = NULL;
 
-    pthread_mutex_lock(&ctrl->lock);
+    pthread_mutex_lock(&ctrl->queue_lock);
     while (ctrl->exit_ctrl == false) {
 
         clock_gettime(CLOCK_MONOTONIC, &tv_now);
@@ -303,7 +306,10 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
             }
         }
 
-        rc = pthread_cond_timedwait(&ctrl->cond, &ctrl->lock, &time_to_wait);
+        rc = 0;
+        if (queue_count(ctrl->queue) == 0) {
+            rc = pthread_cond_timedwait(&ctrl->cond, &ctrl->queue_lock, &time_to_wait);
+        }
 
         if ((rc == 0) || (queue_count(ctrl->queue) != 0)) {
             while (queue_count(ctrl->queue)) {
@@ -311,7 +317,7 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
                 if (event == NULL) {
                     continue;
                 }
-                pthread_mutex_unlock(&ctrl->lock);
+                pthread_mutex_unlock(&ctrl->queue_lock);
                 switch (event->event_type) {
                     case wifi_event_type_webconfig:
                         handle_webconfig_event(ctrl, event->u.core_data.msg, event->u.core_data.len, event->sub_type);
@@ -348,9 +354,10 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
                 destroy_wifi_event(event);
 
                 clock_gettime(CLOCK_MONOTONIC, &ctrl->last_signalled_time);
-                pthread_mutex_lock(&ctrl->lock);
+                pthread_mutex_lock(&ctrl->queue_lock);
             }
         } else if (rc == ETIMEDOUT) {
+            pthread_mutex_unlock(&ctrl->queue_lock);
             clock_gettime(CLOCK_MONOTONIC, &ctrl->last_polled_time);
 
             /*
@@ -364,12 +371,13 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
 
             /*Run the scheduler*/
             scheduler_execute(ctrl->sched, ctrl->last_polled_time, (ctrl->poll_period*1000));
+            pthread_mutex_lock(&ctrl->queue_lock);
         } else {
             wifi_util_dbg_print(WIFI_CTRL,"RDK_LOG_WARN, WIFI %s: Invalid Return Status %d\n",__FUNCTION__,rc);
             continue;
         }
     }
-    pthread_mutex_unlock(&ctrl->lock);
+    pthread_mutex_unlock(&ctrl->queue_lock);
 
     return;
 }
@@ -877,6 +885,7 @@ bool get_notify_wifi_from_psm(char *PsmParamName)
             psm_notify_flag = false;
         }
     }
+    get_bus_descriptor()->bus_data_free_fn(&data);
     wifi_util_dbg_print(WIFI_CTRL, "get_notify_wifi_from_psm ends: %d\n", rc);
 
     return psm_notify_flag;
@@ -1293,7 +1302,7 @@ int init_wifi_ctrl(wifi_ctrl_t *ctrl)
     pthread_condattr_destroy(&cond_attr);
     pthread_mutexattr_init(&ctrl->attr);
     pthread_mutexattr_settype(&ctrl->attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&ctrl->lock, &ctrl->attr);
+    pthread_mutex_init(&ctrl->queue_lock, &ctrl->attr);
     pthread_mutex_init(&ctrl->events_bus_data.events_bus_lock, NULL);
 
     ctrl->poll_period = QUEUE_WIFI_CTRL_TASK_TIMEOUT;
@@ -1472,6 +1481,7 @@ int wifi_hal_platform_post_init()
     unsigned int index = 0;
     wifi_vap_info_map_t vap_map[MAX_NUM_RADIOS];
     wifi_vap_info_map_t *p_vap_map = NULL;
+    wifi_global_param_t *global_param;
 
     memset(vap_map, 0, sizeof(vap_map));
 
@@ -1490,6 +1500,13 @@ int wifi_hal_platform_post_init()
     if (ret != RETURN_OK) {
         wifi_util_error_print(WIFI_CTRL,"%s start wifi apps failed, ret:%d\n",__FUNCTION__, ret);
         return RETURN_ERR;
+    }
+
+    global_param = get_wifidb_wifi_global_param();
+    if (global_param != NULL) {
+        wifi_hal_set_mgt_frame_rate_limit(global_param->mgt_frame_rate_limit_enable,
+            global_param->mgt_frame_rate_limit, global_param->mgt_frame_rate_limit_window_size,
+            global_param->mgt_frame_rate_limit_cooldown_time);
     }
 
     return RETURN_OK;
@@ -2553,12 +2570,6 @@ int  get_wifi_rfc_parameters(char *str, void *value)
     return ret;
 }
 
-wifi_dml_parameters_t* get_wifi_dml_parameters(void)
-{
-    wifi_mgr_t *p_wifi_db_data = get_wifimgr_obj();
-    return &p_wifi_db_data->dml_parameters;
-}
-
 wifi_rfc_dml_parameters_t* get_wifi_db_rfc_parameters(void)
 {
     wifi_mgr_t *p_wifi_db_data = get_wifimgr_obj();
@@ -2604,34 +2615,6 @@ wifi_rfc_dml_parameters_t *get_ctrl_rfc_parameters(void)
     return &g_wifi_mgr->ctrl.rfc_params;
 }
 
-int get_multi_radio_dml_parameters(uint8_t radio_index, char *str, void *value)
-{
-    int ret = RETURN_OK;
-    wifi_mgr_t *l_wifi_mgr = get_wifimgr_obj();
-    wifi_util_dbg_print(WIFI_CTRL, "%s get multi radio dml data %s: radio_index:%d \n", __FUNCTION__, str, radio_index);
-    if ((strcmp(str, FACTORY_RESET_SSID) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.RadioFactoryResetSSID[radio_index];
-    } else {
-        ret = RETURN_ERR;
-        wifi_util_dbg_print(WIFI_CTRL, "%s get multi radio dml data not match %s: ap_index:%d \n", __FUNCTION__, str, radio_index);
-    }
-    return ret;
-}
-
-int set_multi_radio_dml_parameters(uint8_t radio_index, char *str, void *value)
-{
-    int ret = RETURN_OK;
-    wifi_mgr_t *l_wifi_mgr = get_wifimgr_obj();
-    wifi_util_dbg_print(WIFI_CTRL, "%s set multi radio dml data %s: radio_index:%d \n", __FUNCTION__, str, radio_index);
-    if ((strcmp(str, FACTORY_RESET_SSID) == 0)) {
-        l_wifi_mgr->dml_parameters.RadioFactoryResetSSID[radio_index] = *(int*)value;
-    } else {
-        ret = RETURN_ERR;
-        wifi_util_dbg_print(WIFI_CTRL, "%s set multi radio dml data not match %s: radio_index:%d \n", __FUNCTION__, str, radio_index);
-    }
-    return ret;
-}
-
 int get_device_config_list(char *d_list, int size, char *str)
 {
     int ret = RETURN_OK;
@@ -2664,79 +2647,6 @@ int get_device_config_list(char *d_list, int size, char *str)
     if (d_list == NULL) {
         wifi_util_dbg_print(WIFI_CTRL,"%s:%d: Failed to get config for %s \n",__func__, __LINE__, str);
         return RETURN_ERR;
-    }
-    return ret;
-}
-
-
-int get_vap_dml_parameters(char *str, void *value)
-{
-    int ret = RETURN_OK;
-    wifi_mgr_t *l_wifi_mgr = get_wifimgr_obj();
-    wifi_util_dbg_print(WIFI_CTRL, "%s get vap structure data %s\n", __FUNCTION__, str);
-    if ((strcmp(str, RSSI_THRESHOLD) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.rssi_threshold;
-    } else if ((strcmp(str, MFP_FEATURE_STATUS) == 0)) {
-        *(bool*)value = l_wifi_mgr->dml_parameters.FeatureMFPConfig;
-    } else if ((strcmp(str, WIFI_FACTORY_RESET) == 0)) {
-        *(bool*)value = l_wifi_mgr->dml_parameters.WifiFactoryReset;
-    } else if ((strcmp(str, VALIDATE_SSID_NAME) == 0)) {
-        *(bool*)value = l_wifi_mgr->dml_parameters.ValidateSSIDName;
-    } else if ((strcmp(str, FIXED_WMM_PARAMS) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.FixedWmmParams;
-    } else if((strcmp(str, ASSOC_COUNT_THRESHOLD) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.AssocCountThreshold;
-    } else if ((strcmp(str, ASSOC_MONITOR_DURATION) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.AssocMonitorDuration;
-    } else if ((strcmp(str, ASSOC_GATE_TIME) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.AssocGateTime;
-    } else if ((strcmp(str, WIFI_TX_OVERFLOW_SELF_HEAL) == 0)) {
-        *(bool*)value = l_wifi_mgr->dml_parameters.WiFiTxOverflowSelfheal;
-    } else if ((strcmp(str, WIFI_FORCE_DISABLE_RADIO) == 0)) {
-        *(bool*)value = l_wifi_mgr->dml_parameters.WiFiForceDisableWiFiRadio;
-    } else if ((strcmp(str, WIFI_FORCE_DISABLE_RADIO_STATUS) == 0)) {
-        *(int*)value = l_wifi_mgr->dml_parameters.WiFiForceDisableRadioStatus;
-    } else {
-        ret = RETURN_ERR;
-        wifi_util_dbg_print(WIFI_CTRL, "%s get vap structure data not match %s:\n", __FUNCTION__, str);
-    }
-    return ret;
-}
-
-int set_vap_dml_parameters(char *str, void *value)
-{
-    if(!str || !value) {
-        return RETURN_ERR;
-    }
-
-    int ret = RETURN_OK;
-    wifi_mgr_t *l_wifi_mgr = get_wifimgr_obj();
-    wifi_util_dbg_print(WIFI_CTRL, "%s set vap structure %s\n", __FUNCTION__, str);
-    if ((strcmp(str, RSSI_THRESHOLD) == 0)) {
-        l_wifi_mgr->dml_parameters.rssi_threshold = *(int*)value;
-    } else if ((strcmp(str, MFP_FEATURE_STATUS) == 0)) {
-        l_wifi_mgr->dml_parameters.FeatureMFPConfig = *(bool*)value;
-    } else if ((strcmp(str, WIFI_FACTORY_RESET) == 0)) {
-        l_wifi_mgr->dml_parameters.WifiFactoryReset = *(bool*)value;
-    } else if ((strcmp(str, VALIDATE_SSID_NAME) == 0)) {
-        l_wifi_mgr->dml_parameters.ValidateSSIDName = *(bool*)value;
-    } else if ((strcmp(str, FIXED_WMM_PARAMS) == 0)) {
-        l_wifi_mgr->dml_parameters.FixedWmmParams = *(int*)value;
-    } else if ((strcmp(str, ASSOC_COUNT_THRESHOLD) == 0)) {
-        l_wifi_mgr->dml_parameters.AssocCountThreshold = *(int*)value;
-    } else if ((strcmp(str, ASSOC_MONITOR_DURATION) == 0)) {
-        l_wifi_mgr->dml_parameters.AssocMonitorDuration = *(int*)value;
-    } else if ((strcmp(str, ASSOC_GATE_TIME) == 0)) {
-        l_wifi_mgr->dml_parameters.AssocGateTime = *(int*)value;
-    } else if ((strcmp(str, WIFI_TX_OVERFLOW_SELF_HEAL) == 0)) {
-        l_wifi_mgr->dml_parameters.WiFiTxOverflowSelfheal = *(bool*)value;
-    } else if ((strcmp(str, WIFI_FORCE_DISABLE_RADIO) == 0)) {
-        l_wifi_mgr->dml_parameters.WiFiForceDisableWiFiRadio = *(bool*)value;
-    } else if ((strcmp(str, WIFI_FORCE_DISABLE_RADIO_STATUS) == 0)) {
-        l_wifi_mgr->dml_parameters.WiFiForceDisableRadioStatus = *(int*)value;
-    } else {
-        ret = RETURN_ERR;
-        wifi_util_dbg_print(WIFI_CTRL, "%s set vap structure data not match %s:\n", __FUNCTION__, str);
     }
     return ret;
 }
@@ -2933,6 +2843,25 @@ UINT getPrivateApFromRadioIndex(UINT radioIndex)
         }
     }
     wifi_util_dbg_print(WIFI_CTRL,"getPrivateApFromRadioIndex not recognised for radioIndex %u!!!\n", radioIndex);
+    return 0;
+}
+
+UINT getApFromRadioIndex(UINT radioIndex, char* vap_prefix)
+{
+    UINT apIndex;
+    wifi_mgr_t *mgr = get_wifimgr_obj();
+    if (vap_prefix == NULL) {
+        wifi_util_error_print(WIFI_CTRL,"%s:%d vap_prefix is NULL \n", __FUNCTION__,__LINE__);
+        return 0;
+    }
+    for (UINT index = 0; index < getTotalNumberVAPs(); index++) {
+        apIndex = VAP_INDEX(mgr->hal_cap, index);
+        if((strncmp((CHAR *)getVAPName(apIndex), vap_prefix, strlen(vap_prefix)) == 0) &&
+               getRadioIndexFromAp(apIndex) == radioIndex ) {
+            return apIndex;
+        }
+    }
+    wifi_util_dbg_print(WIFI_CTRL,"getApFromRadioIndex not recognised for radioIndex %u!!!\n", radioIndex);
     return 0;
 }
 

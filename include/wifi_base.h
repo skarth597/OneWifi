@@ -42,7 +42,7 @@ extern "C" {
 #define WIFI_WAN_FAILOVER_TEST              "Device.WiFi.WanFailoverTest"
 #define WIFI_LMLITE_NOTIFY                  "Device.Hosts.X_RDKCENTRAL-COM_LMHost_Sync_From_WiFi"
 #define WIFI_HOTSPOT_NOTIFY                 "Device.X_COMCAST-COM_GRE.Hotspot.ClientChange"
-#define WIFI_NOTIFY_ASSOCIATED_ENTRIES      "Device.NotifyComponent.SetNotifi_ParamName"
+#define WIFI_NOTIFY_SYNC_COMPONENT      "Device.NotifyComponent.SetNotifi_ParamName"
 #define WIFI_NOTIFY_FORCE_DISASSOCIATION    "Device.WiFi.ConnectionControl.ClientForceDisassociation"
 #define WIFI_NOTIFY_DENY_ASSOCIATION        "Device.WiFi.ConnectionControl.ClientDenyAssociation"
 #define MESH_STATUS                         "Device.DeviceInfo.X_RDKCENTRAL-COM_xOpsDeviceMgmt.Mesh.Enable"
@@ -97,6 +97,9 @@ extern "C" {
 #define MIN_CSI_INTERVAL    100
 #define MIN_DIAG_INTERVAL   5000
 #define CSI_PING_INTERVAL   100
+
+#define RSS_MEM_THRESHOLD1_DEFAULT 81920 /*Threshold1 is 80MB*/
+#define RSS_MEM_THRESHOLD2_DEFAULT 112640 /*Threshold2 is 110MB*/
 
 #define wifi_sub_component_base     0x01
 #define wifi_app_inst_base          0x01
@@ -390,24 +393,6 @@ typedef struct {
 }levl_config_t;
 
 typedef struct {
-    int rssi_threshold;
-    bool FeatureMFPConfig;
-    int ChUtilityLogInterval;
-    int DeviceLogInterval;
-
-    bool WifiFactoryReset;
-    int  RadioFactoryResetSSID[MAX_NUM_RADIOS];
-    bool ValidateSSIDName;
-    int  FixedWmmParams;
-    int  AssocCountThreshold;
-    int  AssocMonitorDuration;
-    int  AssocGateTime;
-    bool WiFiTxOverflowSelfheal;
-    bool WiFiForceDisableWiFiRadio;
-    int  WiFiForceDisableRadioStatus;
-} wifi_dml_parameters_t;
-
-typedef struct {
     bool wifi_offchannelscan_app_rfc;
     bool wifi_offchannelscan_sm_rfc;
     bool wifipasspoint_rfc;
@@ -459,6 +444,8 @@ typedef struct {
     int  assoc_gate_time;
     int  whix_log_interval; //seconds
     int  whix_chutility_loginterval; //seconds
+    ULONG rss_memory_restart_threshold_low;
+    ULONG rss_memory_restart_threshold_high;
     int  assoc_monitor_duration;
     bool rapid_reconnect_enable;
     bool vap_stats_feature;
@@ -474,6 +461,10 @@ typedef struct {
     char cli_stat_list[MAX_BUF_LENGTH];
     char snr_list[MAX_BUF_LENGTH];
     char txrx_rate_list[MAX_BUF_LENGTH];
+    bool mgt_frame_rate_limit_enable;
+    int mgt_frame_rate_limit;
+    int mgt_frame_rate_limit_window_size;
+    int mgt_frame_rate_limit_cooldown_time;
 } __attribute__((packed)) wifi_global_param_t;
 
 typedef struct {
@@ -592,6 +583,7 @@ typedef struct {
     hash_map_t              *acl_map;
     hash_map_t              *associated_devices_map; //Full
     hash_map_t              *associated_devices_diff_map; //Add,Remove
+    pthread_mutex_t         *associated_devices_lock;
     int                     kick_device_task_counter;
     bool                    kick_device_config_change;
     bool                    is_mac_filter_initialized;
@@ -766,6 +758,15 @@ typedef struct {
 } __attribute__((packed)) radarInfo_t;
 
 typedef struct {
+    mac_address_t sta_mac;
+    mac_address_t ap_mac;
+    int sta_status_counts[6];
+    int sta_reason_counts[9];
+    int ap_status_counts[6];
+    int ap_reason_counts[9];
+} interop_data_t;
+
+typedef struct {
     char    name[16];
     wifi_radio_operationParam_t oper;
     rdk_wifi_vap_map_t          vaps;
@@ -803,19 +804,20 @@ typedef struct {
 } __attribute__((__packed__)) conn_security_t;
 
 typedef struct {
+    time_t frame_timestamp;
+    frame_data_t msg_data;
+} __attribute__((__packed__)) assoc_req_elem_t;
+
+typedef struct {
     int ap_index;
     wifi_associated_dev3_t dev_stats;
     int reason;
     client_state_t client_state;
     conn_security_t conn_security;
+    assoc_req_elem_t sta_data;
 } __attribute__((__packed__)) assoc_dev_data_t;
 
 struct active_msmt_data;
-
-typedef struct {
-    time_t        frame_timestamp;
-    frame_data_t  msg_data;
-} __attribute__((__packed__)) assoc_req_elem_t;
 
 typedef struct {
     mac_address_t sta_mac;
@@ -841,7 +843,6 @@ typedef struct {
     unsigned int    rapid_reconnects;
     bool            updated;
     wifi_associated_dev3_t dev_stats;
-    wifi_associated_dev3_t dev_stats_last;
     unsigned int    reconnect_count;
     long            assoc_monitor_start_time;
     long            gate_time;

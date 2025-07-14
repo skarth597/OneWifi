@@ -132,7 +132,10 @@
 
 #if defined(_COSA_BCM_MIPS_) || defined(_XB6_PRODUCT_REQ_) || defined(_COSA_BCM_ARM_) || defined(_PLATFORM_TURRIS_)
 #define PARTNERS_INFO_FILE              "/nvram/partners_defaults.json"
-#define BOOTSTRAP_INFO_FILE             "/nvram/bootstrap.json"
+#define BOOTSTRAP_INFO_FILE             "/opt/secure/bootstrap.json"
+#define BOOTSTRAP_INFO_FILE_BACKUP      "/nvram/bootstrap.json"
+#define CLEAR_TRACK_FILE                "/nvram/ClearUnencryptedData_flags"
+#define NVRAM_BOOTSTRAP_CLEARED         (1 << 0)
 #endif
 
 #ifdef FEATURE_SUPPORT_ONBOARD_LOGGING
@@ -577,89 +580,6 @@ CosaWiFiDmlGetWPA3TransitionRFC (BOOL *WPA3_RFC)
         *WPA3_RFC = atoi(strValue);
         ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(strValue);
     }
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetGoodRssiThresholdValue( int	*piRssiThresholdValue )
-{
-    wifi_global_param_t *pcfg = get_wifidb_wifi_global_param();
-    if (pcfg != NULL) {
-        *piRssiThresholdValue = pcfg->good_rssi_threshold;
-    } else {
-        CcspTraceInfo(("%s WIFI DB Failed to get global config\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetAssocCountThresholdValue( int	*piAssocCountThresholdValue )
-{
-    wifi_global_param_t *pcfg = get_wifidb_wifi_global_param();
-    if (pcfg != NULL) {
-        *piAssocCountThresholdValue= pcfg->assoc_count_threshold;
-    } else {
-        CcspTraceInfo(("%s WIFI DB Failed to get global config\n", __FUNCTION__ ));
-        return ANSC_STATUS_FAILURE;
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetAssocMonitorDurationValue( int	*piAssocMonitorDurationValue )
-{
-     wifi_global_param_t *pcfg = get_wifidb_wifi_global_param();
-     if (pcfg != NULL) {
-        *piAssocMonitorDurationValue = pcfg->assoc_monitor_duration;
-        CcspTraceInfo(("%s WIFI DB get success Value: %d\n", __FUNCTION__, *piAssocMonitorDurationValue))
-    } else {
-        CcspTraceInfo(("%s WIFI DB Failed to get global config\n", __FUNCTION__ ));
-        return ANSC_STATUS_FAILURE;
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetAssocGateTimeValue( int	*piAssocGateTimeValue )
-{
-    wifi_global_param_t *pcfg = get_wifidb_wifi_global_param();
-    if (pcfg != NULL) {
-        *piAssocGateTimeValue = pcfg->assoc_gate_time;
-        CcspTraceInfo(("%s WIFI DB get success Value: %d\n", __FUNCTION__, *piAssocGateTimeValue));
-    } else {
-        CcspTraceInfo(("%s WIFI DB Failed to get global config\n", __FUNCTION__ ));
-        return ANSC_STATUS_FAILURE;
-    }
-    return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetRapidReconnectThresholdValue(ULONG vAPIndex, int	*rapidReconnThresholdValue )
-{
-    wifi_front_haul_bss_t  *pcfg= NULL;
-    pcfg = Get_wifi_object_bss_parameter(vAPIndex);
-    if(pcfg != NULL)
-    {
-        *rapidReconnThresholdValue = pcfg->rapidReconnThreshold;
-    } else {
-        CcspTraceInfo(("%s WIFI DB Failed to get vap config\n", __FUNCTION__ ));
-        return ANSC_STATUS_FAILURE;
-    }
-   return ANSC_STATUS_SUCCESS;
-}
-
-ANSC_STATUS
-CosaDmlWiFi_GetFeatureMFPConfigValue( BOOLEAN *pbFeatureMFPConfig )
-{
-    wifi_global_param_t *pcfg = get_wifidb_wifi_global_param();
-    if (pcfg != NULL) {
-       *pbFeatureMFPConfig = pcfg->mfp_config_feature;
-        CcspTraceInfo(("%s MFP config value %d\n",__FUNCTION__,pcfg->mfp_config_feature));
-    } else {
-       CcspTraceInfo(("%s Failed to get wifi db value\n", __FUNCTION__ ));
-       return ANSC_STATUS_FAILURE;
-    }	
-    return ANSC_STATUS_SUCCESS;
 }
 
 ANSC_STATUS
@@ -1653,7 +1573,7 @@ ValidateActiveMsmtPlanID(UCHAR *pPlanId)
 }
 
 #define PARTNERS_INFO_FILE              "/nvram/partners_defaults.json"
-#define BOOTSTRAP_INFO_FILE             "/nvram/bootstrap.json"
+#define BOOTSTRAP_INFO_FILE             "/opt/secure/bootstrap.json"
 
 static int writeToJson(char *data, char *file)
 {
@@ -1996,6 +1916,19 @@ ANSC_STATUS UpdateJsonParam
                     cJsonOut = cJSON_Print(json);
                     CcspTraceWarning(( "Updated json content is %s\n", cJsonOut));
                     configUpdateStatus = writeToJson(cJsonOut, BOOTSTRAP_INFO_FILE);
+                    //Check CLEAR_TRACK_FILE and update in nvram, if needed.
+                    unsigned int flags = 0;
+                    FILE *fp = fopen(CLEAR_TRACK_FILE, "r");
+                    if (fp)
+                    {
+                        fscanf(fp, "%u", &flags);
+                        fclose(fp);
+                    }
+                    if ((flags & NVRAM_BOOTSTRAP_CLEARED) == 0)
+                    {
+                        CcspTraceWarning(("%s: Updating %s\n", __FUNCTION__, BOOTSTRAP_INFO_FILE_BACKUP));
+                        writeToJson(cJsonOut, BOOTSTRAP_INFO_FILE_BACKUP);
+                    }
                     cJSON_free(cJsonOut);
                     if ( !configUpdateStatus)
                     {

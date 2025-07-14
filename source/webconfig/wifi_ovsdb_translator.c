@@ -48,6 +48,7 @@
 #define BLASTER_STATE_LEN    10
 #define INVALID_INDEX        256
 
+static pthread_mutex_t webconfig_data_lock = PTHREAD_MUTEX_INITIALIZER;
 static webconfig_subdoc_data_t  webconfig_ovsdb_data;
 /* global pointer to webconfig subdoc encoded data to avoid memory loss when passing data to OVSM */
 static char *webconfig_ovsdb_raw_data_ptr = NULL;
@@ -872,6 +873,7 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         default_vap_info->u.bss_info.nbrReportActivated = false;
         default_vap_info->u.bss_info.rapidReconnThreshold = 180;
         default_vap_info->u.bss_info.mac_filter_enable = false;
+        default_vap_info->u.bss_info.mac_filter_mode = wifi_mac_filter_mode_black_list;
         default_vap_info->u.bss_info.UAPSDEnabled = true;
         default_vap_info->u.bss_info.wmmNoAck = false;
         default_vap_info->u.bss_info.wepKeyLength = 128;
@@ -884,12 +886,18 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
         default_vap_info->vap_mode = wifi_vap_mode_ap;
         default_vap_info->u.bss_info.enabled = false;
         default_vap_info->u.bss_info.bssMaxSta = 75;
+        default_vap_info->u.bss_info.inum_sta = 0;
         snprintf(default_vap_info->u.bss_info.interworking.interworking.hessid,
             sizeof(default_vap_info->u.bss_info.interworking.interworking.hessid),
             "11:22:33:44:55:66");
         convert_radio_index_to_freq_band(&hal_cap->wifi_prop, radioIndx, &band);
         default_vap_info->u.bss_info.mbo_enabled = true;
-
+        default_vap_info->u.bss_info.interop_ctrl = false;
+#if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
+    defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
+        default_vap_info->u.bss_info.hostap_mgt_frame_ctrl = true;
+#endif // defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) ||
+       // defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_)
         if (is_vap_private(&hal_cap->wifi_prop, vapIndex) == TRUE) {
             default_vap_info->u.bss_info.network_initiated_greylist = false;
             default_vap_info->u.bss_info.vapStatsEnable = true;
@@ -935,6 +943,8 @@ webconfig_error_t translator_ovsdb_init(webconfig_subdoc_data_t *data)
                 default_vap_info->u.bss_info.security.encr = wifi_encryption_aes;
                 default_vap_info->u.bss_info.security.mfp = wifi_mfp_cfg_required;
             }
+            default_vap_info->u.bss_info.mac_filter_enable = true;
+            default_vap_info->u.bss_info.mac_filter_mode = wifi_mac_filter_mode_white_list;
         } else if(is_vap_lnf_radius(&hal_cap->wifi_prop, vapIndex) == TRUE) {
             strcpy(default_vap_info->u.bss_info.security.u.radius.identity, "lnf_radius_identity");
             default_vap_info->u.bss_info.security.u.radius.port = 1812;
@@ -1080,6 +1090,8 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
     wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: OVSM encode subdoc type %d\n", __func__, __LINE__,
         type);
 
+    pthread_mutex_lock(&webconfig_data_lock);
+
     webconfig_ovsdb_data.u.decoded.external_protos = (webconfig_external_ovsdb_t *)data;
     webconfig_ovsdb_data.descriptor = webconfig_data_descriptor_translate_from_ovsdb;
     debug_external_protos(&webconfig_ovsdb_data, __func__, __LINE__);
@@ -1088,6 +1100,7 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
     if (rdk_wifi_radio_state == NULL) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: calloc failed for rdk_wifi_radio_state\n",
             __func__, __LINE__);
+        pthread_mutex_unlock(&webconfig_data_lock);
         return webconfig_error_encode;
     }
 
@@ -1102,6 +1115,7 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: OVSM encode failed\n", __func__, __LINE__);
         free_maclist_map(webconfig_ovsdb_data.u.decoded.num_radios, rdk_wifi_radio_state);
         free(rdk_wifi_radio_state);
+        pthread_mutex_unlock(&webconfig_data_lock);
         return webconfig_error_encode;
     }
 
@@ -1118,6 +1132,7 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
         *str = NULL;
         free_maclist_map(webconfig_ovsdb_data.u.decoded.num_radios, rdk_wifi_radio_state);
         free(rdk_wifi_radio_state);
+        pthread_mutex_unlock(&webconfig_data_lock);
         return webconfig_error_translate_from_ovsdb_cfg_no_change;
     }
     webconfig_ovsdb_raw_data_ptr = webconfig_ovsdb_data.u.encoded.raw;
@@ -1125,18 +1140,23 @@ webconfig_error_t webconfig_ovsdb_encode(webconfig_t *config,
     *str = webconfig_ovsdb_raw_data_ptr;
     free_maclist_map(webconfig_ovsdb_data.u.decoded.num_radios, rdk_wifi_radio_state);
     free(rdk_wifi_radio_state);
+
+    pthread_mutex_unlock(&webconfig_data_lock);
+
     return webconfig_error_none;
 }
 
 webconfig_error_t webconfig_ovsdb_decode(webconfig_t *config, const char *str,
     webconfig_external_ovsdb_t *data, webconfig_subdoc_type_t *type)
 {
+    pthread_mutex_lock(&webconfig_data_lock);
     webconfig_ovsdb_data.u.decoded.external_protos = (webconfig_external_ovsdb_t *)data;
     webconfig_ovsdb_data.descriptor = webconfig_data_descriptor_translate_to_ovsdb;
 
     if (webconfig_decode(config, &webconfig_ovsdb_data, str) != webconfig_error_none) {
         //        *data = NULL;
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: OVSM decode failed\n", __func__, __LINE__);
+        pthread_mutex_unlock(&webconfig_data_lock);
         return webconfig_error_decode;
     }
 
@@ -1145,6 +1165,7 @@ webconfig_error_t webconfig_ovsdb_decode(webconfig_t *config, const char *str,
     *type = webconfig_ovsdb_data.type;
     debug_external_protos(&webconfig_ovsdb_data, __func__, __LINE__);
     webconfig_data_free(&webconfig_ovsdb_data);
+    pthread_mutex_unlock(&webconfig_data_lock);
     return webconfig_error_none;
 }
 
@@ -2700,6 +2721,7 @@ webconfig_error_t translate_vap_info_to_vif_state_common(const wifi_vap_info_t *
         vap_row->wps = vap->u.bss_info.wps.enable;
         vap_row->wps_exists = true;
     } else {
+        wifi_util_error_print(WIFI_WEBCONFIG,"%s:%d: WPS is disabled for vap\n", __func__, __LINE__);
         vap_row->wps_exists=false;
     }
 
@@ -2709,6 +2731,7 @@ webconfig_error_t translate_vap_info_to_vif_state_common(const wifi_vap_info_t *
     } else {
         vap_row->wps_pbc_key_id_exists = false;
     }
+
     vap_row->vlan_id = iface_map->vlan_id;
     memset(vap_row->parent, 0, sizeof(vap_row->parent));
 
@@ -3868,8 +3891,10 @@ webconfig_error_t translate_ovsdb_to_vap_info_common(const struct schema_Wifi_VI
     vap->u.bss_info.bssTransitionActivated = vap_row->btm;
     vap->u.bss_info.nbrReportActivated = vap_row->rrm;
     vap->u.bss_info.wps.enable = vap_row->wps;
-    snprintf(vap->u.bss_info.wps.pin, sizeof(vap->u.bss_info.wps.pin),"%s",vap_row->wps_pbc_key_id);
-    wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d: vapIndex : %d min_hw_mode %s\n", __func__, __LINE__, vap->vap_index, vap_row->min_hw_mode);
+    snprintf(vap->u.bss_info.wps.pin, sizeof(vap->u.bss_info.wps.pin), "%s",
+        vap_row->wps_pbc_key_id);
+    wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d: vapIndex : %d min_hw_mode %s\n", __func__, __LINE__,
+        vap->vap_index, vap_row->min_hw_mode);
     min_hw_mode_conversion(vap->vap_index, (char *)vap_row->min_hw_mode, "", "CONFIG");
     vif_radio_idx_conversion(vap->vap_index, (int *)&vap_row->vif_radio_idx, NULL, "CONFIG");
 
