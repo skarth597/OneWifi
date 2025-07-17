@@ -3826,12 +3826,17 @@ int scan_mode_type_conversion(wifi_neighborScanMode_t *scan_mode_enum, char *sca
     return RETURN_ERR;
 }
 
-static bool is_interworking_config_changed(uint32_t vap_index, wifi_interworking_t *old_cfg,
+static bool is_interworking_config_changed(char *vap_name, wifi_interworking_t *old_cfg,
     wifi_interworking_t *new_cfg)
 {
+    bool is_hotspot_vap = FALSE;
+    if (strncmp((char *)vap_name, "hotspot", strlen("hotspot")) == 0) {
+        is_hotspot_vap = TRUE;
+    }
+
     return (IS_BIN_CHANGED(&old_cfg->interworking, &new_cfg->interworking,
             sizeof(wifi_InterworkingElement_t))
-            || (isVapHotspot(vap_index)
+            || (is_hotspot_vap
                 && (IS_BIN_CHANGED(&old_cfg->passpoint, &new_cfg->passpoint,
                     sizeof(wifi_passpoint_settings_t))
                    || IS_BIN_CHANGED(&old_cfg->anqp, &new_cfg->anqp,
@@ -3840,11 +3845,16 @@ static bool is_interworking_config_changed(uint32_t vap_index, wifi_interworking
                     sizeof(wifi_roamingConsortiumElement_t)))));
 }
 
-static bool is_vap_preassoc_cac_config_changed(uint32_t vap_index,
+static bool is_vap_preassoc_cac_config_changed(char *vap_name,
     wifi_preassoc_control_t *old_cfg,
     wifi_preassoc_control_t *new_cfg)
 {
-    if (isVapHotspot(vap_index)
+    bool is_hotspot_vap = FALSE;
+    if (strncmp((char *)vap_name, "hotspot", strlen("hotspot")) == 0) {
+        is_hotspot_vap = TRUE;
+    }
+
+    if (is_hotspot_vap
         && (IS_STR_CHANGED(old_cfg->basic_data_transmit_rates,
                 new_cfg->basic_data_transmit_rates,
                 sizeof(old_cfg->basic_data_transmit_rates))
@@ -3927,7 +3937,7 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
                 vap_info_new->u.bss_info.vapStatsEnable) ||
             IS_BIN_CHANGED(&vap_info_old->u.bss_info.security, &vap_info_new->u.bss_info.security,
                 sizeof(wifi_vap_security_t)) ||
-            is_interworking_config_changed(vap_info_new->vap_index,
+            is_interworking_config_changed(vap_info_new->vap_name,
                 &vap_info_old->u.bss_info.interworking,
                 &vap_info_new->u.bss_info.interworking) ||
             IS_CHANGED(vap_info_old->u.bss_info.mac_filter_enable,
@@ -3961,7 +3971,7 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
                 vap_info_new->u.bss_info.network_initiated_greylist) ||
             IS_CHANGED(vap_info_old->u.bss_info.mcast2ucast,
                 vap_info_new->u.bss_info.mcast2ucast) ||
-            is_vap_preassoc_cac_config_changed(vap_info_new->vap_index,
+            is_vap_preassoc_cac_config_changed(vap_info_new->vap_name,
                     &vap_info_old->u.bss_info.preassoc, &vap_info_new->u.bss_info.preassoc) ||
             IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_enable,
                 vap_info_new->u.bss_info.mld_info.common_info.mld_enable) ||
