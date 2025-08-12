@@ -185,6 +185,8 @@ int remove_xfinity_acl_entries(bool remove_all_greylist_entry,bool prefer_privat
             }
        }
     }
+    get_wifictrl_obj()->webconfig_state |= ctrl_webconfig_state_macfilter_cfg_rsp_pending;
+
     return RETURN_OK;
 }
 void process_unknown_frame_event(frame_data_t *msg, uint32_t msg_length)
@@ -1523,7 +1525,10 @@ void process_greylist_mac_filter(void *data)
             greylist_client_added = true;
         }
     }
-    //Add time and Mac address to wifihealth.txt
+
+    get_wifictrl_obj()->webconfig_state |= ctrl_webconfig_state_macfilter_cfg_rsp_pending;
+
+    // Add time and Mac address to wifihealth.txt
     if (greylist_client_added) {
         time(&now);
         time_info = localtime(&now);
