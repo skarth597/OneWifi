@@ -83,6 +83,7 @@
 #define ONEWIFI_DB_VERSION_RSS_MEMORY_THRESHOLD_FLAG 100035
 #define ONEWIFI_DB_VERSION_MGT_FRAME_RATE_LIMIT 100036
 #define ONEWIFI_DB_VERSION_MANAGED_WIFI_FLAG 100038
+#define ONEWIFI_DB_VERSION_WPA3_T_DISABLE_FLAG 100039
 #define DEFAULT_MANAGED_WIFI_SPEED_TIER 2
 
 #define ONEWIFI_DB_VERSION_STATS_FLAG 100037
@@ -3069,8 +3070,9 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
         "inst_wifi_client_def_reporting_period %d wifi_active_msmt_enabled %d "
         "wifi_active_msmt_pktsize %d wifi_active_msmt_num_samples %d "
         "wifi_active_msmt_sample_duration %d vlan_cfg_version %d wps_pin %s "
-        "bandsteering_enable %d good_rssi_threshold %d assoc_count_threshold %d assoc_gate_time "
-        "%d assoc_monitor_duration %d rapid_reconnect_enable %d vap_stats_feature %d "
+        "bandsteering_enable %d good_rssi_threshold %d assoc_count_threshold %d assoc_gate_time %d"
+        "rss_memory_restart_threshold_low %d rss_memory_restart_threshold_high %d "
+        "assoc_monitor_duration %d rapid_reconnect_enable %d vap_stats_feature %d "
         "mfp_config_feature %d force_disable_radio_feature %d force_disable_radio_status %d "
         "fixed_wmm_params %d wifi_region_code %s diagnostic_enable %d validate_ssid %d "
         "device_network_mode:%d normalized_rssi_list %s snr_list %s cli_stat_list %s "
@@ -3084,6 +3086,7 @@ int wifidb_update_wifi_global_config(wifi_global_param_t *config)
         config->wifi_active_msmt_num_samples, config->wifi_active_msmt_sample_duration,
         config->vlan_cfg_version, config->wps_pin, config->bandsteering_enable,
         config->good_rssi_threshold, config->assoc_count_threshold, config->assoc_gate_time,
+        config->rss_memory_restart_threshold_low, config->rss_memory_restart_threshold_high,
         config->assoc_monitor_duration, config->rapid_reconnect_enable, config->vap_stats_feature,
         config->mfp_config_feature, config->force_disable_radio_feature,
         config->force_disable_radio_status, config->fixed_wmm_params, config->wifi_region_code,
@@ -3195,7 +3198,9 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             "wifi_active_msmt_pktsize %d wifi_active_msmt_num_samples %d "
             "wifi_active_msmt_sample_duration %d vlan_cfg_version %d wps_pin %s "
             "bandsteering_enable %d good_rssi_threshold %d assoc_count_threshold %d "
-            "assoc_gate_time %d assoc_monitor_duration %d rapid_reconnect_enable %d "
+            "assoc_gate_time %d rss_memory_restart_threshold_low %d "
+            "rss_memory_restart_threshold_high %d "
+            "assoc_monitor_duration %d rapid_reconnect_enable %d "
             "vap_stats_feature %d mfp_config_feature %d force_disable_radio_feature %d "
             "force_disable_radio_status %d fixed_wmm_params %d wifi_region_code %s "
             "diagnostic_enable %d validate_ssid %d device_network_mode:%d normalized_rssi_list %s "
@@ -3210,6 +3215,7 @@ int wifidb_get_wifi_global_config(wifi_global_param_t *config)
             config->wifi_active_msmt_num_samples, config->wifi_active_msmt_sample_duration,
             config->vlan_cfg_version, config->wps_pin, config->bandsteering_enable,
             config->good_rssi_threshold, config->assoc_count_threshold, config->assoc_gate_time,
+            config->rss_memory_restart_threshold_low, config->rss_memory_restart_threshold_high,
             config->assoc_monitor_duration, config->rapid_reconnect_enable,
             config->vap_stats_feature, config->mfp_config_feature,
             config->force_disable_radio_feature, config->force_disable_radio_status,
@@ -4453,6 +4459,14 @@ static void wifidb_global_config_upgrade()
             RSS_MEM_THRESHOLD2_DEFAULT;
     }
 
+    if ((g_wifidb->global_config.global_parameters.rss_memory_restart_threshold_low) == 0 ||
+        (g_wifidb->global_config.global_parameters.rss_memory_restart_threshold_high) == 0) {
+        g_wifidb->global_config.global_parameters.rss_memory_restart_threshold_low =
+            RSS_MEM_THRESHOLD1_DEFAULT;
+        g_wifidb->global_config.global_parameters.rss_memory_restart_threshold_high =
+            RSS_MEM_THRESHOLD2_DEFAULT;
+    }
+
     if (g_wifidb->db_version < ONEWIFI_DB_VERSION_MGT_FRAME_RATE_LIMIT) {
         wifi_util_dbg_print(WIFI_DB, "%s:%d upgrade global config, old db version %d \n", __func__,
             __LINE__, g_wifidb->db_version);
@@ -4641,6 +4655,23 @@ static void wifidb_vap_config_upgrade(wifi_vap_info_map_t *config, rdk_wifi_vap_
                 config->vap_array[i].u.bss_info.am_config.npc.speed_tier, config->vap_array[i].vap_index);
             wifidb_update_wifi_vap_info(config->vap_array[i].vap_name, &config->vap_array[i],
                 &rdk_config[i]);
+        }
+
+        if (g_wifidb->db_version < ONEWIFI_DB_VERSION_WPA3_T_DISABLE_FLAG) {
+            wifi_vap_security_t *sec;
+
+            if (isVapSTAMesh(config->vap_array[i].vap_index)) {
+                sec = &config->vap_array[i].u.sta_info.security;
+            } else {
+                sec = &config->vap_array[i].u.bss_info.security;
+            }
+
+            if (sec->wpa3_transition_disable != false) {
+                sec->wpa3_transition_disable = false;
+                wifi_util_dbg_print(WIFI_DB, "%s:%d force change wpa3 transition disable state to false\r\n");
+                wifidb_update_wifi_vap_info(config->vap_array[i].vap_name, &config->vap_array[i],
+                    &rdk_config[i]);
+            }
         }
     }
 }
@@ -6730,7 +6761,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         cfg.vap_mode = wifi_vap_mode_sta;
         if (band == WIFI_FREQUENCY_6_BAND) {
             cfg.u.sta_info.security.mode = wifi_security_mode_wpa3_personal;
-            cfg.u.sta_info.security.wpa3_transition_disable = true;
+            cfg.u.sta_info.security.wpa3_transition_disable = false;
             cfg.u.sta_info.security.mfp = wifi_mfp_cfg_required;
             cfg.u.sta_info.security.u.key.type = wifi_security_key_type_sae;
         } else {
@@ -6866,7 +6897,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         } else if (isVapPrivate(vap_index))  {
             if (band == WIFI_FREQUENCY_6_BAND) {
                 cfg.u.bss_info.security.mode = wifi_security_mode_wpa3_personal;
-                cfg.u.bss_info.security.wpa3_transition_disable = true;
+                cfg.u.bss_info.security.wpa3_transition_disable = false;
                 cfg.u.bss_info.security.mfp = wifi_mfp_cfg_required;
                 cfg.u.bss_info.security.u.key.type = wifi_security_key_type_sae;
             } else {
@@ -6885,7 +6916,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         } else  {
             if (band == WIFI_FREQUENCY_6_BAND) {
                 cfg.u.bss_info.security.mode = wifi_security_mode_wpa3_personal;
-                cfg.u.bss_info.security.wpa3_transition_disable = true;
+                cfg.u.bss_info.security.wpa3_transition_disable = false;
                 cfg.u.bss_info.security.mfp = wifi_mfp_cfg_required;
                 cfg.u.bss_info.security.u.key.type = wifi_security_key_type_sae;
             } else {
@@ -6944,20 +6975,17 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
 #endif //_SR213_PRODUCT_REQ_
 
 #else
-#ifdef NEWPLATFORM_PORT
-        cfg.u.bss_info.bssMaxSta = wifi_hal_cap_obj->wifi_prop.BssMaxStaAllow;
-#else
         if (isVapPrivate(vap_index)) {
             cfg.u.bss_info.bssMaxSta = wifi_hal_cap_obj->wifi_prop.BssMaxStaAllow;
-            wifi_util_info_print(WIFI_DB, "%s:%d  vap_index:%d maxassoc:%d", __func__, __LINE__, vap_index, cfg.u.bss_info.bssMaxSta);
-        } else if (is_device_type_cbr2() && (isVapHotspotOpen5g(vap_index) || isVapHotspotSecure5g(vap_index))) {
+        } else if (is_device_type_cbr2() && isVapHotspot(vap_index)) {
             cfg.u.bss_info.bssMaxSta = BSS_MAX_NUM_STA_HOTSPOT_CBRV2;
-            wifi_util_info_print(WIFI_DB, "%s:%d vap_index:%d maxassoc:%d", __func__, __LINE__, vap_index, cfg.u.bss_info.bssMaxSta);
+        } else if (isVapHotspot(vap_index)) {
+            cfg.u.bss_info.bssMaxSta = BSS_MAX_NUM_STA_HOTSPOT_XB;
         } else {
-            cfg.u.bss_info.bssMaxSta =  BSS_MAX_NUM_STA_COMMON;
-            wifi_util_info_print(WIFI_DB,"%s:%d  maxassoc:%d", __func__,__LINE__, cfg.u.bss_info.bssMaxSta);
+            cfg.u.bss_info.bssMaxSta = BSS_MAX_NUM_STA_COMMON;
         }
-#endif // NEWPLATFORM_PORT
+        wifi_util_dbg_print(WIFI_DB, "%s:%d vap_index:%d bssMaxSta:%d\n", __func__, __LINE__,
+            vap_index, cfg.u.bss_info.bssMaxSta);
 #endif //_SKY_HUB_COMMON_PRODUCT_REQ_
 
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
@@ -8734,7 +8762,8 @@ int get_all_param_from_psm_and_set_into_db(void)
     if (is_device_type_xb7() == true || is_device_type_xb8() == true ||
         is_device_type_vbvxb10() == true || is_device_type_sercommxb10() == true ||
         is_device_type_scxer10() == true || is_device_type_sr213() == true ||
-        is_device_type_cmxb7() == true || is_device_type_cbr2() == true || is_device_type_vbvxer5() == true) {
+        is_device_type_cmxb7() == true || is_device_type_cbr2() == true ||
+        is_device_type_vbvxer5() == true || is_device_type_xle() == true) {
         bool wifi_psm_db_enabled = false;
         char last_reboot_reason[32];
         raw_data_t data;
@@ -8742,7 +8771,7 @@ int get_all_param_from_psm_and_set_into_db(void)
         memset(&data, 0, sizeof(raw_data_t));
         memset(last_reboot_reason, 0, sizeof(last_reboot_reason));
 
-        bus_handle_t handle = {0};
+        bus_handle_t handle = { 0 };
         if (wifi_mgr_bus_subsription(&handle) == RETURN_OK) {
             if (get_bus_descriptor()->bus_data_get_fn(&handle, WIFI_PSM_DB_NAMESPACE, &data) ==
                 bus_error_success) {
@@ -8788,7 +8817,7 @@ int get_all_param_from_psm_and_set_into_db(void)
                 return 0;
             }
             strncpy(inactive_firmware, (char *)data.raw_data.bytes,
-                   (sizeof(inactive_firmware) - 1));
+                (sizeof(inactive_firmware) - 1));
             if (access(ONEWIFI_DB_CONSOLIDATED_FLAG, F_OK) != 0) {
                 if (((strncmp(last_reboot_reason, "Software_upgrade", strlen("Software_upgrade")) ==
                          0) ||
@@ -8800,7 +8829,6 @@ int get_all_param_from_psm_and_set_into_db(void)
                 }
             }
             get_bus_descriptor()->bus_data_free_fn(&data);
-
         }
 
         if ((access(ONEWIFI_MIGRATION_FLAG, F_OK) == 0)) {
