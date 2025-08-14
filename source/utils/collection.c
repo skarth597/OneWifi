@@ -36,6 +36,18 @@ queue_t *queue_create   (void)
     return q;
 }
 
+queue_t *queue_create2   (void)
+{
+    queue_t *q;
+    
+    q = (queue_t *)malloc(sizeof(queue_t));
+    if (q == NULL) {
+        return NULL;
+    }
+    memset(q, 0, sizeof(queue_t));
+    return q;
+}
+
 int8_t     queue_push      (queue_t *q, void *data)
 {
     element_t *e, *tmp;
@@ -141,6 +153,21 @@ uint32_t queue_count    (queue_t *q)
 }
 
 void    queue_destroy   (queue_t *q)
+{
+    element_t    *e, *tmp;
+    e = q->head;
+    while (e != NULL) {
+        tmp = e->next;
+        if (e->data != NULL) {
+            free(e->data);
+        }
+        free(e);
+        e = tmp;
+    }
+    free(q);
+}
+
+void    queue_destroy2   (queue_t *q)
 {
     element_t    *e, *tmp;
     e = q->head;

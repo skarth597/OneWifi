@@ -392,7 +392,7 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
             }
         }
     }
-    disconnect_event_queue = queue_create();
+    disconnect_event_queue = queue_create2();
     if (disconnect_event_queue == NULL) {
         wifi_util_error_print(WIFI_MON, "%s:%d Failed to create queue\n", __func__, __LINE__);
         if (dev_array != NULL) {
@@ -510,7 +510,7 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
         }
         free(mac_addr);
     }
-    queue_destroy(disconnect_event_queue);
+    queue_destroy2(disconnect_event_queue);
 
     mon_data->bssid_data[vap_array_index].last_sta_update_time.tv_sec = tv_now.tv_sec;
     mon_data->bssid_data[vap_array_index].last_sta_update_time.tv_nsec = tv_now.tv_nsec;
