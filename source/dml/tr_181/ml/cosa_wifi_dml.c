@@ -8364,9 +8364,7 @@ Security_GetParamStringValue
     if( AnscEqualString(ParamName, "RadiusServerIPAddr", TRUE))
     {
         int result;
-	wifi_util_dbg_print(WIFI_DMCLI,"%s:%d: RadiusServerIPAddr: A%sA\n",__func__, __LINE__,(char *)&pcfg->u.radius.ip);
         result=strcmp((char *)&pcfg->u.radius.ip,"");
-	wifi_util_dbg_print(WIFI_DMCLI,"%s:%d: RadiusServerIPAddr: result - %d\n",__func__, __LINE__,result);
         if((iscntrl(result) == 0) && result)
         {
             AnscCopyString(pValue, (char *)&pcfg->u.radius.ip);
