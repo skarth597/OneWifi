@@ -341,9 +341,15 @@ static int decode_security_blob(wifi_vap_info_t *vap_info, cJSON *security,pErr 
             vap_info->u.bss_info.security.mfp = wifi_mfp_cfg_optional;
             vap_info->u.bss_info.security.u.key.type = wifi_security_key_type_psk_sae;
         } else if (!strcmp(value, "WPA3-Personal-Compatibility")) {
-            vap_info->u.bss_info.security.mode = wifi_security_mode_wpa3_compatibility;
-            vap_info->u.bss_info.security.u.key.type = wifi_security_key_type_psk_sae;
-            vap_info->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
+            if (strncmp(vap_info->vap_name, "private_ssid_6g", sizeof(vap_info->vap_name)) == 0) {
+                vap_info->u.bss_info.security.mode = wifi_security_mode_wpa3_personal;
+                vap_info->u.bss_info.security.u.key.type = wifi_security_key_type_sae;
+                vap_info->u.bss_info.security.mfp = wifi_mfp_cfg_required;
+            } else {
+                vap_info->u.bss_info.security.mode = wifi_security_mode_wpa3_compatibility;
+                vap_info->u.bss_info.security.u.key.type = wifi_security_key_type_psk_sae;
+                vap_info->u.bss_info.security.mfp = wifi_mfp_cfg_disabled;
+            }
         } else {
             if (execRetVal) {
                 strncpy(execRetVal->ErrorMsg,"Invalid Security Mode",sizeof(execRetVal->ErrorMsg)-1);
@@ -1049,7 +1055,7 @@ pErr wifi_vap_cfg_subdoc_handler(void *data)
         cJSON_AddNumberToObject(vb_entry, "VapMode", 0);
         cJSON_AddItemToObject(vb_entry, "BridgeName", cJSON_CreateString(br_name));
         cJSON_AddItemToObject(vb_entry, "BSSID", cJSON_CreateString("00:00:00:00:00:00"));
-#if !defined(_WNXL11BWL_PRODUCT_REQ_) && !defined(_PP203X_PRODUCT_REQ_)
+#if !defined(_WNXL11BWL_PRODUCT_REQ_) && !defined(_PP203X_PRODUCT_REQ_) && !defined(_GREXT02ACTS_PRODUCT_REQ_)
        if(rdk_vap_info->exists == false) {
 #if defined(_SR213_PRODUCT_REQ_)
            if(wifi_vap_map->vap_array[vapArrayIndex].vap_index != 2 && wifi_vap_map->vap_array[vapArrayIndex].vap_index != 3) {
@@ -1061,7 +1067,7 @@ pErr wifi_vap_cfg_subdoc_handler(void *data)
            rdk_vap_info->exists = true;
 #endif /* _SR213_PRODUCT_REQ_ */
        }
-#endif /* !defined(_WNXL11BWL_PRODUCT_REQ_) && !defined(_PP203X_PRODUCT_REQ_) */
+#endif /* !defined(_WNXL11BWL_PRODUCT_REQ_) && !defined(_PP203X_PRODUCT_REQ_) && !defined(_GREXT02ACTS_PRODUCT_REQ_) */
         cJSON_AddBoolToObject(vb_entry, "Exists", rdk_vap_info->exists);
 
         cJSON_AddBoolToObject(vb_entry, "MacFilterEnable", wifi_vap_map->vap_array[vapArrayIndex].u.bss_info.mac_filter_enable);
