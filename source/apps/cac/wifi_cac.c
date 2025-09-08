@@ -596,11 +596,13 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
     }
 
     if (strcmp(wifidb_preassoc_conf.rssi_up_threshold, "disabled") == 0) {
+        wifi_util_info_print(WIFI_APPS, "%s:%d rssi_up_threshold is disabled\n", __func__, __LINE__);
         rssi_enabled = false;
         rssi_status = status_ok;
     } else {
         rssi_enabled = true;
         rssi_conf = atoi(wifidb_preassoc_conf.rssi_up_threshold);
+        wifi_util_info_print(WIFI_APPS, "%s:%d rssi_conf = %d\n",__func__, __LINE__, rssi_conf);
     }
 
     if (strcmp(wifidb_preassoc_conf.snr_threshold, "disabled") == 0) {
@@ -610,7 +612,7 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         snr_enabled = true;
         snr_conf = atoi(wifidb_preassoc_conf.snr_threshold);
     }
-
+    wifi_util_info_print(WIFI_APPS,"%s:%d snr_conf:%d, snr_enbled=%s\n",__func__, __LINE__, snr_conf, snr_enabled);
     if (strcmp(wifidb_preassoc_conf.cu_threshold, "disabled") == 0) {
         chan_util_enabled = false;
         chan_util_status = status_ok;
@@ -618,6 +620,7 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         chan_util_enabled = true;
         cu_conf = atoi(wifidb_preassoc_conf.cu_threshold);
     }
+    wifi_util_info_print(WIFI_APPS,"%s:%d cu_conf:%d, chan_util_enbled=%s\n",__func__, __LINE__, cu_conf, chan_util_enabled);
     if ((strlen (wifidb_preassoc_conf.basic_data_transmit_rates) > 0) && strcmp(wifidb_preassoc_conf.basic_data_transmit_rates, "disabled")) {
         mbr_enabled = true;
         snprintf(basic_buf, sizeof(basic_buf), "%s", wifidb_preassoc_conf.basic_data_transmit_rates);
@@ -632,6 +635,8 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         preassoc_basic_rates = NULL;
     }
     if (!rssi_enabled && !snr_enabled && !chan_util_enabled && !mbr_enabled) {
+        wifi_util_info_print(WIFI_APPS,"%s:%d Thresholds are disabled, function is returned\n", __func__, __LINE__);
+        wifi_util_info_print(WIFI_APPS,"%s:%d: rssi_enabled:%s, snr_enabled:%s, chan_util_enabled:%s, mbr_enabled:%s\n",__func__, __LINE__,rssi_enabled,snr_enabled,chan_util_enabled,mbr_enabled);
         return;
     }
 
