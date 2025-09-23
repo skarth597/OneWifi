@@ -2529,8 +2529,14 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
         case webconfig_subdoc_type_cac:
             wifi_util_dbg_print(WIFI_MGR, "%s:%d: cac webconfig subdoc\n", __func__, __LINE__);
             if (data->descriptor & webconfig_data_descriptor_encoded) {
-                wifi_util_error_print(WIFI_MGR, "%s:%d: Not expected publish of cac webconfig subdoc\n", __func__, __LINE__);
+                if (ctrl->webconfig_state & ctrl_webconfig_state_cac_cfg_rsp_pending) {
+                    ctrl->webconfig_state &= ~ctrl_webconfig_state_cac_cfg_rsp_pending;
+                    wifi_util_error_print(WIFI_MGR, "%s:%d: Webconfig bus apply is called for cac\n", __func__, __LINE__);
+                    ret = webconfig_bus_apply(ctrl, &data->u.encoded);
+                }
             } else {
+                ctrl->webconfig_state |= ctrl_webconfig_state_cac_cfg_rsp_pending;
+                wifi_util_info_print(WIFI_MGR, "%s:%d: Webconfig cac apply is called\n", __func__, __LINE__);
                 ret = webconfig_cac_apply(ctrl, &data->u.decoded);
             }
             break;
