@@ -549,7 +549,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_cac_cfg_rsp_pending:
             type = webconfig_subdoc_type_cac;
-            webconfig_send_dml_subdoc_status(ctrl);
+            webconfig_send_vap_subdoc_status(ctrl, type);
             break;
         case ctrl_webconfig_state_radio_24G_rsp_pending:
         case ctrl_webconfig_state_radio_5G_rsp_pending:
