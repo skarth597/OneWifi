@@ -119,6 +119,13 @@ struct ovs_vapname_cloudvifname_map  cloud_vif_map[] = {
     {"home-ap-50", "private_ssid_5g"},
     {"bhaul-ap-50", "mesh_backhaul_5g"},
 }
+#elif defined (_HUB4_PRODUCT_REQ_)
+struct ovs_vapname_cloudvifname_map cloud_vif_map[] = {
+       {"wl0",   "private_ssid_2g"},
+       {"wl1",   "private_ssid_5g"},
+       {"bhaul-ap-24", "mesh_backhaul_2g"},
+       {"bhaul-ap-50", "mesh_backhaul_5g"},
+};
 #else
 struct ovs_vapname_cloudvifname_map  cloud_vif_map[] = {
     {"wl0",   "mesh_sta_2g"},
@@ -4429,13 +4436,8 @@ webconfig_error_t translate_statsconfig_from_rdk_to_ovsdb(struct schema_Wifi_Sta
     config_row->reporting_count = stat_config->reporting_count;
     config_row->sampling_interval = stat_config->sampling_interval;
     config_row->survey_interval_ms = stat_config->survey_interval;
-#ifdef _64BIT_ARCH_SUPPORT_
     set_translator_stats_config_key_value(config_row, &index, "util", ((long int)stat_config->threshold_util));
     set_translator_stats_config_key_value(config_row, &index, "max_delay", ((long int)stat_config->threshold_max_delay));
-#else
-    set_translator_stats_config_key_value(config_row, &index, "util", stat_config->threshold_util);
-    set_translator_stats_config_key_value(config_row, &index, "max_delay", stat_config->threshold_max_delay);
-#endif
     return webconfig_error_none;
 }
 
