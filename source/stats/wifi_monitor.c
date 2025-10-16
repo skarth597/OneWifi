@@ -3767,10 +3767,10 @@ long get_sys_uptime()
      gettimeofday(&polling_time, NULL);
 
      if ((fp = fopen("/tmp/upload", "r")) == NULL) {
-     /* Minimum LOG Interval we can set is 300 sec, just verify every 5 mins any change in the LogInterval
+     /* Minimum LOG Interval we can set is 60 sec, just verify every 1 min any change in the LogInterval
         if any change in log_interval do the calculation and dump the VAP status */
           time_gap = polling_time.tv_sec - lastpolledtime;
-          if ( time_gap >= 300 )
+          if ( time_gap >= 60 )
           {
                logInterval=readLogInterval();
                lastpolledtime = polling_time.tv_sec;
