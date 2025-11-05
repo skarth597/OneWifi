@@ -1228,9 +1228,9 @@ int vap_svc_mesh_ext_update(vap_svc_t *svc, unsigned int radio_index, wifi_vap_i
             &rdk_vap_info[i]);
         get_wifidb_obj()->desc.update_wifi_security_config_fn(getVAPName(map->vap_array[i].vap_index),
             &map->vap_array[i].u.sta_info.security);
-
+        update_vap_hal_prop_bridge_name(svc, tgt_vap_map);
         wifi_util_info_print(WIFI_CTRL, "%s:%d RF-Status : %d Ignite-Enable : %d\n", __func__, __LINE__, ctrl->rf_status_down, map->vap_array[i].u.sta_info.ignite_enabled);
-
+        publish_endpoint_enable();
         if (ctrl->rf_status_down == true) {
             ext_set_conn_state(ext, connection_state_disconnected_scan_list_none, __func__,
                  __LINE__);
@@ -1611,41 +1611,6 @@ static int apply_pending_channel_change(vap_svc_t *svc, int vap_index)
 
 #define MAX_STATUS_LEN 5
 #define MAX_STR_LEN    128
-
-int publish_endpoint_status_to_wan(wifi_ctrl_t *ctrl, int connection_status)
-{
-    char name[MAX_STR_LEN] = { '\0' };
-    bus_error_t rc = bus_error_success;
-    wifi_util_info_print(WIFI_CTRL, "%s:%d Connection status updated as %d\n", __func__, __LINE__, connection_status);
-    if (ctrl->rf_status_down == true) {
-        raw_data_t data;
-        sprintf(name, "Device.WiFi.EndPoint.1.Status");
-        memset(&data, 0, sizeof(raw_data_t));
-        data.data_type = bus_data_type_string;
-        data.raw_data.bytes = malloc(MAX_STATUS_LEN);
-        data.raw_data_len = MAX_STATUS_LEN;
-        memset(data.raw_data.bytes, '\0', MAX_STATUS_LEN);
-        if (connection_status == 2) { // connected state
-            strncpy((char *)data.raw_data.bytes, "Up", MAX_STATUS_LEN);
-        } else if ((connection_status == 1) || (connection_status == 3)) { // disconnected  or AP not found state
-            strncpy((char *)data.raw_data.bytes, "Down", MAX_STATUS_LEN);
-        }
-        rc = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, name, &data);
-        if (rc != bus_error_success) {
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d: bus_event_publish_fn(): Event failed\n", __func__, __LINE__);
-            return RETURN_ERR;
-        }
-        if (data.raw_data.bytes) {
-            free(data.raw_data.bytes);
-            data.raw_data.bytes = NULL;
-        }
-    } else {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d Endpoint not enabled\n", __func__, __LINE__);
-        return RETURN_OK;
-    }
-    return RETURN_OK;
-}
-
 int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
 {
     wifi_mgr_t *mgr = (wifi_mgr_t *)get_wifimgr_obj();
@@ -1737,12 +1702,30 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
             // change the state
             ext_set_conn_state(ext, connection_state_connected, __func__, __LINE__);
             if (ctrl->rf_status_down == true) { 
-                wifi_hal_add_station_bridge(sta_data->interface_name,bridge_name);
+                char mac_str[32] = {'\0'};
+                uint8_mac_to_string_mac(temp_vap_info->u.sta_info.mac, mac_str);
+                wifi_util_dbg_print(WIFI_CTRL,
+                    "%s:%d Bridge:%s  Using MAC-Str:%s MAC : %02x:%02x:%02x:%02x:%02x:%02x\n",
+                    __func__, __LINE__, bridge_name, mac_str, temp_vap_info->u.sta_info.mac[0],
+                    temp_vap_info->u.sta_info.mac[1], temp_vap_info->u.sta_info.mac[2],
+                    temp_vap_info->u.sta_info.mac[3], temp_vap_info->u.sta_info.mac[4],
+                    temp_vap_info->u.sta_info.mac[5]);
+                snprintf(cmd, sizeof(cmd), "ovs-vsctl set bridge %s other-config:hwaddr=%s",
+                    bridge_name, mac_str);
+                ret = get_stubs_descriptor()->v_secure_system_fn(cmd);
+                if (ret != 0) {
+                    wifi_util_error_print(WIFI_CTRL,
+                        "%s:%d Failed to set bridge MAC, ret=%d\n", __func__, __LINE__, ret);
+                } else {
+                    wifi_util_dbg_print(WIFI_CTRL,
+                        "%s:%d Successfully set bridge MAC to %s\n", __func__, __LINE__,
+                        mac_str);
+                }
                 snprintf(cmd, sizeof(cmd), "ip link set dev %s up", bridge_name);
                 wifi_util_dbg_print(WIFI_CTRL,"%s:%d cmd : %s\n",__func__,__LINE__, cmd);
                 get_stubs_descriptor()->v_secure_system_fn(cmd);
 
-                ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
+                ret = publish_endpoint_status(ctrl, sta_data->stats.connect_status);
                 if (ret == RETURN_ERR) {
                     wifi_util_error_print(WIFI_CTRL,"IGNITE_RF_DOWN: Failed to publish connect status to WM\n");
                 } else {
@@ -1852,19 +1835,13 @@ int process_ext_sta_conn_status(vap_svc_t *svc, void *arg)
         }
 
         if (ctrl->rf_status_down == true) {
-            ret = publish_endpoint_status_to_wan(ctrl, sta_data->stats.connect_status);
+            ret = publish_endpoint_status(ctrl, sta_data->stats.connect_status);
 
             if (ret == RETURN_ERR) {
                 wifi_util_error_print(WIFI_CTRL, "IGNITE_RF_DOWN: Failed to publish disconnect status to WM\n");
             } else {
                 wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Disconnect status sent successfully to the WM\n");
             }
-
-            memset(cmd, '\0', MAX_STR_LEN);
-            snprintf(cmd, sizeof(cmd), "ovs-vsctl del-port brww0 wl1");
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d cmd : %s\n", __func__, __LINE__, cmd);
-            get_stubs_descriptor()->v_secure_system_fn(cmd);
-            wifi_util_info_print(WIFI_CTRL, "%s:%d Link Deletion done\n", __func__, __LINE__);
         }
         if (ext->conn_state == connection_state_connection_to_nb_in_progress) {
             candidate = &ext->new_bss;
