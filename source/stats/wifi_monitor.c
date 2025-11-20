@@ -1052,6 +1052,7 @@ int get_sta_stats_info (assoc_dev_data_t *assoc_dev_data) {
     assoc_dev_data->dev_stats.cli_MaxRSSI = sta_data->dev_stats.cli_MaxRSSI;
     assoc_dev_data->dev_stats.cli_Disassociations = sta_data->dev_stats.cli_Disassociations;
     assoc_dev_data->dev_stats.cli_AuthenticationFailures = sta_data->dev_stats.cli_AuthenticationFailures;
+    assoc_dev_data->dev_stats.cli_activeNumSpatialStreams = sta_data->dev_stats.cli_activeNumSpatialStreams;
     assoc_dev_data->dev_stats.cli_PacketsSent = sta_data->dev_stats.cli_PacketsSent;
     assoc_dev_data->dev_stats.cli_PacketsReceived = sta_data->dev_stats.cli_PacketsReceived;
     assoc_dev_data->dev_stats.cli_ErrorsSent = sta_data->dev_stats.cli_ErrorsSent;
@@ -2284,8 +2285,8 @@ static void send_ping_data(int ap_idx, unsigned char *mac, char *client_ip, char
     int         frame_len;
     int rc = 0;
     bool af_family = TRUE;
-    char        src_ip_str[IP_STR_LEN];
-    char        cli_ip_str[IP_STR_LEN];
+    char        src_ip_str[IP_STR_LEN] = { 0 };
+    char        cli_ip_str[IP_STR_LEN] = { 0 };
 
     if(mac == NULL ) {
         wifi_util_error_print(WIFI_MON, "%s: Mac is NULL\n",__func__);

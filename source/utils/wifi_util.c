@@ -1709,17 +1709,20 @@ int get_sta_vap_index_for_radio(wifi_platform_property_t *wifi_prop, unsigned in
     return vap_index;
 }
 
-int channel_mode_conversion(BOOL *auto_channel_bool, char *auto_channel_string, int auto_channel_strlen, unsigned int conv_type)
+int channel_mode_conversion(BOOL *auto_channel_bool, char *auto_channel_string,
+    int auto_channel_strlen, unsigned int conv_type)
 {
     if ((auto_channel_bool == NULL) || (auto_channel_string == NULL)) {
         return RETURN_ERR;
     }
 
     if (conv_type == STRING_TO_ENUM) {
-        if ((strcmp(auto_channel_string, "auto")) || (strcmp(auto_channel_string, "cloud")) || (strcmp(auto_channel_string, "acs"))) {
+        if ((strcmp(auto_channel_string, "auto") == 0) ||
+            (strcmp(auto_channel_string, "cloud") == 0) ||
+            (strcmp(auto_channel_string, "acs") == 0)) {
             *auto_channel_bool = true;
             return RETURN_OK;
-        } else if (strcmp(auto_channel_string, "manual")) {
+        } else if (strcmp(auto_channel_string, "manual") == 0) {
             *auto_channel_bool = false;
             return RETURN_OK;
         }
@@ -1727,7 +1730,7 @@ int channel_mode_conversion(BOOL *auto_channel_bool, char *auto_channel_string, 
         if (*auto_channel_bool == true) {
             snprintf(auto_channel_string, auto_channel_strlen, "%s", "auto");
             return RETURN_OK;
-        } else  if (*auto_channel_bool == false)  {
+        } else if (*auto_channel_bool == false) {
             snprintf(auto_channel_string, auto_channel_strlen, "%s", "manual");
             return RETURN_OK;
         }
@@ -3981,6 +3984,9 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
                 vap_info_new->u.bss_info.mld_info.common_info.mld_link_id) ||
             IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_apply,
                 vap_info_new->u.bss_info.mld_info.common_info.mld_apply) ||
+            IS_BIN_CHANGED(&vap_info_old->u.bss_info.mld_info.common_info.mld_addr,
+                &vap_info_new->u.bss_info.mld_info.common_info.mld_addr,
+                sizeof(vap_info_old->u.bss_info.mld_info.common_info.mld_addr)) ||
             IS_CHANGED(vap_info_old->u.bss_info.hostap_mgt_frame_ctrl,
                 vap_info_new->u.bss_info.hostap_mgt_frame_ctrl) ||
             IS_CHANGED(vap_info_old->u.bss_info.interop_ctrl,
