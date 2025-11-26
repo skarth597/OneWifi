@@ -2066,7 +2066,7 @@ int get_radio_if_hw_type(unsigned int radio_index, char *str, int str_len)
         snprintf(str, str_len, "qcn6224");
     }
 #else 
-    snprintf(str, str_len, "BCM43684");
+    snprintf(str, str_len, C_BCM);
 #endif
     return RETURN_OK;
 }
@@ -3870,6 +3870,14 @@ bool is_vap_param_config_changed(wifi_vap_info_t *vap_info_old, wifi_vap_info_t 
                 vap_info_new->u.bss_info.mcast2ucast) ||
             is_vap_preassoc_cac_config_changed(vap_info_new->vap_name,
                     &vap_info_old->u.bss_info.preassoc, &vap_info_new->u.bss_info.preassoc) ||
+            IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_enable,
+                vap_info_new->u.bss_info.mld_info.common_info.mld_enable) ||
+            IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_id,
+                vap_info_new->u.bss_info.mld_info.common_info.mld_id) ||
+            IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_link_id,
+                vap_info_new->u.bss_info.mld_info.common_info.mld_link_id) ||
+            IS_CHANGED(vap_info_old->u.bss_info.mld_info.common_info.mld_apply,
+                vap_info_new->u.bss_info.mld_info.common_info.mld_apply) ||
             IS_CHANGED(vap_info_old->u.bss_info.hostap_mgt_frame_ctrl,
                 vap_info_new->u.bss_info.hostap_mgt_frame_ctrl) ||
             IS_CHANGED(vap_info_old->u.bss_info.mbo_enabled,

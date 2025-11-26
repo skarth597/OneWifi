@@ -1364,11 +1364,27 @@ int set_sta_client_mode(int ap_index, char *mac, int key_mgmt, frame_type_t fram
     return RETURN_OK;
 }
 
-
 void process_deauthenticate	(unsigned int ap_index, auth_deauth_dev_t *dev)
 {
+    char buff[2048];
+    char tmp[128];
     sta_key_t sta_key;
     wifi_util_info_print(WIFI_MON, "%s:%d Device:%s deauthenticated on ap:%d with reason : %d\n", __func__, __LINE__, to_sta_key(dev->sta_mac, sta_key), ap_index, dev->reason);
+    /*Wrong password on private, Xfinity Home and LNF SSIDs*/
+    if ((dev->reason == 2) && ( isVapPrivate(ap_index) || isVapXhs(ap_index) || isVapLnfPsk(ap_index) ) ) {
+        get_formatted_time(tmp);
+        snprintf(buff, 2048, "%s WIFI_PASSWORD_FAIL:%d,%s\n", tmp, ap_index + 1, to_sta_key(dev->sta_mac, sta_key));
+        /* send telemetry of password failure */
+        write_to_file(wifi_health_log, buff);
+    }
+    /*ARRISXB6-11979 Possible Wrong WPS key on private SSIDs*/
+    if ((dev->reason == 2 || dev->reason == 14 || dev->reason == 19) && ( isVapPrivate(ap_index) ))  {
+        get_formatted_time(tmp);
+        snprintf(buff, 2048, "%s WIFI_POSSIBLE_WPS_PSK_FAIL:%d,%s,%d\n", tmp, ap_index + 1, to_sta_key(dev->sta_mac, sta_key), dev->reason);
+        /* send telemetry of WPS failure */
+        write_to_file(wifi_health_log, buff);
+    }
+    /*Calling process_disconnect as station is disconncetd from vAP*/
     process_disconnect(ap_index, dev);
 }
 
@@ -1661,6 +1677,28 @@ static void update_subscribe_data(wifi_monitor_data_t *event)
     }
 }
 
+int update_monitor_channel_status_map(wifi_channel_status_event_t *data)
+{
+    int radio_index;
+    if (data == NULL || data->radio_index >= MAX_NUM_RADIOS) {
+        wifi_util_error_print(WIFI_MON, "%s:%d Invalid input data or radio index out of range\n",
+            __func__, __LINE__);
+        return RETURN_ERR;
+    }
+    radio_index = data->radio_index;
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        if (data->channel_map[i].ch_number == 0)
+            break;
+
+        memcpy(&g_monitor_module.channel_map[radio_index][i], &data->channel_map[i], sizeof(wifi_channelMap_t));
+
+        wifi_util_dbg_print(WIFI_MON, "%s:%d radio_index:%d channel_number:%d channel_state:%d\n",
+            __func__, __LINE__, radio_index, g_monitor_module.channel_map[radio_index][i].ch_number,
+            g_monitor_module.channel_map[radio_index][i].ch_state);
+    }
+    return RETURN_OK;
+}
+
 void *monitor_function  (void *data)
 {
     char event_buff[16] = {0};
@@ -1776,6 +1814,9 @@ void *monitor_function  (void *data)
                     case wifi_event_monitor_set_subscribe:
                         update_subscribe_data(event_data);
                        // subscribe_stats = event_data->u.collect_stats.event_subscribe;
+                    break;
+                    case wifi_event_monitor_channel_status:
+                        update_monitor_channel_status_map(&event_data->u.channel_status_map);
                     break;
                     default:
                     break;
@@ -2958,8 +2999,7 @@ int device_deauthenticated(int ap_index, char *src_mac, char *dest_mac, int type
     }
 
     if ((ap_reason_code(ap_index, src_mac, dest_mac, type, reason)) != 0) {
-       wifi_util_dbg_print(WIFI_MON,"%s:%d failed in getting the reason code details as mac is null \n", __func__, __LINE__);
-       return -1;
+       wifi_util_dbg_print(WIFI_MON,"%s:%d failed in getting the particular reason code details \n", __func__, __LINE__);
     }
 
     if (reason == WLAN_RADIUS_GREYLIST_REJECT) {

@@ -3200,8 +3200,7 @@ Radio_SetParamBoolValue
 
     if( AnscEqualString(ParamName, "X_CISCO_COM_AggregationMSDU", TRUE))
     {
-	if (rcfg->AggregationMSDU == bValue)
-        {
+        if (rcfg->AggregationMSDU == bValue) {
             return TRUE;
         }
         rcfg->AggregationMSDU = bValue;
@@ -4835,6 +4834,284 @@ Stats3_Commit
     return ANSC_STATUS_SUCCESS; 
 }
 
+/***********************************************************************
+
+  APIs for Object:
+
+ WiFi.Radio.{i}.AMSDU_TID.{i}.Enabled
+
+   *  AMSDU_TID_GetEntryCount
+   *  AMSDU_TID_GetEntry
+   *  AMSDU_TID_GetParamBoolValue
+   *  AMSDU_TID_SetParamBoolValue
+
+ ***********************************************************************/
+/**********************************************************************
+
+        caller:	 owner of this object
+
+  prototype:
+
+    ULONG
+    AMSDU_TID_GetEntryCount
+      (
+        ANSC_HANDLE         hInsContext
+      );
+
+  description:
+
+    This function is called to retrieve the count of the table.
+
+  argument:   ANSC_HANDLE         hInsContext,
+        The instance handle;
+
+  return:   The count of the table
+
+**********************************************************************/
+ULONG
+AMSDU_TID_GetEntryCount(ANSC_HANDLE hInsContext)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    return MAX_AMSDU_TID;
+}
+
+/**********************************************************************
+
+  caller:   owner of this object
+
+  prototype:
+
+    ANSC_HANDLE
+    AMSDU_TID_GetEntry
+      (
+        ANSC_HANDLE         hInsContext,
+        ULONG            nIndex,
+        ULONG*            pInsNumber
+      );
+
+  description:
+
+    This function is called to retrieve the entry specified by the index.
+
+  argument:  ANSC_HANDLE         hInsContext,
+        The instance handle;
+
+        ULONG            nIndex,
+        The index of this entry;
+
+        ULONG*            pInsNumber
+        The output instance number;
+
+  return:   The handle to identify the entry
+
+**********************************************************************/
+ANSC_HANDLE
+AMSDU_TID_GetEntry(ANSC_HANDLE hInsContext, ULONG nIndex, ULONG *pInsNumber)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    wifi_util_dbg_print(WIFI_DMCLI, "%s:%d: nIndex:%ld\n", __func__, __LINE__, nIndex);
+    wifi_radio_operationParam_t *wifiRadioOperParam = (wifi_radio_operationParam_t *)hInsContext;
+
+    INT radio_instance_number = 0;
+
+    if (nIndex >= MAX_AMSDU_TID) {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Bad AMSDU TID idx specified: %ld\n", __func__,__LINE__, nIndex);
+        return NULL;
+    }
+
+    if (wifiRadioOperParam == NULL)
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Failed to get wifiRadioOperParam\n", __func__,__LINE__);
+        return FALSE;
+    }
+
+    if (convert_freq_band_to_radio_index(wifiRadioOperParam->band, &radio_instance_number) == RETURN_ERR) {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Invalid frequency band - can't decode radio idx %X\n", __func__, __LINE__, wifiRadioOperParam->band);
+        return FALSE;
+    }
+
+    if ((radio_instance_number < 0) || (radio_instance_number > (INT)get_num_radio_dml()))
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Radio instanceNumber:%d out of range\n", __func__,__LINE__, radio_instance_number);
+        return FALSE;
+    }
+
+    *pInsNumber = nIndex + 1;
+    return (ANSC_HANDLE) ((radio_instance_number << 8) + *pInsNumber);
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AMSDU_TID_SetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL                        bValue
+            );
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+
+BOOL AMSDU_TID_SetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOOL bValue)
+{
+#if !defined(_XB8_PRODUCT_REQ_) && !defined(_XB10_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_)
+    wifi_util_dbg_print(WIFI_DMCLI, "%s:%d AMSDU not supported on the device\n", __func__,
+        __LINE__);
+    return FALSE;
+#else
+
+
+    unsigned long amsdu_mask = (unsigned long)hInsContext;
+    uint8_t radio_instance_number = amsdu_mask >> 8;
+    uint8_t tid_idx = (amsdu_mask & 0xf) - 1;
+
+    wifi_radio_operationParam_t *wifiRadioOperParam = (wifi_radio_operationParam_t *) get_dml_cache_radio_map(radio_instance_number);
+
+    if (wifiRadioOperParam == NULL)
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Unable to get Radio Param for instance_number:%d\n", __func__, __LINE__, radio_instance_number);
+        return FALSE;
+    }
+
+    if ((radio_instance_number < 0) || (radio_instance_number > (INT)get_num_radio_dml()))
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Radio instanceNumber:%d out of range\n", __func__, __LINE__, radio_instance_number);
+        return FALSE;
+    }
+
+    if (AnscEqualString(ParamName, "Enable", TRUE)) {
+        BOOL *is_enabled = (BOOL *)&wifiRadioOperParam->amsduTid[tid_idx];
+        if (!is_enabled) {
+            wifi_util_dbg_print(WIFI_DMCLI, "%s:%d Invalid TID for AMSDU - param was %s\n",
+                __func__, __LINE__, ParamName);
+            return FALSE;
+        }
+
+        if (*is_enabled == bValue) {
+            return TRUE;
+        }
+
+        *is_enabled = bValue;
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d:value=%d\n", __func__, __LINE__, *is_enabled);
+        is_radio_config_changed = TRUE;
+        return TRUE;
+    }
+
+    wifi_util_dbg_print(WIFI_DMCLI, "%s:%d AMSDU param is malformed - param was %s \n", __func__,
+        __LINE__, ParamName);
+    return FALSE;
+
+#endif
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AMSDU_TID_GetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL*                       pBool
+            );
+
+    description:
+
+        This function is called to retrieve bool parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned bool value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+
+BOOL AMSDU_TID_GetParamBoolValue(ANSC_HANDLE hInsContext, char *ParamName, BOOL *pBool)
+{
+#if !defined(_XB8_PRODUCT_REQ_) && !defined(_XB10_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_)
+    wifi_util_dbg_print(WIFI_DMCLI, "%s:%d AMSDU not supported on the device\n", __func__,
+        __LINE__);
+    return FALSE;
+#else
+
+    unsigned long amsdu_mask = (unsigned long)hInsContext;
+    uint8_t radio_instance_number = amsdu_mask >> 8;
+    uint8_t tid_idx = (amsdu_mask & 0xf) - 1;
+
+    wifi_radio_operationParam_t *wifiRadioOperParam = get_dml_radio_operation_param(radio_instance_number);
+
+    if (wifiRadioOperParam == NULL)
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Unable to get Radio Param for instance_number:%d\n", __func__, __LINE__, radio_instance_number);
+        return FALSE;
+    }
+
+    if ((radio_instance_number < 0) || (radio_instance_number > (INT)get_num_radio_dml()))
+    {
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d Radio instanceNumber:%d out of range\n", __func__, __LINE__, radio_instance_number);
+        return FALSE;
+    }
+
+    if (AnscEqualString(ParamName, "Enable", TRUE)) {
+        *pBool = wifiRadioOperParam->amsduTid[tid_idx];
+        wifi_util_dbg_print(WIFI_DMCLI, "%s:%d:value=%d\n", __func__, __LINE__, *pBool);
+        return TRUE;
+    }
+
+    wifi_util_dbg_print(WIFI_DMCLI, "%s:%d AMSDU GET param is malformed - param was %s \n",
+        __func__, __LINE__, ParamName);
+    return FALSE;
+#endif
+}
+
+BOOL AMSDU_TID_Validate(ANSC_HANDLE hInsContext, char *pReturnParamName, ULONG *puLength)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    UNREFERENCED_PARAMETER(pReturnParamName);
+    UNREFERENCED_PARAMETER(puLength);
+    return TRUE;
+}
+
+ULONG
+AMSDU_TID_Commit(ANSC_HANDLE hInsContext)
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    return ANSC_STATUS_SUCCESS;
+}
+
+ULONG
+AMSDU_TID_Rollback(ANSC_HANDLE hInsContext)
+{
+    return ANSC_STATUS_SUCCESS;
+}
 
 /***********************************************************************
 
@@ -6391,6 +6668,20 @@ AccessPoint_GetParamBoolValue
         return TRUE;
     }
 
+    if( AnscEqualString(ParamName, "MLD_Enable", TRUE))
+    {
+        /* collect value */
+        *pBool = pcfg->u.bss_info.mld_info.common_info.mld_enable;
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "MLD_Apply", TRUE))
+    {
+        /* collect value */
+        *pBool = pcfg->u.bss_info.mld_info.common_info.mld_apply;
+        return TRUE;
+    }
+
     if( AnscEqualString(ParamName, "WMMCapability", TRUE))
     {
         /* collect value */
@@ -6746,6 +7037,18 @@ AccessPoint_GetParamUlongValue
         return TRUE;
     }
 
+    if( AnscEqualString(ParamName, "MLD_ID", TRUE))
+    {
+        *puLong = pcfg->u.bss_info.mld_info.common_info.mld_id;
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "MLD_Link_ID", TRUE))
+    {
+        *puLong = pcfg->u.bss_info.mld_info.common_info.mld_link_id;
+        return TRUE;
+    }
+
     if (AnscEqualString(ParamName, "X_CISCO_COM_LongRetryLimit", TRUE))
     {
         *puLong = cfg->long_retry_limit;
@@ -6894,6 +7197,38 @@ AccessPoint_GetParamStringValue
         return 0;
 
     }
+
+    if( AnscEqualString(ParamName, "MLD_Addr", TRUE))
+    {
+        char buff[24] = {0};
+        if (isVapSTAMesh(pcfg->vap_index)) {
+            _ansc_sprintf
+            (
+                buff,
+                "%02X:%02X:%02X:%02X:%02X:%02X",
+                0x0,
+                0x0,
+                0x0,
+                0x0,
+                0x0,
+                0x0
+            );
+        } else {
+            _ansc_sprintf
+            (
+                buff,
+                "%02X:%02X:%02X:%02X:%02X:%02X",
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[0],
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[1],
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[2],
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[3],
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[4],
+                pcfg->u.bss_info.mld_info.common_info.mld_addr[5]
+            );
+        }
+        memcpy(pValue, buff, strlen(buff)+1);
+        return 0;
+     }
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return -1;
 }
@@ -7016,6 +7351,32 @@ AccessPoint_SetParamBoolValue
         
         /* save update to backup */
         vapInfo->u.bss_info.showSsid = bValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "MLD_Enable", TRUE))
+    {
+        if ( vapInfo->u.bss_info.mld_info.common_info.mld_enable == bValue )
+        {
+            return TRUE;
+        }
+
+        /* save update to backup */
+        vapInfo->u.bss_info.mld_info.common_info.mld_enable = bValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "MLD_Apply", TRUE))
+    {
+        if ( vapInfo->u.bss_info.mld_info.common_info.mld_apply == bValue )
+        {
+            return TRUE;
+        }
+
+        /* save update to backup */
+        vapInfo->u.bss_info.mld_info.common_info.mld_apply = bValue;
         set_dml_cache_vap_config_changed(instance_number - 1);
         return TRUE;
     }
@@ -7335,7 +7696,6 @@ AccessPoint_SetParamIntValue
         set_dml_cache_vap_config_changed(instance_number - 1);
         return (TRUE);
     }
-    
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return FALSE;
 }
@@ -7437,6 +7797,31 @@ AccessPoint_SetParamUlongValue
         cfg->associated_devices_highwatermark_threshold = uValue;
         return TRUE;
     }
+
+    if( AnscEqualString(ParamName, "MLD_ID", TRUE))
+    {
+        if ( vapInfo->u.bss_info.mld_info.common_info.mld_id == (unsigned int)uValue )
+        {
+            return  TRUE;
+        }
+        /* save update to backup */
+        vapInfo->u.bss_info.mld_info.common_info.mld_id = uValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+        return TRUE;
+    }
+
+    if( AnscEqualString(ParamName, "MLD_Link_ID", TRUE))
+    {
+        if ( vapInfo->u.bss_info.mld_info.common_info.mld_link_id == (unsigned int)uValue )
+        {
+            return  TRUE;
+        }
+        /* save update to backup */
+        vapInfo->u.bss_info.mld_info.common_info.mld_link_id = uValue;
+        set_dml_cache_vap_config_changed(instance_number - 1);
+        return TRUE;
+    }
+
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
     return FALSE;
 }
@@ -20121,15 +20506,15 @@ Passpoint_GetParamStringValue
 
     if( AnscEqualString(ParamName, "WANMetrics", TRUE))
     {
-        WiFi_GetWANMetrics((vap_pcfg->vap_index + 1), (char *)&pcfg->passpoint.wanMetricsInfo,
-                sizeof(pcfg->passpoint.wanMetricsInfo));
+        char WANMetricsInfo[256] = {0};
+        WiFi_GetWANMetrics((vap_pcfg->vap_index + 1), WANMetricsInfo, sizeof(WANMetricsInfo));
         /* collect value */
-        if( AnscSizeOfString((char *)&pcfg->passpoint.wanMetricsInfo) < *pUlSize)
+	if( AnscSizeOfString(WANMetricsInfo) < *pUlSize)
         {
-            AnscCopyString(pValue, (char *)&pcfg->passpoint.wanMetricsInfo);
+	    AnscCopyString(pValue, WANMetricsInfo);
             return 0;
         }else{
-            *pUlSize = AnscSizeOfString((char *)&pcfg->passpoint.wanMetricsInfo)+1;
+	    *pUlSize = AnscSizeOfString(WANMetricsInfo)+1;
             return 1;
         }
         return 0;

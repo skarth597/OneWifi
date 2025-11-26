@@ -149,6 +149,11 @@
         PJS_OVS_BOOL(mdu_enabled)\
         PJS_OVS_INT(speed_tier)\
         PJS_OVS_STRING(repurposed_bridge_name, 8 + 1)\
+        PJS_OVS_BOOL(mld_enable) \
+        PJS_OVS_INT(mld_id) \
+        PJS_OVS_INT(mld_link_id) \
+        PJS_OVS_STRING(mld_addr, 32 + 1) \
+        PJS_OVS_BOOL(mld_apply) \
     )
 
 #define PJS_SCHEMA_Wifi_Interworking_Config \
@@ -1582,6 +1587,7 @@
         PJS_OVS_INT(Tidle) \
         PJS_OVS_INT(dfs_timer) \
         PJS_OVS_STRING(radar_detected, 256 + 1) \
+        PJS_OVS_STRING(amsdu_tid, 128 + 1) \
     )
 
 #define PJS_SCHEMA_Wifi_Global_Config \
@@ -2083,7 +2089,12 @@
     COLUMN(interop_ctrl)\
     COLUMN(mdu_enabled)\
     COLUMN(speed_tier)\
-    COLUMN(repurposed_bridge_name)
+    COLUMN(repurposed_bridge_name)\
+    COLUMN(mld_enable)\
+    COLUMN(mld_id)\
+    COLUMN(mld_link_id)\
+    COLUMN(mld_addr)\
+    COLUMN(mld_apply)
 
 #define SCHEMA__Wifi_Interworking_Config "Wifi_Interworking_Config"
 #define SCHEMA_COLUMN__Wifi_Interworking_Config(COLUMN) \
@@ -3255,7 +3266,8 @@
     COLUMN(Nscan) \
     COLUMN(Tidle) \
     COLUMN(dfs_timer) \
-    COLUMN(radar_detected)
+    COLUMN(radar_detected) \
+    COLUMN(amsdu_tid)
 
 #define SCHEMA__Wifi_Global_Config "Wifi_Global_Config"
 #define SCHEMA_COLUMN__Wifi_Global_Config(COLUMN) \
@@ -3446,6 +3458,11 @@
 #define SCHEMA__Wifi_VAP_Config__mdu_enabled "mdu_enabled"
 #define SCHEMA__Wifi_VAP_Config__speed_tier "speed_tier"
 #define SCHEMA__Wifi_VAP_Config__repurposed_bridge_name "repurposed_bridge_name"
+#define SCHEMA__Wifi_VAP_Config__mld_enable "mld_enable"
+#define SCHEMA__Wifi_VAP_Config__mld_id "mld_id"
+#define SCHEMA__Wifi_VAP_Config__mld_link_id "mld_link_id"
+#define SCHEMA__Wifi_VAP_Config__mld_addr "mld_addr"
+#define SCHEMA__Wifi_VAP_Config__mld_apply "mld_apply"
 
 #define SCHEMA__Wifi_Interworking_Config__enable "enable"
 #define SCHEMA__Wifi_Interworking_Config__vap_name "vap_name"
@@ -4524,6 +4541,7 @@
 #define SCHEMA__Wifi_Radio_Config__Tidle "Tidle"
 #define SCHEMA__Wifi_Radio_Config__dfs_timer "dfs_timer"
 #define SCHEMA__Wifi_Radio_Config__radar_detected "radar_detected"
+#define SCHEMA__Wifi_Radio_Config__amsdu_tid "amsdu_tid"
 
 #define SCHEMA__Wifi_Global_Config__gas_config "gas_config"
 #define SCHEMA__Wifi_Global_Config__notify_wifi_changes "notify_wifi_changes"

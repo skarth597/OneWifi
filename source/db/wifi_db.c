@@ -1,3 +1,22 @@
+/************************************************************************************
+  If not stated otherwise in this file or this component's LICENSE file the
+  following copyright and licenses apply:
+  
+  Copyright 2025 RDK Management
+  
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  
+  http://www.apache.org/licenses/LICENSE-2.0
+  
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ **************************************************************************/
+
 #include <stdbool.h>
 #include "wifi_hal.h"
 #include "wifi_db.h"
@@ -78,7 +97,6 @@ static int init_radio_config_default(int radio_index, wifi_radio_operationParam_
 
     switch (cfg.band) {
         case WIFI_FREQUENCY_2_4_BAND:
-            cfg.op_class = 12;
             cfg.operatingClass = 81;
             cfg.channel = 1;
             cfg.channelWidth = WIFI_CHANNELBANDWIDTH_20MHZ;
@@ -86,7 +104,6 @@ static int init_radio_config_default(int radio_index, wifi_radio_operationParam_
             break;
         case WIFI_FREQUENCY_5_BAND:
         case WIFI_FREQUENCY_5L_BAND:
-            cfg.op_class = 128;
             cfg.operatingClass = 128;
             cfg.channel = 44;
             cfg.channelWidth = WIFI_CHANNELBANDWIDTH_80MHZ;
@@ -97,7 +114,6 @@ static int init_radio_config_default(int radio_index, wifi_radio_operationParam_
 #endif /* CONFIG_IEEE80211BE */
             break;
         case WIFI_FREQUENCY_5H_BAND:
-            cfg.op_class = 128;
             cfg.operatingClass = 128;
             cfg.channel = 157;
             cfg.channelWidth = WIFI_CHANNELBANDWIDTH_80MHZ;
@@ -108,7 +124,6 @@ static int init_radio_config_default(int radio_index, wifi_radio_operationParam_
 #endif /* CONFIG_IEEE80211BE */
             break;
         case WIFI_FREQUENCY_6_BAND:
-            cfg.op_class = 131;
             cfg.operatingClass = 131;
             cfg.channel = 5;
             cfg.channelWidth = WIFI_CHANNELBANDWIDTH_160MHZ;
@@ -183,6 +198,27 @@ static int init_radio_config_default(int radio_index, wifi_radio_operationParam_
         Fcfg.OffChanNscanInSec = 0;
         Fcfg.OffChanTidleInSec = 0;
     }
+
+    for (int j = 0; j < MAX_AMSDU_TID; j++) {
+        cfg.amsduTid[j] = FALSE;
+    }
+
+#if defined(_XB10_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
+    if (cfg.band == WIFI_FREQUENCY_6_BAND) {
+        for (int j = 0; j < 5; j++) {
+            cfg.amsduTid[j] = TRUE;
+        }
+    } else {
+        for (int j = 0; j < 4; j++) {
+            cfg.amsduTid[j] = TRUE;
+        }
+    }
+#elif defined(_XB8_PRODUCT_REQ_)
+    cfg.amsduTid[0] = TRUE;
+    if (cfg.band == WIFI_FREQUENCY_6_BAND) {
+        cfg.amsduTid[4] = TRUE;
+    }
+#endif
 
     wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d Tscan:%lu Nscan:%lu Nidle:%lu\n", __func__, __LINE__, Fcfg.OffChanTscanInMsec, Fcfg.OffChanNscanInSec, Fcfg.OffChanTidleInSec);
     /* Call the function to update the operating classes based on Country code and Radio */
@@ -435,6 +471,12 @@ static int init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         cfg.u.bss_info.beaconRate = WIFI_BITRATE_6MBPS;
         strncpy(cfg.u.bss_info.beaconRateCtl,"6Mbps",sizeof(cfg.u.bss_info.beaconRateCtl)-1);
         cfg.vap_mode = wifi_vap_mode_ap;
+        /*TODO: Are values correct?  */
+        cfg.u.bss_info.mld_info.common_info.mld_enable = 0;
+        cfg.u.bss_info.mld_info.common_info.mld_id = 255;
+        cfg.u.bss_info.mld_info.common_info.mld_link_id = 255;
+        cfg.u.bss_info.mld_info.common_info.mld_apply = 1;
+//        strcpy(cfg.u.bss_info.mld_info.common_info.mld_addr, "11:11:11:11:11:11");
         if (isVapPrivate(vap_index)) {
             cfg.u.bss_info.showSsid = true;
             cfg.u.bss_info.wps.methods = WIFI_ONBOARDINGMETHODS_PUSHBUTTON;
@@ -453,14 +495,17 @@ static int init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         }
 /*For XER5/XB10/XER10 2.4G XHS is disable by default*/
 #if defined(_XER5_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
-        if (isVapLnf(vap_index) || isVapPrivate(vap_index)) {
+        if (isVapLnfSecure(vap_index) || isVapPrivate(vap_index)) {
             cfg.u.bss_info.enabled = true;
         }
 #else
-        if ((vap_index == 2) || isVapLnf(vap_index) || isVapPrivate(vap_index)) {
+        if ((vap_index == 2) || isVapLnfSecure(vap_index) || isVapPrivate(vap_index)) {
             cfg.u.bss_info.enabled = true;
         }
 #endif 
+        if (isVapLnfPsk(vap_index)) {
+            cfg.u.bss_info.enabled = false;
+        }
 
         if (isVapPrivate(vap_index)) {
             cfg.u.bss_info.bssMaxSta = wifi_hal_cap_obj->wifi_prop.BssMaxStaAllow;

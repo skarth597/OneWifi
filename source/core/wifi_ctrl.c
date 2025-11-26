@@ -500,7 +500,7 @@ int start_radios(rdk_dev_mode_type_t mode)
                         wifi_radio_oper_param->channel = dfs_fallback_channel(wifi_prop,
                             wifi_radio_oper_param->band);
                     }
-                    wifi_radio_oper_param->op_class = 1;
+                    wifi_radio_oper_param->operatingClass = 1;
                     wifi_util_info_print(WIFI_CTRL,
                         "%s:%d Calling switch_dfs_channel for dfs_chan:%d \n", __func__, __LINE__,
                         dfs_channel_data->dfs_channel);
@@ -513,7 +513,7 @@ int start_radios(rdk_dev_mode_type_t mode)
                         wifi_radio_oper_param->channel = dfs_fallback_channel(wifi_prop,
                             wifi_radio_oper_param->band);
                     }
-                    wifi_radio_oper_param->op_class = 1;
+                    wifi_radio_oper_param->operatingClass = 1;
                 }
             }
 
@@ -1781,6 +1781,37 @@ bool check_wifi_radio_sched_timeout_active_status(wifi_ctrl_t *l_ctrl)
     return false;
 }
 
+bool check_wifi_csa_sched_timeout_active_status_of_radio_index(wifi_ctrl_t *l_ctrl, int radio_index)
+{
+    wifi_scheduler_id_t *sched_id = &l_ctrl->wifi_sched_id;
+
+    if (radio_index < 0 || radio_index >= (int)getNumberRadios()) {
+        // Invalid index
+        return false;
+    }
+
+    if (sched_id->wifi_csa_sched_handler_id[radio_index] != 0) {
+        return true;
+    }
+    return false;
+}
+
+bool check_wifi_radio_sched_timeout_active_status_of_radio_index(wifi_ctrl_t *l_ctrl,
+    int radio_index)
+{
+    wifi_scheduler_id_t *sched_id = &l_ctrl->wifi_sched_id;
+
+    if (radio_index < 0 || radio_index >= (int)getNumberRadios()) {
+        // Invalid index
+        return false;
+    }
+
+    if (sched_id->wifi_radio_sched_handler_id[radio_index] != 0) {
+        return true;
+    }
+    return false;
+}
+
 bool check_wifi_vap_sched_timeout_active_status(wifi_ctrl_t *l_ctrl, BOOL (*cb)(UINT apIndex))
 {
     unsigned int index = 0;
@@ -1792,6 +1823,14 @@ bool check_wifi_vap_sched_timeout_active_status(wifi_ctrl_t *l_ctrl, BOOL (*cb)(
         }
     }
 
+    return false;
+}
+
+bool check_wifi_multivap_sched_timeout_active_status(wifi_ctrl_t *l_ctrl, int radio_index)
+{
+    //TBD: Check all the sched handler of the VAP associated with the radio_index
+
+    // Currently returning false
     return false;
 }
 

@@ -111,9 +111,9 @@ webconfig_error_t encode_radio_object(const rdk_wifi_radio_t *radio, cJSON *radi
 {
     const wifi_radio_operationParam_t *radio_info;
     const wifi_radio_feature_param_t *radio_feat;
-    char channel_list[BUFFER_LENGTH_WIFIDB] = {0}, str[BUFFER_LENGTH_WIFIDB] = {0};
+    char out_list[BUFFER_LENGTH_WIFIDB] = { 0 }, str[BUFFER_LENGTH_WIFIDB] = { 0 };
     char chan_buf[512] = {0};
-    unsigned int num_channels, i, k = 0, len = sizeof(channel_list) - 1;
+    unsigned int num_channels, i, k = 0, len = sizeof(out_list) - 1;
     int itr = 0, arr_size = 0;
     cJSON *obj;
     CHAR buf[512] = {'\0'};
@@ -159,14 +159,15 @@ webconfig_error_t encode_radio_object(const rdk_wifi_radio_t *radio, cJSON *radi
             break;
         }
 
-        snprintf(channel_list + k, sizeof(channel_list) - k,"%d,", radio_info->channelSecondary[i]);
-        wifi_util_dbg_print(WIFI_WEBCONFIG,"%s:%d Wifi_Radio_Config table Channel list %s %d\t",__func__, __LINE__,channel_list,strlen(channel_list));
-        k = strlen(channel_list);
+        snprintf(out_list + k, sizeof(out_list) - k, "%d,", radio_info->channelSecondary[i]);
+        wifi_util_dbg_print(WIFI_WEBCONFIG, "%s:%d Wifi_Radio_Config table Channel list %s %d\t",
+            __func__, __LINE__, out_list, strlen(out_list));
+        k = strlen(out_list);
     }
 
     memset(str, 0, sizeof(str));
-    if ((strlen(channel_list) > 1) && (strlen(channel_list) < sizeof(str))) {
-        strncpy(str,channel_list,strlen(channel_list)-1);
+    if ((strlen(out_list) > 1) && (strlen(out_list) < sizeof(str))) {
+        strncpy(str, out_list, strlen(out_list) - 1);
     } else {
         strcpy(str, " ");
     }
@@ -324,6 +325,29 @@ webconfig_error_t encode_radio_object(const rdk_wifi_radio_t *radio, cJSON *radi
     //RadarDetected
     cJSON_AddStringToObject(radio_object, "RadarDetected", radio_info->radarDetected);
 
+    // AmsduTid
+    memset(out_list, 0, sizeof(str));
+    k = 0;
+    for (i = 0; i < MAX_AMSDU_TID; i++) {
+        if (k >= (len - 1)) {
+            wifi_util_error_print(WIFI_WEBCONFIG,
+                "%s:%d Wifi_Radio_Config table Maximum size reached for AMSDU TIDs\n", __func__,
+                __LINE__);
+            break;
+        }
+
+        snprintf(out_list + k, sizeof(out_list) - k, "%d,", radio_info->amsduTid[i]);
+        k = strlen(out_list);
+    }
+
+    if ((strlen(out_list) > 1) && (strlen(out_list) < sizeof(str))) {
+        strncpy(str, out_list, strlen(out_list) - 1);
+    } else {
+        strcpy(str, " ");
+    }
+
+    cJSON_AddStringToObject(radio_object, "Amsdu_Tid", str);
+
     // Operating Class Capability details
     if (encode_radio_operating_classes(radio_info, radio_object) != webconfig_error_none) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Radio operation classes failed\n", __func__,
@@ -344,6 +368,7 @@ webconfig_error_t encode_vap_common_object(const wifi_vap_info_t *vap_info,
     const rdk_wifi_vap_info_t *rdk_vap_info, cJSON *vap_object)
 {
     char mac_str[32];
+    char mld_mac_str[32];
 
     //VAP Name
     cJSON_AddStringToObject(vap_object, "VapName", vap_info->vap_name);
@@ -383,6 +408,22 @@ webconfig_error_t encode_vap_common_object(const wifi_vap_info_t *vap_info,
 
     // Managed WiFi Phase 2 Enabled
     cJSON_AddBoolToObject(vap_object, "MDUEnabled", vap_info->u.bss_info.mdu_enabled);
+
+    // MLD Enable
+    cJSON_AddBoolToObject(vap_object, "MLD_Enable", vap_info->u.bss_info.mld_info.common_info.mld_enable);
+
+    // MLD Apply
+    cJSON_AddBoolToObject(vap_object, "MLD_Apply", vap_info->u.bss_info.mld_info.common_info.mld_apply);
+
+    // MLD_ID
+    cJSON_AddNumberToObject(vap_object, "MLD_ID", vap_info->u.bss_info.mld_info.common_info.mld_id);
+
+    // MLD_Link_ID
+    cJSON_AddNumberToObject(vap_object, "MLD_Link_ID", vap_info->u.bss_info.mld_info.common_info.mld_link_id);
+
+    // MLD_Addr
+    uint8_mac_to_string_mac((uint8_t *)vap_info->u.bss_info.mld_info.common_info.mld_addr, mld_mac_str);
+    cJSON_AddStringToObject(vap_object, "MLD_Addr", mld_mac_str);
 
     // Isolation
     cJSON_AddBoolToObject(vap_object, "IsolationEnable", vap_info->u.bss_info.isolation);
@@ -1646,7 +1687,7 @@ webconfig_error_t encode_frame_data(cJSON *obj_assoc_client, frame_data_t *frame
 
 webconfig_error_t encode_associated_client_object(rdk_wifi_vap_info_t *rdk_vap_info, cJSON *assoc_array, assoclist_type_t assoclist_type)
 {
-    bool print_assoc_client = false;
+    bool print_assoc_client = false, include_frame_data = false;
     pthread_mutex_t *associated_devices_lock;
 
     if ((rdk_vap_info == NULL) || (assoc_array == NULL)) {
@@ -1689,10 +1730,12 @@ webconfig_error_t encode_associated_client_object(rdk_wifi_vap_info_t *rdk_vap_i
         assoc_dev_data = hash_map_get_first(devices_map);
         while (assoc_dev_data != NULL) {
             print_assoc_client = false;
+            include_frame_data = false;
             if (assoclist_type == assoclist_type_full) {
                 print_assoc_client = true;
             } else if ((assoclist_type == assoclist_type_add) && (assoc_dev_data->client_state == client_state_connected)) {
                 print_assoc_client = true;
+                include_frame_data = true;
             } else if ((assoclist_type == assoclist_type_remove) && (assoc_dev_data->client_state == client_state_disconnected)) {
                 print_assoc_client = true;
             }
@@ -1735,10 +1778,12 @@ webconfig_error_t encode_associated_client_object(rdk_wifi_vap_info_t *rdk_vap_i
                 cJSON_AddNumberToObject(obj_assoc_client, "FailedRetransCount", assoc_dev_data->dev_stats.cli_FailedRetransCount);
                 cJSON_AddNumberToObject(obj_assoc_client, "RetryCount", assoc_dev_data->dev_stats.cli_RetryCount);
                 cJSON_AddNumberToObject(obj_assoc_client, "MultipleRetryCount", assoc_dev_data->dev_stats.cli_MultipleRetryCount);
-                if (encode_frame_data(obj_assoc_client, &assoc_dev_data->sta_data.msg_data) !=
-                    webconfig_error_none) {
-                    wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d Encode frame data failed for client %s\n",
-                        __func__, __LINE__, mac_string);
+                if (include_frame_data == true &&
+                    encode_frame_data(obj_assoc_client, &assoc_dev_data->sta_data.msg_data) !=
+                        webconfig_error_none) {
+                    wifi_util_error_print(WIFI_WEBCONFIG,
+                        "%s:%d Encode frame data failed for client %s\n", __func__, __LINE__,
+                        mac_string);
                 }
             }
             assoc_dev_data = hash_map_get_next(devices_map, assoc_dev_data);
