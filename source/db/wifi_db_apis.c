@@ -6982,7 +6982,7 @@ int wifidb_init_radio_config_default(int radio_index,wifi_radio_operationParam_t
         cfg.amsduTid[j] = FALSE;
     }
 
-#if defined(_XB10_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_)
+#if defined(_XB10_PRODUCT_REQ_) || defined(_SCER11BEL_PRODUCT_REQ_) || defined(_SCXF11BFL_PRODUCT_REQ_)
     if (cfg.band == WIFI_FREQUENCY_6_BAND) {
         for (int i = 0; i < 5; i++)
         {
@@ -7284,7 +7284,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
              cfg.u.bss_info.enabled = true;
         }
 #endif
-#if defined(_SKY_HUB_COMMON_PRODUCT_REQ_)
+#if defined(_SKY_HUB_COMMON_PRODUCT_REQ_) || defined(_SCXF11BFL_PRODUCT_REQ_)
 #if !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_SCXF11BFL_PRODUCT_REQ_)
         if (isVapXhs(vap_index)) {
             cfg.u.bss_info.enabled = false;
@@ -7311,7 +7311,7 @@ int wifidb_init_vap_config_default(int vap_index, wifi_vap_info_t *config,
         }
         wifi_util_dbg_print(WIFI_DB, "%s:%d vap_index:%d bssMaxSta:%d\n", __func__, __LINE__,
             vap_index, cfg.u.bss_info.bssMaxSta);
-#endif //_SKY_HUB_COMMON_PRODUCT_REQ_
+#endif //_SKY_HUB_COMMON_PRODUCT_REQ_ || _SCXF11BFL_PRODUCT_REQ_
 
 #if defined(_XB7_PRODUCT_REQ_) || defined(_XB8_PRODUCT_REQ_) || defined(_XB10_PRODUCT_REQ_) || \
     defined(_SCER11BEL_PRODUCT_REQ_) || defined(_CBR2_PRODUCT_REQ_) ||                         \
@@ -7454,7 +7454,7 @@ int wifidb_init_global_config_default(wifi_global_param_t *config)
     memset(temp, 0, sizeof(temp));
     if (wifi_hal_get_default_country_code(temp) < 0) {
         wifi_util_dbg_print(WIFI_DB,"%s:%d: unable to get default country code setting a USI\n", __func__, __LINE__);
-        strncpy(cfg.wifi_region_code, "USI",sizeof(cfg.wifi_region_code)-1);
+        snprintf(cfg.wifi_region_code, sizeof(cfg.wifi_region_code), "USI");
     } else {
         snprintf(cfg.wifi_region_code, sizeof(cfg.wifi_region_code), "%sI", temp);
     }
