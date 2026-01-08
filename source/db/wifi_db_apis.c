@@ -2911,7 +2911,9 @@ int wifidb_get_preassoc_ctrl_config(char *vap_name, wifi_preassoc_control_t *pre
         return -1;
     }
     strcpy(preassoc->vap_name, vap_name);
+    wifi_util_dbg_print(WIFI_DB,"%s:%d:preassoc->vap_name = %s, vap_name = %s \n",__func__, __LINE__, preassoc->vap_name, vap_name);
     strcpy(preassoc->rssi_up_threshold, pcfg->rssi_up_threshold);
+    wifi_util_dbg_print(WIFI_DB,"%s:%d:preassoc->rssi_up_threshold = %s, pcfg->rssi_up_threshold = %s \n",__func__, __LINE__, preassoc->rssi_up_threshold, pcfg->rssi_up_threshold);
     strcpy(preassoc->snr_threshold, pcfg->snr_threshold);
     strcpy(preassoc->cu_threshold, pcfg->cu_threshold);
     strcpy(preassoc->basic_data_transmit_rates, pcfg->basic_data_transmit_rates);

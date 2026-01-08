@@ -1588,7 +1588,7 @@ int webconfig_cac_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data
         l_vap_maps = get_wifidb_vap_map(radio_index);
         for (vap_index = 0; vap_index < getNumberVAPsPerRadio(radio_index); vap_index++) {
 	    if (!isVapHotspot(vap_index)) {
-		wifi_util_dbg_print(WIFI_CTRL,"Not a hostpot vap\n");
+		wifi_util_dbg_print(WIFI_CTRL,"Not a hostpot vap, vap_index = %d\n",vap_index);
 		return RETURN_OK;
 	    }
             wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config\n");
