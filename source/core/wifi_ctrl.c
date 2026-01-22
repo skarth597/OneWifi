@@ -300,7 +300,7 @@ static void *ctrl_scheduler_thread(void *arg)
     struct timespec tv_now;
     time_t  time_diff;
     int rc = 0;
-    wifi_event_t *event = NULL;
+    //wifi_event_t *event = NULL;
 
     pthread_mutex_lock(&ctrl->queue_lock);
     while (ctrl->exit_ctrl == false) {
