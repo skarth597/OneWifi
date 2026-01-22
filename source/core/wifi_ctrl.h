@@ -268,6 +268,9 @@ typedef struct wifi_ctrl {
     events_bus_data_t   events_bus_data;
     hotspot_cfg_sem_param_t hotspot_sem_param;
     bool                rf_status_down;
+    pthread_t           ctrl_scheduler_thread_id;
+    pthread_mutex_t     scheduler_queue_lock;
+    pthread_cond_t      scheduler_cond;
 } wifi_ctrl_t;
 
 

@@ -76,6 +76,9 @@ void deinit_wifi_ctrl(wifi_ctrl_t *ctrl)
     pthread_mutex_destroy(&ctrl->queue_lock);
     pthread_cond_destroy(&ctrl->cond);
     pthread_mutex_destroy(&ctrl->events_bus_data.events_bus_lock);
+    pthread_cond_broadcast(&ctrl->scheduler_cond);
+    pthread_cond_destroy(&ctrl->scheduler_cond);
+    pthread_mutex_destroy(&ctrl->scheduler_queue_lock);
 }
 
 static int wifi_radio_set_enable(bool status)
@@ -290,8 +293,9 @@ bool is_sta_enabled(void)
               ctrl->rf_status_down == true ) &&  ctrl->eth_bh_status == false);
 }
 
-void ctrl_queue_loop(wifi_ctrl_t *ctrl)
+static void *ctrl_scheduler_thread(void *arg)
 {
+    wifi_ctrl_t *ctrl = (wifi_ctrl_t *)arg;
     struct timespec time_to_wait;
     struct timespec tv_now;
     time_t  time_diff;
@@ -300,7 +304,7 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
 
     pthread_mutex_lock(&ctrl->queue_lock);
     while (ctrl->exit_ctrl == false) {
-
+        rc = 0;
         clock_gettime(CLOCK_MONOTONIC, &tv_now);
         time_to_wait.tv_nsec = 0;
         time_to_wait.tv_sec = tv_now.tv_sec + ctrl->poll_period;
@@ -312,12 +316,46 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
             }
         }
 
-        rc = 0;
-        if (queue_count(ctrl->queue) == 0) {
-            rc = pthread_cond_timedwait(&ctrl->cond, &ctrl->queue_lock, &time_to_wait);
-        }
+        pthread_mutex_lock(&ctrl->scheduler_queue_lock);
+        rc = pthread_cond_timedwait(&ctrl->scheduler_cond,
+                                    &ctrl->scheduler_queue_lock,
+                                    &time_to_wait);
 
-        if ((rc == 0) || (queue_count(ctrl->queue) != 0)) {
+        if (rc == ETIMEDOUT) {
+            clock_gettime(CLOCK_MONOTONIC, &ctrl->last_polled_time);
+            /* Run scheduler */
+            scheduler_execute(ctrl->sched, ctrl->last_polled_time,
+                              (ctrl->poll_period * 1000));
+        }
+        pthread_mutex_unlock(&ctrl->scheduler_queue_lock);
+    }
+
+    return NULL;
+}
+
+void ctrl_queue_loop(wifi_ctrl_t *ctrl)
+{
+    wifi_event_t *event = NULL;
+    pthread_t tid;
+    pthread_attr_t attr;
+    int ret;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    ret = pthread_create(&tid, &attr, ctrl_scheduler_thread, ctrl);
+    if (ret != 0) {
+        wifi_util_dbg_print(WIFI_CTRL, "%s: Failed to create scheduler thread, ret=%d\n",
+            __FUNCTION__, ret);
+    } else {
+        ctrl->ctrl_scheduler_thread_id = tid;
+    }
+    pthread_attr_destroy(&attr);
+
+    pthread_mutex_lock(&ctrl->queue_lock);
+    
+        while (ctrl->exit_ctrl == false) {
+        if (queue_count(ctrl->queue) != 0) {
             while (queue_count(ctrl->queue)) {
                 event = queue_pop(ctrl->queue);
                 if (event == NULL) {
@@ -359,28 +397,11 @@ void ctrl_queue_loop(wifi_ctrl_t *ctrl)
 
                 destroy_wifi_event(event);
 
-                clock_gettime(CLOCK_MONOTONIC, &ctrl->last_signalled_time);
+            
                 pthread_mutex_lock(&ctrl->queue_lock);
             }
-        } else if (rc == ETIMEDOUT) {
-            pthread_mutex_unlock(&ctrl->queue_lock);
-            clock_gettime(CLOCK_MONOTONIC, &ctrl->last_polled_time);
-
-            /*
-             * Using the below api, New timer tasks can be added to the scheduler
-             *
-             * int scheduler_add_timer_task(struct scheduler *sched, bool high_prio, int *id,
-             *                                 int (*cb)(void *arg), void *arg, unsigned int interval_ms, unsigned int repetitions);
-             *
-             * Refer to source/utils/scheduler.h for more description regarding the scheduler api's.
-             */
-
-            /*Run the scheduler*/
-            scheduler_execute(ctrl->sched, ctrl->last_polled_time, (ctrl->poll_period*1000));
-            pthread_mutex_lock(&ctrl->queue_lock);
         } else {
-            wifi_util_dbg_print(WIFI_CTRL,"RDK_LOG_WARN, WIFI %s: Invalid Return Status %d\n",__FUNCTION__,rc);
-            continue;
+            pthread_cond_wait(&ctrl->cond, &ctrl->queue_lock);
         }
     }
     pthread_mutex_unlock(&ctrl->queue_lock);
