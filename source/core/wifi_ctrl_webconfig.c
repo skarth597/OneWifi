@@ -1698,7 +1698,8 @@ int webconfig_cac_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data
     for(radio_index = 0; radio_index < getNumberRadios(); radio_index++) {
         l_vap_maps = get_wifidb_vap_map(radio_index);
         for (vap_index = 0; vap_index < getNumberVAPsPerRadio(radio_index); vap_index++) {
-            wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config\n");
+            wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config \n");
+            wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config for Radio Index: %d Vap Index: %d \n",radio_index,vap_index);
 
             if (is_preassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])
                 || is_postassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])) {
