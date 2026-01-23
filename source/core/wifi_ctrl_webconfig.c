@@ -492,7 +492,8 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
     if ((ctrl->webconfig_state & CTRL_WEBCONFIG_STATE_MASK) == 0) {
         return RETURN_OK;
     }
-
+    wifi_util_dbg_print(WIFI_CTRL, "%s:%d - pending subdoc status:0x%x\r\n", __func__, __LINE__,
+        ctrl->webconfig_state);
     do {
         pending_state <<= 1;
         if (pending_state >= ctrl_webconfig_state_max) {
@@ -507,6 +508,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
         case ctrl_webconfig_state_radio_cfg_rsp_pending:
             if (check_wifi_radio_sched_timeout_active_status(ctrl) == false &&
                 check_wifi_csa_sched_timeout_active_status(ctrl) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_radio_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_radio;
                 webconfig_send_radio_subdoc_status(ctrl, type);
             } else {
@@ -515,6 +517,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_private_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapPrivate) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_private_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_private;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -523,6 +526,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_home_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapXhs) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_home_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_home;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -531,6 +535,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_xfinity_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapHotspot) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_xfinity_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_xfinity;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -539,6 +544,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_lnf_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapLnf) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_lnf_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_lnf;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -547,6 +553,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_mesh_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapMesh) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_mesh_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_mesh;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -555,10 +562,12 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
         break;
         case ctrl_webconfig_state_sta_conn_status_rsp_pending:
             type = webconfig_subdoc_type_dml;
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_sta_conn_status_rsp_pending instead of cac\n", __func__, __LINE__);
             webconfig_send_vap_subdoc_status(ctrl, type);
         break;
         case ctrl_webconfig_state_vap_mesh_sta_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapSTAMesh) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_mesh_sta_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_dml;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -567,6 +576,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
         break;
         case ctrl_webconfig_state_vap_mesh_backhaul_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapMeshBackhaul) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_mesh_backhaul_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_mesh_backhaul;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -575,6 +585,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
         break;
         case ctrl_webconfig_state_vap_mesh_backhaul_sta_cfg_rsp_pending:
             if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapSTAMesh) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_mesh_backhaul_sta_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_mesh_backhaul_sta;
                 webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
@@ -582,47 +593,57 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             }
         break;
         case ctrl_webconfig_state_macfilter_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_macfilter_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_mac_filter;
             webconfig_send_vap_subdoc_status(ctrl, webconfig_subdoc_type_mac_filter);
         break;
         case ctrl_webconfig_state_vap_all_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_all_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_dml;
             webconfig_send_dml_subdoc_status(ctrl);
             break;
         case ctrl_webconfig_state_factoryreset_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_factoryreset_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_dml;
             webconfig_send_dml_subdoc_status(ctrl);
         break;
         case ctrl_webconfig_state_wifi_config_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_wifi_config_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_wifi_config;
             webconfig_send_wifi_config_status(ctrl);
             break;
         case ctrl_webconfig_state_associated_clients_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_associated_clients_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_associated_clients;
             webconfig_send_associate_status(ctrl);
             break;
 
         case ctrl_webconfig_state_associated_clients_full_cfg_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_associated_clients_full_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_associated_clients;
             webconfig_send_full_associate_status(ctrl);
             break;
 
         case ctrl_webconfig_state_blaster_cfg_complete_rsp_pending:
                 /* Once the blaster triggered successfully, update the status as completed and pass it to OVSM */
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_blaster_cfg_complete_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_blaster;
                 mgr->blaster_config_global.Status = blaster_state_completed;
                 webconfig_send_blaster_status(ctrl);
             break;
         case ctrl_webconfig_state_steering_clients_rsp_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_steering_clients_rsp_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_steering_clients;
             webconfig_send_steering_clients_status(ctrl);
             break;
         case ctrl_webconfig_state_trigger_dml_thread_data_update_pending:
+            wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_trigger_dml_thread_data_update_pending instead of cac\n", __func__, __LINE__);
             type = webconfig_subdoc_type_dml;
             webconfig_send_dml_subdoc_status(ctrl);
             break;
         case ctrl_webconfig_state_vap_24G_cfg_rsp_pending:
             if (check_wifi_multivap_sched_timeout_active_status(ctrl, 0) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_24G_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_vap_24G;
                 webconfig_send_multivap_subdoc_status(ctrl, type);
             } else {
@@ -631,6 +652,7 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_5G_cfg_rsp_pending:
             if (check_wifi_multivap_sched_timeout_active_status(ctrl, 1) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_5G_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_vap_5G;
                 webconfig_send_multivap_subdoc_status(ctrl, type);
             } else {
@@ -639,8 +661,18 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             break;
         case ctrl_webconfig_state_vap_6G_cfg_rsp_pending:
             if (check_wifi_multivap_sched_timeout_active_status(ctrl, 2) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_vap_6G_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_vap_6G;
                 webconfig_send_multivap_subdoc_status(ctrl, type);
+            } else {
+                return RETURN_OK;
+            }
+            break;
+        case ctrl_webconfig_state_cac_cfg_rsp_pending:
+            if (check_wifi_vap_sched_timeout_active_status(ctrl, isVapHotspot) == false) {
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_cac_cfg_rsp_pending instead of cac\n", __func__, __LINE__);
+                type = webconfig_subdoc_type_cac;
+                webconfig_send_vap_subdoc_status(ctrl, type);
             } else {
                 return RETURN_OK;
             }
@@ -651,12 +683,15 @@ int webconfig_analyze_pending_states(wifi_ctrl_t *ctrl)
             state = (ctrl->webconfig_state & pending_state);
             if (state == ctrl_webconfig_state_radio_24G_rsp_pending) {
                 radio_index = 0;
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_radio_24G_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_radio_24G;
             } else if (state == ctrl_webconfig_state_radio_5G_rsp_pending) {
                 radio_index = 1;
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_radio_5G_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_radio_5G;
             } else {
                 radio_index = 2;
+                wifi_util_info_print(WIFI_CTRL, "%s:%d: inside ctrl_webconfig_state_radio_6G_rsp_pending instead of cac\n", __func__, __LINE__);
                 type = webconfig_subdoc_type_radio_6G;
             }
             if (check_wifi_radio_sched_timeout_active_status_of_radio_index(ctrl, radio_index) ==
@@ -1689,7 +1724,7 @@ int webconfig_cac_apply(wifi_ctrl_t *ctrl, webconfig_subdoc_decoded_data_t *data
         l_vap_maps = get_wifidb_vap_map(radio_index);
         for (vap_index = 0; vap_index < getNumberVAPsPerRadio(radio_index); vap_index++) {
             wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config\n");
-
+            wifi_util_dbg_print(WIFI_CTRL,"Comparing cac config for Radio Index: %d Vap Index: %d \n",radio_index,vap_index);
             if (is_preassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])
                 || is_postassoc_cac_config_changed(&l_vap_maps->vap_array[vap_index], &data->radios[radio_index].vaps.vap_map.vap_array[vap_index])) {
                 // cac or tcm data changed apply
@@ -2863,8 +2898,22 @@ webconfig_error_t webconfig_ctrl_apply(webconfig_subdoc_t *doc, webconfig_subdoc
         case webconfig_subdoc_type_cac:
             wifi_util_dbg_print(WIFI_MGR, "%s:%d: cac webconfig subdoc\n", __func__, __LINE__);
             if (data->descriptor & webconfig_data_descriptor_encoded) {
-                wifi_util_error_print(WIFI_MGR, "%s:%d: Not expected publish of cac webconfig subdoc\n", __func__, __LINE__);
+                if (ctrl->webconfig_state & ctrl_webconfig_state_cac_cfg_rsp_pending) {
+                    ctrl->webconfig_state &= ~ctrl_webconfig_state_cac_cfg_rsp_pending;
+                    wifi_util_info_print(WIFI_MGR, "%s:%d: Bus Publish of cac webconfig subdoc\n", __func__, __LINE__);
+                    ret = webconfig_bus_apply(ctrl, &data->u.encoded);
+                }
+               //wifi_util_error_print(WIFI_MGR, "%s:%d: Not expected publish of cac webconfig subdoc\n", __func__, __LINE__);
             } else {
+                wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: webconfig_state:%02x\n", __func__,
+                    __LINE__, ctrl->webconfig_state);
+                wifi_util_dbg_print(WIFI_MGR, "%s:%d: Apply of cac webconfig subdoc\n", __func__,
+                    __LINE__);
+                ctrl->webconfig_state |= ctrl_webconfig_state_cac_cfg_rsp_pending;
+                wifi_util_info_print(WIFI_WEBCONFIG, "%s:%d: webconfig_state:%02x\n", __func__,
+                    __LINE__, ctrl->webconfig_state);
+                wifi_util_dbg_print(WIFI_MGR, "%s:%d: webconfig cac apply called\n", __func__,
+                    __LINE__);
                 ret = webconfig_cac_apply(ctrl, &data->u.decoded);
             }
             break;

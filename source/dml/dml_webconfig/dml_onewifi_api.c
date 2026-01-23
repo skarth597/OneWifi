@@ -1240,6 +1240,7 @@ void set_cac_cache_changed(uint8_t vap_index)
     unsigned int num_radios = get_num_radio_dml();
 
     if (vap_index <  (num_radios * MAX_NUM_VAP_PER_RADIO)) {
+        wifi_util_dbg_print(WIFI_DMCLI, "%s: vap_index:%d num_radios:%d, Max_num_per_radios:%d \n", __FUNCTION__, vap_index, num_radios, MAX_NUM_VAP_PER_RADIO);
         is_vap_cac_config_changed = 1;
         return;
     } else {
@@ -1316,6 +1317,7 @@ int push_vap_dml_cache_to_one_wifidb()
 
     if(is_vap_config_changed == FALSE && is_vap_cac_config_changed == FALSE)
     {
+        wifi_util_info_print(WIFI_DMCLI, "%s: is_vap_config_changed: %d and is_vap_cac_config_changed: %d \n", __FUNCTION__, is_vap_config_changed, is_vap_cac_config_changed);
         wifi_util_info_print(WIFI_DMCLI, "%s: No vap DML Modified Return success  \n", __FUNCTION__);
         return RETURN_OK;
     }
