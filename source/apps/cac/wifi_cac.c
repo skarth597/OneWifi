@@ -530,6 +530,37 @@ int exec_event_cac(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *arg)
     return RETURN_OK;
 }
 
+int get_wifi_preassoc_conn_config(char *vap_name, wifi_preassoc_control_t *config)
+{
+    int i = 0;
+    wifi_mgr_t *g_wifidb;
+    wifi_preassoc_control_t *l_preassoc_ctrl_cfg = NULL;
+
+    if (config == NULL) {
+        wifi_util_dbg_print(WIFI_DB, "%s:%d:Null pointer Get VAP info failed \n", __func__,
+            __LINE__);
+        return -1;
+    }
+
+    g_wifidb = get_wifimgr_obj();
+    i = convert_vap_name_to_index(&g_wifidb->hal_cap.wifi_prop, vap_name);
+    if (i == -1) {
+        wifi_util_dbg_print(WIFI_DB, "%s:%d: %s invalid vap name \n", __func__, __LINE__, vap_name);
+        return -1;
+    }
+
+    l_preassoc_ctrl_cfg = Get_wifi_object_preassoc_ctrl_parameter(i);
+    if (l_preassoc_ctrl_cfg == NULL) {
+        wifi_util_dbg_print(WIFI_DB, "%s:%d: %s invalid Get_wifi_object_preassoc_ctrl_parameter \n",
+            __func__, __LINE__, vap_name);
+        return -1;
+    }
+    pthread_mutex_lock(&g_wifidb->data_cache_lock);
+    memcpy(config, l_preassoc_ctrl_cfg, sizeof(wifi_preassoc_control_t));
+    pthread_mutex_unlock(&g_wifidb->data_cache_lock);
+    return 0;
+}
+
 void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
 {
     mac_addr_str_t mac_str = { 0 };
@@ -588,7 +619,7 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
         return;
     }
 
-    ret = wifidb_get_preassoc_ctrl_config(vap_name, &wifidb_preassoc_conf);
+    ret = get_wifi_preassoc_conn_config(vap_name, &wifidb_preassoc_conf);
 
     if (ret != RETURN_OK) {
         wifi_util_error_print(WIFI_APPS, "%s:%d config not found for ap index:%d \n", __func__, __LINE__, msg->frame.ap_index);
@@ -596,22 +627,27 @@ void cac_mgmt_frame_event(wifi_app_t *app, frame_data_t *msg, int type)
     }
 
     if (strcmp(wifidb_preassoc_conf.rssi_up_threshold, "disabled") == 0) {
+        wifi_util_dbg_print(WIFI_APPS,"%s:%d RSSI preassoc control disabled \n", __func__, __LINE__);
         rssi_enabled = false;
         rssi_status = status_ok;
     } else {
+        wifi_util_dbg_print(WIFI_APPS,"%s:%d RSSI preassoc control enabled \n", __func__, __LINE__);
         rssi_enabled = true;
         rssi_conf = atoi(wifidb_preassoc_conf.rssi_up_threshold);
     }
 
     if (strcmp(wifidb_preassoc_conf.snr_threshold, "disabled") == 0) {
+        wifi_util_dbg_print(WIFI_APPS,"%s:%d SNR preassoc control disabled \n", __func__, __LINE__);
         snr_enabled = false;
         snr_status = status_ok;
     } else {
+        wifi_util_dbg_print(WIFI_APPS,"%s:%d SNR preassoc control enabled \n", __func__, __LINE__);
         snr_enabled = true;
         snr_conf = atoi(wifidb_preassoc_conf.snr_threshold);
     }
 
     if (strcmp(wifidb_preassoc_conf.cu_threshold, "disabled") == 0) {
+        wifi_util_dbg_print(WIFI_APPS,"%s:%d Channel Utilization preassoc control disabled \n", __func__, __LINE__);
         chan_util_enabled = false;
         chan_util_status = status_ok;
     } else {

@@ -2855,7 +2855,7 @@ int wifidb_update_preassoc_ctrl_config(char *vap_name, wifi_preassoc_control_t *
     char *filter_preassoc[] = {"-", NULL};
     wifi_db_t *g_wifidb;
     g_wifidb = (wifi_db_t*) get_wifidb_obj();
-
+    wifi_util_dbg_print(WIFI_DB,"%s:%d:Preassoc update for vap name=%s\n",__func__, __LINE__,vap_name);
     if(preassoc == NULL)
     {
         wifidb_print("%s:%d WIFI DB update error !!!. Failed to update Preassoc CAC - Null pointer \n",__func__, __LINE__);
@@ -2864,6 +2864,7 @@ int wifidb_update_preassoc_ctrl_config(char *vap_name, wifi_preassoc_control_t *
 
     strcpy(cfg.vap_name, vap_name);
     strcpy(cfg.rssi_up_threshold, preassoc->rssi_up_threshold);
+    wifi_util_dbg_print(WIFI_DB,"%s:%d:preassoc->rssi_up_threshold = %s, cfg.rssi_up_threshold = %s \n",__func__, __LINE__, preassoc->rssi_up_threshold, cfg.rssi_up_threshold);
     strcpy(cfg.snr_threshold, preassoc->snr_threshold);
     strcpy(cfg.cu_threshold, preassoc->cu_threshold);
     strcpy(cfg.basic_data_transmit_rates, preassoc->basic_data_transmit_rates);
@@ -3038,11 +3039,13 @@ int wifidb_update_wifi_cac_config(wifi_vap_info_map_t *config)
 
         if(onewifi_ovsdb_table_upsert_f(g_wifidb->wifidb_sock_path,&table_Wifi_Connection_Control_Config,&cfg,false,filter_vap) == false)
         {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d: Failed to insert table_Wifi_Connection_Control_Config table for vap %s\n",__func__, __LINE__,config->vap_array[i].vap_name);
             wifidb_print("%s:%d WIFI DB update error !!!. Failed to insert table_Wifi_Connection_Control_Config table \n",__func__, __LINE__);
             return -1;
         }
         else
         {
+            wifi_util_dbg_print(WIFI_DB,"%s:%d: Inserted table_Wifi_Connection_Control_Config table for vap %s\n",__func__, __LINE__,config->vap_array[i].vap_name);
             wifidb_print("%s:%d Updated WIFI DB. Insert Wifi_Radio_Config table completed successful. \n",__func__, __LINE__);
         }
 
