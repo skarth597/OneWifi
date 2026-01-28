@@ -2863,6 +2863,7 @@ int wifidb_update_preassoc_ctrl_config(char *vap_name, wifi_preassoc_control_t *
     }
 
     strcpy(cfg.vap_name, vap_name);
+    wifi_util_dbg_print(WIFI_DB,"%s:%d:preassoc->rssi_up_threshold = %s, cfg.rssi_up_threshold = %s \n",__func__, __LINE__, preassoc->rssi_up_threshold, cfg.rssi_up_threshold);
     strcpy(cfg.rssi_up_threshold, preassoc->rssi_up_threshold);
     wifi_util_dbg_print(WIFI_DB,"%s:%d:preassoc->rssi_up_threshold = %s, cfg.rssi_up_threshold = %s \n",__func__, __LINE__, preassoc->rssi_up_threshold, cfg.rssi_up_threshold);
     strcpy(cfg.snr_threshold, preassoc->snr_threshold);
