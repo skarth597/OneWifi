@@ -265,6 +265,9 @@ static int webconfig_hal_csi_data_apply(wifi_app_t *apps, webconfig_subdoc_decod
                     "%s:%d csi own session index:%d"
                     " index:%d\n",
                     __func__, __LINE__, csi_info->csi_session_index, index);
+                csi_info->stream = new_csi_data->stream;
+                wifi_util_info_print(WIFI_APPS, "%s:%d csi stream:%d\n", __func__, __LINE__,
+                    csi_info->stream);
             } else if (new_csi_data->enabled == false) {
                 wifi_util_dbg_print(WIFI_APPS,
                     "%s:%d csi not enabled for"
@@ -481,10 +484,48 @@ int decode_csi_pipe_msg(uint8_t *data_ptr, wifi_csi_dev_t *p_csi_dev)
     return RETURN_OK;
 }
 
+static void write_csi_stream_data(wifi_csi_dev_t *csi_dev_data)
+{
+    int itr;
+    FILE *fp = fopen("/tmp/hermes/simple_file", "a");
+    if (fp != NULL) {
+        fprintf(fp, "MAC %02x%02x%02x%02x%02x%02x\n",
+            csi_dev_data->sta_mac[0], csi_dev_data->sta_mac[1],
+            csi_dev_data->sta_mac[2], csi_dev_data->sta_mac[3],
+            csi_dev_data->sta_mac[4], csi_dev_data->sta_mac[5]);
+        fprintf(fp, "bw_mode %d, mcs %d, Nr %d, Nc %d, valid_mask %hu, "
+            "phy_bw %hu, cap_bw %hu, num_sc %hu, decimation %d, "
+            "channel %d, cfo %d, time_stamp %llu\n",
+            csi_dev_data->csi.frame_info.bw_mode,
+            csi_dev_data->csi.frame_info.mcs,
+            csi_dev_data->csi.frame_info.Nr,
+            csi_dev_data->csi.frame_info.Nc,
+            csi_dev_data->csi.frame_info.valid_mask,
+            csi_dev_data->csi.frame_info.phy_bw,
+            csi_dev_data->csi.frame_info.cap_bw,
+            csi_dev_data->csi.frame_info.num_sc,
+            csi_dev_data->csi.frame_info.decimation,
+            csi_dev_data->csi.frame_info.channel,
+            csi_dev_data->csi.frame_info.cfo,
+            csi_dev_data->csi.frame_info.time_stamp);
+        fprintf(fp, "rssi:");
+        for (itr = 0; itr < csi_dev_data->csi.frame_info.Nr; itr++) {
+            fprintf(fp, " %d", csi_dev_data->csi.frame_info.nr_rssi[itr]);
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+    } else {
+        wifi_util_error_print(WIFI_APPS,
+            "%s:%d Failed to open /tmp/hermes/simple_file: %s\n",
+            __func__, __LINE__, strerror(errno));
+    }
+}
+
 void *pipe_read_oper_thread_func(void *arg)
 {
     wifi_app_t *p_app = (wifi_app_t *)arg;
     csi_analytics_info_t *p_info = &p_app->data.u.csi_analytics;
+    
     int buffer_len = CSI_HEADER_SIZE + sizeof(wifi_csi_data_t);
     char buffer[buffer_len];
     char fifo_path[64] = { 0 };
@@ -517,6 +558,9 @@ void *pipe_read_oper_thread_func(void *arg)
             wifi_csi_dev_t csi_dev_data = { 0 };
             decode_csi_pipe_msg((uint8_t *)buffer, &csi_dev_data);
             process_csi_analytics_data(p_app, &csi_dev_data);
+            if (p_info->stream) {
+                write_csi_stream_data(&csi_dev_data);
+            }
         }
     }
 

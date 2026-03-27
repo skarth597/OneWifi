@@ -213,6 +213,7 @@ static csi_session_t* csi_get_session(bool create, int csi_session_number) {
     csi->csi_time_interval = MIN_CSI_INTERVAL;
     csi->csi_sess_number = csi_session_number;
     csi->enable = FALSE;
+    csi->stream = FALSE;
     csi->subscribed = FALSE;
     csi->csi_fd = -1;
 
@@ -886,21 +887,36 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                     free(str_dup);
                 }
             }
+        } else if (strcmp(paramter, "stream") == 0) {
+            bool stream;
+
+            if (p_data->data_type != bus_data_type_boolean) {
+                wifi_util_error_print(WIFI_CTRL, "%s:%d '%s' wrong bus data_type:%02x\n", __func__,
+                    __LINE__, name, p_data->data_type);
+                queue_destroy(local_csi_queue);
+                return bus_error_invalid_input;
+            } else {
+                bool stream = p_data->raw_data.b;
+                if (stream != csi_data->stream) {
+                    csi_data->stream = stream;
+                }
+                apply = true;
+            }
         } else if (strcmp(parameter, "Enable") == 0) {
             bool enabled;
 
             if (p_data->data_type != bus_data_type_boolean) {
-                wifi_util_error_print(WIFI_CTRL,"%s:%d '%s' wrong bus data_type:%02x\n",
-                   __func__, __LINE__, name, p_data->data_type);
+                wifi_util_error_print(WIFI_CTRL, "%s:%d '%s' wrong bus data_type:%02x\n", __func__,
+                    __LINE__, name, p_data->data_type);
                 queue_destroy(local_csi_queue);
                 return bus_error_invalid_input;
             } else {
                 enabled = p_data->raw_data.b;
                 if (enabled != csi_data->enabled) {
-                    //check new configuration did not exceed the max number of csi clients
+                    // check new configuration did not exceed the max number of csi clients
                     num_unique_mac = 0;
                     if (enabled == true) {
-                        for (i=0; i<qcount; i++) {
+                        for (i = 0; i < qcount; i++) {
                             tmp_csi_data = (csi_data_t *)queue_peek(local_csi_queue, i);
                             if (tmp_csi_data != NULL) {
                                 if (tmp_csi_data->csi_session_num != csi_data->csi_session_num) {
@@ -908,22 +924,27 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                                         continue;
                                     }
                                 }
-                                for (j=0; j < tmp_csi_data->csi_client_count; j++) {
-                                    found  = false;
-                                    for (k=0; k < num_unique_mac; k++) {
-                                        if (memcmp(tmp_csi_data->csi_client_list[j], unique_mac_list[k], sizeof(mac_address_t)) == 0) {
-                                            found  = true;
+                                for (j = 0; j < tmp_csi_data->csi_client_count; j++) {
+                                    found = false;
+                                    for (k = 0; k < num_unique_mac; k++) {
+                                        if (memcmp(tmp_csi_data->csi_client_list[j],
+                                                unique_mac_list[k], sizeof(mac_address_t)) == 0) {
+                                            found = true;
                                             break;
                                         }
                                     }
                                     if (!found) {
                                         num_unique_mac++;
                                         if (num_unique_mac > MAX_NUM_CSI_CLIENTS) {
-                                            wifi_util_error_print(WIFI_APPS,"%s %d MAX_NUM_CSI_CLIENTS reached\n", __func__, __LINE__);
+                                            wifi_util_error_print(WIFI_APPS,
+                                                "%s %d MAX_NUM_CSI_CLIENTS reached\n", __func__,
+                                                __LINE__);
                                             queue_destroy(local_csi_queue);
                                             return bus_error_general;
                                         } else {
-                                            memcpy(unique_mac_list[num_unique_mac-1], tmp_csi_data->csi_client_list[j], sizeof(mac_address_t));
+                                            memcpy(unique_mac_list[num_unique_mac - 1],
+                                                tmp_csi_data->csi_client_list[j],
+                                                sizeof(mac_address_t));
                                         }
                                     }
                                 }
@@ -1021,6 +1042,10 @@ bus_error_t csi_get_handler(char *event_name, raw_data_t *p_data, bus_user_data_
             p_data->raw_data_len = str_len;
             return status;
         } else if (strcmp(parameter, "Enable") == 0) {
+            p_data->data_type = bus_data_type_boolean;
+            p_data->raw_data.b = csi_data->enabled;
+            return status;
+        } else if (strcmp(parameter, "stream") == 0) {
             p_data->data_type = bus_data_type_boolean;
             p_data->raw_data.b = csi_data->enabled;
             return status;
@@ -1756,6 +1781,9 @@ int motion_init(wifi_app_t *app, unsigned int create_flag)
             { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
             { bus_data_type_string, true, 0, 0, 0, NULL } },
         { WIFI_CSI_ENABLE, bus_element_type_property,
+            { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+            { bus_data_type_boolean, true, 0, 0, 0, NULL } },
+        { WIFI_CSI_STREAM, bus_element_type_property,
             { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
             { bus_data_type_boolean, true, 0, 0, 0, NULL } },
         { WIFI_CSI_NUMBEROFENTRIES, bus_element_type_property,
