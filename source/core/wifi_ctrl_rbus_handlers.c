@@ -35,6 +35,7 @@
 #define MAX_EVENT_NAME_SIZE 200
 #define MAX_STR_LEN 128
 #define MAX_STATUS_LEN 5
+#define STA_STATUS_DISCONNECTED 1
 
 apply_ignite_config_t g_apply_ignite_config;
 
@@ -181,6 +182,7 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
     wifi_util_info_print(WIFI_CTRL, "%s:%d RF-Status : %d\n", __func__, __LINE__, ctrl->rf_status_down);
     start_station_vaps(rf_status);
     if (rf_status) {
+	    wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Docsis disabled. Starting Station Vaps\n");
         apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_start, NULL, 0);
 
         wifi_global_config_t *global_cfg = get_wifidb_wifi_global_config();
@@ -204,7 +206,10 @@ bus_error_t set_endpoint_enable(char *name, raw_data_t *p_data, bus_user_data_t 
             }
         }
     } else {
+       wifi_util_info_print(WIFI_CTRL, "IGNITE_RF_DOWN: Docsis enabled. Stoping Station Vaps\n");
        apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_stop, NULL, 0);
+       //Stop station vaps
+       stop_extender_vaps(WIFI_ALL_RADIO_INDICES);
     }
 
     return rc;
@@ -449,13 +454,47 @@ int notify_hotspot(wifi_ctrl_t *ctrl, assoc_dev_data_t *assoc_device)
     }
     return RETURN_OK;
 }
+/*
+MLO ready notify_LM_Lite - CONFIG_MLO_ENABLED_NOTIFY_LM_LITE
+b2:6c:4a:2f:0d:e5[mld MAC],Device.WiFi.AccessPoint.17.AssociatedDevice.1,[Device.WiFi.SSID.17;Device.WiFi.SSID.1],[-38;15],1, mld_enable
+
+b2:6c:4a:2f:0d:e5,Device.WiFi.AccessPoint.17.AssociatedDevice.1,[Device.WiFi.SSID.17;Device.WiFi.SSID.1],[-38;15],1, 1 - MLO
+b2:6c:4a:2f:0d:e5,Device.WiFi.AccessPoint.17.AssociatedDevice.1,[Device.WiFi.SSID.1],[-38],1, 0 - Non MLO
+*/
+static int notify_LM_Lite_host(wifi_ctrl_t *ctrl, LM_wifi_host_t *host, bool sync)
+{
+    bus_error_t rc;
+    char str[2048];
+
+    memset(str, 0, 2048);
+#ifndef CONFIG_MLO_ENABLED_NOTIFY_LM_LITE
+    snprintf(str, sizeof(str), "%s,%s,%s,%s,%d", (char *)host->phyAddr,
+        ('\0' != host->AssociatedDevice[0]) ?
+            (char *)host->AssociatedDevice :
+            "NULL",
+        ('\0' != host->ssid[0]) ? (char *)host->ssid : "NULL",
+        (char *)host->RSSI, (host->Status == TRUE) ? 1 : 0);
+#else /*CONFIG_MLO_ENABLED_NOTIFY_LM_LITE*/
+    snprintf(str, sizeof(str), "%s,%s,[%s],[%s],%d,%d", (char *)host->phyAddr,
+        ('\0' != host->AssociatedDevice[0]) ?
+            (char *)host->AssociatedDevice :
+            "NULL",
+        ('\0' != host->ssid[0]) ? (char *)host->ssid : "NULL",
+        (char *)host->RSSI, (host->Status == TRUE) ? 1 : 0, host->mld_sta);
+#endif /*CONFIG_MLO_ENABLED_NOTIFY_LM_LITE*/
+
+    rc = get_bus_descriptor()->bus_set_string_fn(&ctrl->handle, WIFI_LMLITE_NOTIFY, str);
+    if (rc != bus_error_success) {
+        wifi_util_error_print(WIFI_CTRL, "%s:%d: bus: Write Failed %d\n", __func__, __LINE__,
+            rc);
+        return RETURN_ERR;
+    }
+    return RETURN_OK;
+}
 
 int notify_LM_Lite(wifi_ctrl_t *ctrl, LM_wifi_hosts_t *phosts, bool sync)
 {
     int itr;
-    bus_error_t rc;
-    char str[2048];
-    memset(str, 0, 2048);
 
     if (ctrl == NULL) {
         wifi_util_error_print(WIFI_CTRL, "%s:%d: NULL Pointer \n", __func__, __LINE__);
@@ -463,32 +502,16 @@ int notify_LM_Lite(wifi_ctrl_t *ctrl, LM_wifi_hosts_t *phosts, bool sync)
     }
 
     if (sync) {
-        snprintf(str, sizeof(str), "%s,%s,%s,%d,%d", (char *)phosts->host[0].phyAddr,
-            ('\0' != phosts->host[0].AssociatedDevice[0]) ?
-                (char *)phosts->host[0].AssociatedDevice :
-                "NULL",
-            ('\0' != phosts->host[0].ssid[0]) ? (char *)phosts->host[0].ssid : "NULL",
-            phosts->host[0].RSSI, (phosts->host[0].Status == TRUE) ? 1 : 0);
-
-        rc = get_bus_descriptor()->bus_set_string_fn(&ctrl->handle, WIFI_LMLITE_NOTIFY, str);
-        if (rc != bus_error_success) {
-            wifi_util_error_print(WIFI_CTRL, "%s:%d: bus: Write Failed %d\n", __func__, __LINE__,
-                rc);
+        if (notify_LM_Lite_host(ctrl, &phosts->host[0], sync) != RETURN_OK) {
+            wifi_util_error_print(WIFI_CTRL, "%s:%d: Failed to notify LM Lite for host %s\n",
+                __func__, __LINE__, phosts->host[0].phyAddr);
             return RETURN_ERR;
         }
     } else {
         for (itr = 0; itr < phosts->count; itr++) {
-            snprintf(str, sizeof(str), "%s,%s,%s,%d,%d", (char *)phosts->host[itr].phyAddr,
-                ('\0' != phosts->host[itr].AssociatedDevice[0]) ?
-                    (char *)phosts->host[itr].AssociatedDevice :
-                    "NULL",
-                ('\0' != phosts->host[itr].ssid[0]) ? (char *)phosts->host[0].ssid : "NULL",
-                phosts->host[itr].RSSI, (phosts->host[itr].Status == TRUE) ? 1 : 0);
-
-            rc = get_bus_descriptor()->bus_set_string_fn(&ctrl->handle, WIFI_LMLITE_NOTIFY, str);
-            if (rc != bus_error_success) {
-                wifi_util_error_print(WIFI_CTRL, "%s:%d: bus: Write Failed %d\n", __func__,
-                    __LINE__, rc);
+            if (notify_LM_Lite_host(ctrl, &phosts->host[itr], sync) != RETURN_OK) {
+                wifi_util_error_print(WIFI_CTRL, "%s:%d: Failed to notify LM Lite for host %s itr: %d\n",
+                    __func__, __LINE__, phosts->host[itr].phyAddr, itr);
                 return RETURN_ERR;
             }
         }
@@ -1030,38 +1053,37 @@ bus_error_t get_endpoint_status(char *event_name, raw_data_t *p_data, bus_user_d
 
     return bus_error_success;
 }
-int publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
+
+bus_error_t publish_endpoint_status(wifi_ctrl_t *ctrl, int connection_status)
 {
     char name[MAX_STR_LEN] = { '\0' };
     bus_error_t rc = bus_error_success;
-    wifi_util_info_print(WIFI_CTRL, "%s:%d Connection status updated as %d\n", __func__, __LINE__, connection_status);
-    if (ctrl->rf_status_down == true) {
-        raw_data_t data;
-        snprintf(name, MAX_STR_LEN,WIFI_ENDPOINT_CONNECT_STATUS);
-        memset(&data, 0, sizeof(raw_data_t));
-        data.data_type = bus_data_type_string;
-        data.raw_data.bytes = malloc(MAX_STATUS_LEN);
-        data.raw_data_len = MAX_STATUS_LEN;
-        memset(data.raw_data.bytes, '\0', MAX_STATUS_LEN);
-        if (connection_status == 2) { // connected state
-            strncpy((char *)data.raw_data.bytes, "Up", MAX_STATUS_LEN);
-        } else if ((connection_status == 1) || (connection_status == 3)) { // disconnected  or AP not found state
-            strncpy((char *)data.raw_data.bytes, "Down", MAX_STATUS_LEN);
-        }
-        rc = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, name, &data);
-        if (rc != bus_error_success) {
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d: bus_event_publish_fn(): Event failed\n", __func__, __LINE__);
-            return RETURN_ERR;
-        }
-        if (data.raw_data.bytes) {
-            free(data.raw_data.bytes);
-            data.raw_data.bytes = NULL;
-        }
-    } else {
-        wifi_util_info_print(WIFI_CTRL, "%s:%d Endpoint not enabled\n", __func__, __LINE__);
-        return RETURN_OK;
+    wifi_util_info_print(WIFI_CTRL, "%s:%d Connection status updated as %d\n", __func__, __LINE__,
+        connection_status);
+    raw_data_t data;
+    snprintf(name, MAX_STR_LEN, WIFI_ENDPOINT_CONNECT_STATUS);
+    memset(&data, 0, sizeof(raw_data_t));
+    data.data_type = bus_data_type_string;
+    data.raw_data.bytes = malloc(MAX_STATUS_LEN);
+    data.raw_data_len = MAX_STATUS_LEN;
+    memset(data.raw_data.bytes, '\0', MAX_STATUS_LEN);
+    if (connection_status == 2) { // connected state
+        strncpy((char *)data.raw_data.bytes, "Up", MAX_STATUS_LEN);
+    } else if ((connection_status == 1) ||
+        (connection_status == 3)) { // disconnected  or AP not found state
+        strncpy((char *)data.raw_data.bytes, "Down", MAX_STATUS_LEN);
     }
-    return RETURN_OK;
+    rc = get_bus_descriptor()->bus_event_publish_fn(&ctrl->handle, name, &data);
+    if (rc != bus_error_success) {
+        wifi_util_dbg_print(WIFI_CTRL, "%s:%d: bus_event_publish_fn(): Event failed\n", __func__,
+            __LINE__);
+        return rc;
+    }
+    if (data.raw_data.bytes) {
+        free(data.raw_data.bytes);
+        data.raw_data.bytes = NULL;
+    }
+    return rc;
 }
 int publish_endpoint_enable(void)
 {
@@ -3519,14 +3541,14 @@ static bus_error_t stats_table_addrowhandler(char const *tableName, char const *
 
 bus_error_t ap_table_removerowhandler(char const *rowName)
 {
-    int i = 0, count = 0;
+    int i = 0;
     event_bus_element_t *event;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    pthread_mutex_lock(&ctrl->events_bus_data.events_bus_lock);
-    count = queue_count(ctrl->events_bus_data.events_bus_queue);
+    int count = queue_count(ctrl->events_bus_data.events_bus_queue);
 
     wifi_util_dbg_print(WIFI_CTRL, "%s(): %s\n", __FUNCTION__, rowName);
 
+    pthread_mutex_lock(&ctrl->events_bus_data.events_bus_lock);
 
     while (i < count) {
         event = queue_peek(ctrl->events_bus_data.events_bus_queue, i);
@@ -3550,13 +3572,13 @@ bus_error_t ap_table_removerowhandler(char const *rowName)
 
 static bus_error_t stats_table_removerowhandler(char const *rowName)
 {
-    int i = 0, count = 0;
+    int i = 0;
     event_bus_element_t *event;
     wifi_ctrl_t *ctrl = (wifi_ctrl_t *)get_wifictrl_obj();
-    pthread_mutex_lock(&ctrl->events_bus_data.events_bus_lock);
-    count = queue_count(ctrl->events_bus_data.events_bus_queue);
+    int count = queue_count(ctrl->events_bus_data.events_bus_queue);
     wifi_util_dbg_print(WIFI_CTRL, "%s(): %s\n", __FUNCTION__, rowName);
 
+    pthread_mutex_lock(&ctrl->events_bus_data.events_bus_lock);
 
     while (i < count) {
         event = queue_peek(ctrl->events_bus_data.events_bus_queue, i);
@@ -3933,6 +3955,24 @@ void register_endpoint_components(wifi_ctrl_t *ctrl)
         wifi_util_error_print(WIFI_CTRL, "%s %dbus: bus_regDataElements failed\n", __FUNCTION__, __LINE__);
         return;
      }
+     wifi_util_error_print(WIFI_CTRL, "%s:%d To check whether the WAN receive status event\n", __func__, __LINE__);
+     rc = 0;
+     rc = publish_endpoint_status(ctrl, STA_STATUS_DISCONNECTED);
+     if (rc == 0) {
+         wifi_util_error_print(WIFI_CTRL, "%s:%d Endpoint status published successfully. Hence enabling the endpoint\n", __func__, __LINE__);
+         bool ep_enable_after_restart = true;
+         raw_data_t data;
+         memset(&data, 0, sizeof(raw_data_t));
+         data.data_type = bus_data_type_boolean;
+         data.raw_data.b = ep_enable_after_restart;
+
+         rc = get_bus_descriptor()->bus_set_fn(&ctrl->handle, WIFI_ENDPOINT_ENABLE_CHECK, &data);
+         if (rc != bus_error_success) {
+	     wifi_util_error_print(WIFI_CTRL, "bus: bus_set_fn with error rc:%d\n", rc);
+	 }
+     } else {
+         wifi_util_error_print(WIFI_CTRL, "%s:%d EndPoint status not subscribed by WAN manager\n", __func__, __LINE__);
+     }
      wifi_util_dbg_print(WIFI_CTRL, "%s %d bus: bus_regDataElements done\n", __FUNCTION__, __LINE__);
      return;
 }
@@ -3982,7 +4022,7 @@ void bus_register_handlers(wifi_ctrl_t *ctrl)
                                 { WIFI_STA_NAMESPACE, bus_element_type_table,
                                     { NULL, NULL, events_STAtable_addrowhandler, events_STAtable_removerowhandler, eventSubHandler, NULL}, slow_speed, num_of_radio,
                                     { bus_data_type_object, false, 0, 0, 0, NULL } }, 
-			        { WIFI_STA_CONNECT_STATUS, bus_element_type_property,
+			                    { WIFI_STA_CONNECT_STATUS, bus_element_type_property,
                                     { get_sta_attribs, set_sta_attribs, NULL, NULL, eventSubHandler, NULL }, slow_speed, ZERO_TABLE,
                                     { bus_data_type_bytes, true, 0, 0, 0, NULL } },
                                 { WIFI_STA_INTERFACE_NAME, bus_element_type_property,
