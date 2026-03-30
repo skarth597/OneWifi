@@ -887,7 +887,7 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                     free(str_dup);
                 }
             }
-        } else if (strcmp(paramter, "stream") == 0) {
+        } else if (strcmp(parameter, "stream") == 0) {
             bool stream;
 
             if (p_data->data_type != bus_data_type_boolean) {

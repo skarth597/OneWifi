@@ -4790,6 +4790,14 @@ webconfig_error_t decode_csi_object(queue_t** csi_queue, cJSON *object)
 
     csi_data->csi_session_num = value_object->valuedouble;
 
+    value_object = cJSON_GetObjectItem(object, "Stream");
+    if ((value_object == NULL) || (cJSON_IsBool(value_object) == false)){
+        wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Validation Failed\n", __func__, __LINE__);
+        free(csi_data);
+        return webconfig_error_decode;
+    }
+    csi_data->stream = (value_object->type & cJSON_True) ? true:false;
+
     value_object = cJSON_GetObjectItem(object, "Enabled");
     if ((value_object == NULL) || (cJSON_IsBool(value_object) == false)) {
         wifi_util_error_print(WIFI_WEBCONFIG, "%s:%d: Validation Failed\n", __func__, __LINE__);
