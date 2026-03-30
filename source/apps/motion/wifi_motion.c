@@ -896,7 +896,7 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                 queue_destroy(local_csi_queue);
                 return bus_error_invalid_input;
             } else {
-                bool stream = p_data->raw_data.b;
+                stream = p_data->raw_data.b;
                 if (stream != csi_data->stream) {
                     csi_data->stream = stream;
                 }
