@@ -887,7 +887,7 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                     free(str_dup);
                 }
             }
-        } else if (strcmp(parameter, "stream") == 0) {
+        } else if (strcmp(parameter, "Stream") == 0) {
             bool stream;
 
             if (p_data->data_type != bus_data_type_boolean) {
@@ -1045,9 +1045,9 @@ bus_error_t csi_get_handler(char *event_name, raw_data_t *p_data, bus_user_data_
             p_data->data_type = bus_data_type_boolean;
             p_data->raw_data.b = csi_data->enabled;
             return status;
-        } else if (strcmp(parameter, "stream") == 0) {
+        } else if (strcmp(parameter, "Stream") == 0) {
             p_data->data_type = bus_data_type_boolean;
-            p_data->raw_data.b = csi_data->enabled;
+            p_data->raw_data.b = csi_data->stream;
             return status;
         }
     }
