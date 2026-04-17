@@ -7792,11 +7792,13 @@ AccessPoint_SetParamIntValue
         if (vapInfo->u.bss_info.bssMaxSta == (UINT) iValue)
         {
             /* Same value in VAPs private data, no change needed. Just return */
+            wifi_util_info_print(WIFI_DMCLI, "%s:%d value of bssmaxsta is output value:%d/ bssmaxsta:%d in cosa file\n", __func__, __LINE__, iValue, vapInfo->u.bss_info.bssMaxSta);
             return  TRUE;
         }
 
         /* Allow users to set max station for given VAP */
         vapInfo->u.bss_info.bssMaxSta = iValue;
+        wifi_util_info_print(WIFI_DMCLI, "%s:%d value of bssmaxsta is output value:%d/ bssmaxsta:%d in cosa file\n", __func__, __LINE__, iValue, vapInfo->u.bss_info.bssMaxSta);
         set_dml_cache_vap_config_changed(instance_number - 1);
         return (TRUE);
     }

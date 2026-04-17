@@ -2032,11 +2032,13 @@ bool accesspoint_set_param_int_value(void *obj_ins_context, char *param_name, in
         p_dm_vap_default->multicast_rate = output_value;
     } else if (STR_CMP(param_name, "X_CISCO_COM_BssMaxNumSta")) {
         if (p_dm_vap_info->u.bss_info.bssMaxSta == (uint32_t)output_value) {
+            wifi_util_info_print(WIFI_DMCLI, "%s:%d value of bssmaxsta is same\n", __func__, __LINE__);
             return true;
         }
 
         /* Allow users to set max station for given VAP */
         p_dm_vap_info->u.bss_info.bssMaxSta = output_value;
+        wifi_util_info_print(WIFI_DMCLI, "%s:%d value of bssmaxsta is output value:%d/ bssmaxsta:%d\n", __func__, __LINE__, output_value, p_dm_vap_info->u.bss_info.bssMaxSta);
         set_dml_cache_vap_config_changed(instance_number - 1);
     } else if (STR_CMP(param_name, "X_RDKCENTRAL-COM_ManagementFramePowerControl")) {
         if ((output_value < -20) || (output_value > 0)) {
