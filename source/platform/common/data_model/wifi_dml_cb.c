@@ -1652,6 +1652,7 @@ bool accesspoint_get_param_int_value(void *obj_ins_context, char *param_name, in
         *output_value = p_dm_vap_default->multicast_rate;
     } else if (STR_CMP(param_name, "X_CISCO_COM_BssMaxNumSta")) {
         *output_value = pcfg->u.bss_info.bssMaxSta;
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d bssMaxSta:%d \n", __FUNCTION__,__LINE__,pcfg->u.bss_info.bssMaxSta);
     } else if (STR_CMP(param_name, "X_CISCO_COM_BssUserStatus")) {
         if (isVapSTAMesh(pcfg->vap_index)) {
             *output_value = (pcfg->u.sta_info.enabled == TRUE) ? 1 : 2;
@@ -1708,6 +1709,7 @@ bool accesspoint_get_param_uint_value(void *obj_ins_context, char *param_name,
         *output_value = p_dm_vap_default->long_retry_limit;
     } else if (STR_CMP(param_name, "MaxAssociatedDevices")) {
         *output_value = pcfg->u.bss_info.bssMaxSta;
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d bssMaxSta:%d \n", __FUNCTION__,__LINE__,pcfg->u.bss_info.bssMaxSta);
     } else if (STR_CMP(param_name, "X_COMCAST-COM_AssociatedDevicesHighWatermarkThreshold")) {
         dml_vap_default *p_dm_vap_default = get_vap_default(vap_index);
         DM_CHECK_NULL_WITH_RC(p_dm_vap_default, false);
@@ -2109,6 +2111,7 @@ bool accesspoint_set_param_uint_value(void *obj_ins_context, char *param_name,
             return TRUE;
         } else if (p_dm_vap_info->u.bss_info.bssMaxSta != output_value) {
             p_dm_vap_info->u.bss_info.bssMaxSta = output_value;
+            wifi_util_dbg_print(WIFI_DMCLI,"%s:%d bssMaxSta:%d \n", __FUNCTION__,__LINE__,p_dm_vap_info->u.bss_info.bssMaxSta);
             set_dml_cache_vap_config_changed(instance_number - 1);
         }
     } else if (STR_CMP(param_name, "X_COMCAST-COM_AssociatedDevicesHighWatermarkThreshold")) {

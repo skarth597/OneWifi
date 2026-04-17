@@ -7060,6 +7060,7 @@ AccessPoint_GetParamIntValue
     if( AnscEqualString(ParamName, "X_CISCO_COM_BssMaxNumSta", TRUE))
     {
         *pInt = pcfg->u.bss_info.bssMaxSta;
+        wifi_util_dbg_print(WIFI_DMCLI,"%s:%d bssMaxSta:%d \n", __FUNCTION__,__LINE__,pcfg->u.bss_info.bssMaxSta);
         return TRUE;
     }
     if( AnscEqualString(ParamName, "X_CISCO_COM_BssUserStatus", TRUE))
