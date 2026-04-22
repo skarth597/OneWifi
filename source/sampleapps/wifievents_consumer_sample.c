@@ -534,6 +534,32 @@ void save_json_data_to_file(void)
     }
 }
 
+void save_json_data_to_hermes_file(void)
+{
+    csi_data_json_obj_t *p_csi_json_obj = get_csi_json_obj();
+    if (p_csi_json_obj->main_json_obj != NULL) {
+        char *json_string = cJSON_Print(p_csi_json_obj->main_json_obj);
+        if (json_string == NULL) {
+            printf("%s Failed to serialize JSON\n", __func__);
+            return;
+        }
+
+        FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
+        if (hermes_fptr == NULL) {
+            printf("%s Failed to open /tmp/simple_file\n", __func__);
+            free(json_string);
+            return;
+        }
+
+        if (fputs(json_string, hermes_fptr) == EOF) {
+            perror("Failed to write to /tmp/simple_file");
+        }
+        fputc('\n', hermes_fptr);
+        fclose(hermes_fptr);
+        free(json_string);
+    }
+}
+
 void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
 {
 #define MB(x) ((long int)(x) << 20)
@@ -1293,6 +1319,8 @@ int main(int argc, char *argv[])
                                     g_sample_counter);
                                 save_json_data_to_file();
                                 goto exit2;
+                            } else {
+                                save_json_data_to_hermes_file();
                             }
                         }
                     }
