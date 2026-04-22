@@ -558,6 +558,27 @@ void save_json_data_to_hermes_file(void)
         fclose(hermes_fptr);
         free(json_string);
     }
+    if (p_csi_json_obj->main_json_obj != NULL) {
+        char *json_str = cJSON_Print(p_csi_json_obj->main_json_obj);
+        if (json_str == NULL) {
+            printf("%s Failed to serialize JSON\n", __func__);
+            return;
+        }
+
+        FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
+        if (hermes_ptr == NULL) {
+            printf("%s Failed to open /tmp/hermes/simple_file\n", __func__);
+            free(json_str);
+            return;
+        }
+
+        if (fputs(json_str, hermes_ptr) == EOF) {
+            perror("Failed to write to /tmp/hermes/simple_file");
+        }
+        fputc('\n', hermes_ptr);
+        fclose(hermes_ptr);
+        free(json_str);
+    }
 }
 
 void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
