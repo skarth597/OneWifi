@@ -41,6 +41,7 @@
 #define MAX_CSI_INTERVAL 30000
 #define MIN_CSI_INTERVAL 100
 #define DEFAULT_DBG_FILE "/tmp/wifiEventConsumer"
+#define HERMESFS_FILE "/tmp/hermes/simple_file"
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(_p_) (void)(_p_)
 #endif
@@ -534,6 +535,23 @@ void save_json_data_to_file(void)
     }
 }
 
+static void write_csi_bin_to_hermes(mac_address_t sta_mac, wifi_csi_data_t *csi)
+{
+    FILE *fp = NULL;
+
+    fp = fopen(HERMESFS_FILE, "a");
+    if (fp == NULL) {
+        WIFI_EVENT_CONSUMER_DGB("Failed to open %s: %s", HERMESFS_FILE, strerror(errno));
+        return;
+    }
+
+    /* Write same binary format as rotate_and_write_CSIData: mac + frame_info + csi_matrix */
+    fwrite(sta_mac, sizeof(mac_address_t), 1, fp);
+    fwrite(&(csi->frame_info), sizeof(wifi_frame_info_t), 1, fp);
+    fwrite(&(csi->csi_matrix), sizeof(wifi_csi_matrix_t), 1, fp);
+    fclose(fp);
+}
+
 void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
 {
 #define MB(x) ((long int)(x) << 20)
@@ -592,6 +610,7 @@ void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
     }
 
     csi_data_in_json_format(sta_mac, csi);
+    write_csi_bin_to_hermes(sta_mac, csi);
 
     WIFI_EVENT_CONSUMER_DGB("Exit %s: %d\n", __FUNCTION__, __LINE__);
 }
