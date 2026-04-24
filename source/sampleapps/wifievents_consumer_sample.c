@@ -595,7 +595,6 @@ void save_json_data_to_hermes_file(void)
             perror("Failed to write to /tmp/simple_file");
         }
         fputc('\n', hermes_fptr);
-        fputc('\n', hermes_fptr);
         fclose(hermes_fptr);
     }
 
@@ -607,7 +606,6 @@ void save_json_data_to_hermes_file(void)
         if (fputs(envelope_str, hermes_ptr) == EOF) {
             perror("Failed to write to /tmp/hermes/simple_file");
         }
-        fputc('\n', hermes_ptr);
         fputc('\n', hermes_ptr);
         fclose(hermes_ptr);
     }
@@ -1372,6 +1370,8 @@ int main(int argc, char *argv[])
                             if (g_sample_counter >= g_num_of_samples) {
                                 printf("collected samples : %d, exiting program\n",
                                     g_sample_counter);
+                                /*to print the last record to the /tmp/hermes/simple_file
+                                 and to make the record_id to zero for next csi sample*/
                                 save_json_data_to_hermes_file();
                                 g_hermes_record_id = 0;
                                 save_json_data_to_file();
