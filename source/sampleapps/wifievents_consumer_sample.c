@@ -103,6 +103,7 @@ int g_disable_csi_log = 0;
 int g_rbus_direct_enabled = 0;
 int g_num_of_samples = -1;
 int g_sample_counter = 0;
+static unsigned long g_hermes_record_id = 0;
 
 static void wifievents_get_device_vaps()
 {
@@ -537,48 +538,81 @@ void save_json_data_to_file(void)
 void save_json_data_to_hermes_file(void)
 {
     csi_data_json_obj_t *p_csi_json_obj = get_csi_json_obj();
-    if (p_csi_json_obj->main_json_obj != NULL) {
-        char *json_string = cJSON_Print(p_csi_json_obj->main_json_obj);
-        if (json_string == NULL) {
-            printf("%s Failed to serialize JSON\n", __func__);
-            return;
-        }
+    if (p_csi_json_obj->main_json_obj == NULL) {
+        return;
+    }
 
-        FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
-        if (hermes_fptr == NULL) {
-            printf("%s Failed to open /tmp/simple_file\n", __func__);
-            free(json_string);
-            return;
-        }
+    /* Increment the record counter once per call so both files share the same ID. */
+    g_hermes_record_id++;
 
-        if (fputs(json_string, hermes_fptr) == EOF) {
+    /* Build a real-time timestamp string in MMDDYYHHmmss format. */
+    char timestamp_str[16] = { 0 };
+    {
+        time_t now = time(NULL);
+        struct tm tm_info;
+        localtime_r(&now, &tm_info);
+        strftime(timestamp_str, sizeof(timestamp_str), "%m%d%y%H%M%S", &tm_info);
+    }
+
+    /* Serialise the CSI payload in the original pretty-printed JSON format. */
+    char *payload_str = cJSON_Print(p_csi_json_obj->main_json_obj);
+    if (payload_str == NULL) {
+        printf("%s Failed to serialize JSON payload\n", __func__);
+        return;
+    }
+
+    /* Build the structured envelope JSON object. */
+    char id_str[32] = { 0 };
+    snprintf(id_str, sizeof(id_str), "%lu", g_hermes_record_id);
+
+    cJSON *envelope = cJSON_CreateObject();
+    if (envelope == NULL) {
+        printf("%s Failed to create envelope JSON object\n", __func__);
+        free(payload_str);
+        return;
+    }
+    cJSON_AddStringToObject(envelope, "start_id",    id_str);
+    cJSON_AddStringToObject(envelope, "ordering_id", id_str);
+    cJSON_AddStringToObject(envelope, "app_type",    "csi");
+    cJSON_AddStringToObject(envelope, "timestamp",   timestamp_str);
+    cJSON_AddStringToObject(envelope, "payload",     payload_str);
+    cJSON_AddStringToObject(envelope, "end_id",      id_str);
+    free(payload_str);
+
+    char *envelope_str = cJSON_Print(envelope);
+    cJSON_Delete(envelope);
+    if (envelope_str == NULL) {
+        printf("%s Failed to serialize envelope JSON\n", __func__);
+        return;
+    }
+
+    /* Write structured record to /tmp/simple_file. */
+    FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
+    if (hermes_fptr == NULL) {
+        printf("%s Failed to open /tmp/simple_file\n", __func__);
+    } else {
+        if (fputs(envelope_str, hermes_fptr) == EOF) {
             perror("Failed to write to /tmp/simple_file");
         }
         fputc('\n', hermes_fptr);
+        fputc('\n', hermes_fptr);
         fclose(hermes_fptr);
-        free(json_string);
     }
-    if (p_csi_json_obj->main_json_obj != NULL) {
-        char *json_str = cJSON_Print(p_csi_json_obj->main_json_obj);
-        if (json_str == NULL) {
-            printf("%s Failed to serialize JSON\n", __func__);
-            return;
-        }
 
-        FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
-        if (hermes_ptr == NULL) {
-            printf("%s Failed to open /tmp/hermes/simple_file\n", __func__);
-            free(json_str);
-            return;
-        }
-
-        if (fputs(json_str, hermes_ptr) == EOF) {
+    /* Write the same structured record to /tmp/hermes/simple_file. */
+    FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
+    if (hermes_ptr == NULL) {
+        printf("%s Failed to open /tmp/hermes/simple_file\n", __func__);
+    } else {
+        if (fputs(envelope_str, hermes_ptr) == EOF) {
             perror("Failed to write to /tmp/hermes/simple_file");
         }
         fputc('\n', hermes_ptr);
+        fputc('\n', hermes_ptr);
         fclose(hermes_ptr);
-        free(json_str);
     }
+
+    free(envelope_str);
 }
 
 void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
@@ -1338,6 +1372,8 @@ int main(int argc, char *argv[])
                             if (g_sample_counter >= g_num_of_samples) {
                                 printf("collected samples : %d, exiting program\n",
                                     g_sample_counter);
+                                save_json_data_to_hermes_file();
+                                g_hermes_record_id = 0;
                                 save_json_data_to_file();
                                 goto exit2;
                             } else {
