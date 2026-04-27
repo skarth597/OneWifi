@@ -606,7 +606,6 @@ void save_json_data_to_hermes_file(void)
             perror("Failed to write to /tmp/simple_file");
         }
         fputc('\n', hermes_fptr);
-        fputc('\n', hermes_fptr);
         fclose(hermes_fptr);
     }
 
@@ -618,7 +617,6 @@ void save_json_data_to_hermes_file(void)
         if (fputs(envelope_str, hermes_ptr) == EOF) {
             perror("Failed to write to /tmp/hermes/simple_file");
         }
-        fputc('\n', hermes_ptr);
         fputc('\n', hermes_ptr);
         fclose(hermes_ptr);
     }
