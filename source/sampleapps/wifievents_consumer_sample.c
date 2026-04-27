@@ -54,6 +54,7 @@ typedef struct csi_data_json_obj {
     cJSON *json_sounding_devices;
     hash_map_t *stalist_array_map;
     FILE *json_dump_fptr;
+    cJSON *current_sample_obj;  /* points to the single sample added in the latest call */
 } csi_data_json_obj_t;
 
 typedef struct stalist_map_info {
@@ -103,6 +104,7 @@ int g_disable_csi_log = 0;
 int g_rbus_direct_enabled = 0;
 int g_num_of_samples = -1;
 int g_sample_counter = 0;
+static unsigned long g_hermes_record_id = 0;
 
 static void wifievents_get_device_vaps()
 {
@@ -497,6 +499,9 @@ void csi_data_in_json_format(mac_address_t sta_mac, wifi_csi_data_t *csi)
     obj = cJSON_CreateObject();
     cJSON_AddItemToArray(ptr->sta_json_arr_obj, obj);
     client_csi_data_json_elem_add(obj, csi, str_sta_mac);
+
+    /* Track this sample so save_json_data_to_hermes_file can write it in isolation. */
+    p_csi_json_obj->current_sample_obj = obj;
 }
 
 void save_json_data_to_file(void)
@@ -532,6 +537,96 @@ void save_json_data_to_file(void)
         p_csi_json_obj->main_json_obj = NULL;
         free(json_string);
     }
+}
+
+void save_json_data_to_hermes_file(void)
+{
+    csi_data_json_obj_t *p_csi_json_obj = get_csi_json_obj();
+
+    /*
+     * Serialize only the single sample that was just added by the latest
+     * csi_data_in_json_format() call.  The full main_json_obj (and its
+     * hashmap) is intentionally left untouched so save_json_data_to_file()
+     * can later write the complete accumulated history.
+     */
+    if (p_csi_json_obj->current_sample_obj == NULL) {
+        return;
+    }
+
+    /* Increment the record counter once per call so both files share the same ID. */
+    g_hermes_record_id++;
+
+    /* Build a real-time timestamp string in MMDDYYHHmmss format. */
+    char timestamp_str[16] = { 0 };
+    {
+        time_t now = time(NULL);
+        struct tm tm_info;
+        localtime_r(&now, &tm_info);
+        strftime(timestamp_str, sizeof(timestamp_str), "%m%d%y%H%M%S", &tm_info);
+    }
+
+    /* Serialise only the present sample (not the full accumulated tree). */
+    char *payload_str = cJSON_Print(p_csi_json_obj->current_sample_obj);
+    if (payload_str == NULL) {
+        printf("%s Failed to serialize current sample JSON\n", __func__);
+        return;
+    }
+
+    /* Build the structured envelope JSON object. */
+    char id_str[32] = { 0 };
+    snprintf(id_str, sizeof(id_str), "%lu", g_hermes_record_id);
+
+    cJSON *envelope = cJSON_CreateObject();
+    if (envelope == NULL) {
+        printf("%s Failed to create envelope JSON object\n", __func__);
+        free(payload_str);
+        return;
+    }
+    cJSON_AddStringToObject(envelope, "start_id",    id_str);
+    cJSON_AddStringToObject(envelope, "ordering_id", id_str);
+    cJSON_AddStringToObject(envelope, "app_type",    "csi");
+    cJSON_AddStringToObject(envelope, "timestamp",   timestamp_str);
+    cJSON_AddStringToObject(envelope, "payload",     payload_str);
+    cJSON_AddStringToObject(envelope, "end_id",      id_str);
+    free(payload_str);
+
+    char *envelope_str = cJSON_Print(envelope);
+    cJSON_Delete(envelope);
+    if (envelope_str == NULL) {
+        printf("%s Failed to serialize envelope JSON\n", __func__);
+        return;
+    }
+
+    /* Write structured record to /tmp/simple_file. */
+    FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
+    if (hermes_fptr == NULL) {
+        printf("%s Failed to open /tmp/simple_file\n", __func__);
+    } else {
+        if (fputs(envelope_str, hermes_fptr) == EOF) {
+            perror("Failed to write to /tmp/simple_file");
+        }
+        fputc('\n', hermes_fptr);
+        fputc('\n', hermes_fptr);
+        fclose(hermes_fptr);
+    }
+
+    /* Write the same structured record to /tmp/hermes/simple_file. */
+    FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
+    if (hermes_ptr == NULL) {
+        printf("%s Failed to open /tmp/hermes/simple_file\n", __func__);
+    } else {
+        if (fputs(envelope_str, hermes_ptr) == EOF) {
+            perror("Failed to write to /tmp/hermes/simple_file");
+        }
+        fputc('\n', hermes_ptr);
+        fputc('\n', hermes_ptr);
+        fclose(hermes_ptr);
+    }
+
+    free(envelope_str);
+
+    /* Clear the pointer — the object itself lives inside main_json_obj's tree. */
+    p_csi_json_obj->current_sample_obj = NULL;
 }
 
 void rotate_and_write_CSIData(mac_address_t sta_mac, wifi_csi_data_t *csi)
@@ -1291,8 +1386,12 @@ int main(int argc, char *argv[])
                             if (g_sample_counter >= g_num_of_samples) {
                                 printf("collected samples : %d, exiting program\n",
                                     g_sample_counter);
+                                save_json_data_to_hermes_file();
+                                g_hermes_record_id = 0;
                                 save_json_data_to_file();
                                 goto exit2;
+                            } else {
+                                save_json_data_to_hermes_file();
                             }
                         }
                     }
