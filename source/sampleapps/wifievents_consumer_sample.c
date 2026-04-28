@@ -537,6 +537,7 @@ void save_json_data_to_file(void)
 
 void save_json_data_to_hermes_file(void)
 {
+    wifi_util_dbg_print(WIFI_APPS, "%s: %d: Entering function", __func__, __LINE__);
     csi_data_json_obj_t *p_csi_json_obj = get_csi_json_obj();
     if (p_csi_json_obj->main_json_obj == NULL) {
         return;
@@ -544,6 +545,8 @@ void save_json_data_to_hermes_file(void)
 
     /* Increment the record counter once per call so both files share the same ID. */
     g_hermes_record_id++;
+    wifi_util_dbg_print(WIFI_APPS, "%s: %d: Generated record ID %lu", __func__, __LINE__,
+        g_hermes_record_id);
 
     /* Build a real-time timestamp string in MMDDYYHHmmss format. */
     char timestamp_str[16] = { 0 };
@@ -554,34 +557,39 @@ void save_json_data_to_hermes_file(void)
         strftime(timestamp_str, sizeof(timestamp_str), "%m%d%y%H%M%S", &tm_info);
     }
 
-    /* Serialise the CSI payload in the original pretty-printed JSON format. */
-    char *payload_str = cJSON_Print(p_csi_json_obj->main_json_obj);
-    if (payload_str == NULL) {
-        printf("%s Failed to serialize JSON payload\n", __func__);
-        return;
-    }
-
     /* Build the structured envelope JSON object. */
     char id_str[32] = { 0 };
     snprintf(id_str, sizeof(id_str), "%lu", g_hermes_record_id);
 
     cJSON *envelope = cJSON_CreateObject();
     if (envelope == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to create envelope JSON object", __func__,
+            __LINE__);
         printf("%s Failed to create envelope JSON object\n", __func__);
-        free(payload_str);
         return;
     }
-    cJSON_AddStringToObject(envelope, "start_id",    id_str);
-    cJSON_AddStringToObject(envelope, "ordering_id", id_str);
-    cJSON_AddStringToObject(envelope, "app_type",    "csi");
-    cJSON_AddStringToObject(envelope, "timestamp",   timestamp_str);
-    cJSON_AddStringToObject(envelope, "payload",     payload_str);
-    cJSON_AddStringToObject(envelope, "end_id",      id_str);
-    free(payload_str);
 
-    char *envelope_str = cJSON_Print(envelope);
+    cJSON *payload_obj = cJSON_Duplicate(p_csi_json_obj->main_json_obj, 1);
+    if (payload_obj == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to duplicate CSI JSON payload", __func__,
+            __LINE__);
+        printf("%s Failed to duplicate JSON payload\n", __func__);
+        cJSON_Delete(envelope);
+        return;
+    }
+
+    cJSON_AddStringToObject(envelope, "start_id", id_str);
+    cJSON_AddStringToObject(envelope, "ordering_id", id_str);
+    cJSON_AddStringToObject(envelope, "app_type", "csi");
+    cJSON_AddStringToObject(envelope, "timestamp", timestamp_str);
+    cJSON_AddItemToObject(envelope, "payload", payload_obj);
+    cJSON_AddStringToObject(envelope, "end_id", id_str);
+
+    char *envelope_str = cJSON_PrintUnformatted(envelope);
     cJSON_Delete(envelope);
     if (envelope_str == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to serialize envelope JSON", __func__,
+            __LINE__);
         printf("%s Failed to serialize envelope JSON\n", __func__);
         return;
     }
@@ -589,9 +597,14 @@ void save_json_data_to_hermes_file(void)
     /* Write structured record to /tmp/simple_file. */
     FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
     if (hermes_fptr == NULL) {
-        printf("%s Failed to open /tmp/simple_file\n", __func__);
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to open /tmp/simple_file", __func__,
+            __LINE__);
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to open /tmp/simple_file\n", __func__,
+            __LINE__);
     } else {
         if (fputs(envelope_str, hermes_fptr) == EOF) {
+            wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to write to /tmp/simple_file",
+                __func__, __LINE__);
             perror("Failed to write to /tmp/simple_file");
         }
         fputc('\n', hermes_fptr);
@@ -602,14 +615,16 @@ void save_json_data_to_hermes_file(void)
     FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
     if (hermes_ptr == NULL) {
         printf("%s Failed to open /tmp/hermes/simple_file\n", __func__);
+        wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to open /tmp/hermes/simple_file", __func__, __LINE__);
     } else {
         if (fputs(envelope_str, hermes_ptr) == EOF) {
+            wifi_util_error_print(WIFI_APPS, "%s: %d: Failed to write to /tmp/hermes/simple_file", __func__, __LINE__);
             perror("Failed to write to /tmp/hermes/simple_file");
         }
         fputc('\n', hermes_ptr);
         fclose(hermes_ptr);
     }
-
+    wifi_util_dbg_print(WIFI_APPS, "%s: %d: Successfully wrote record ID %lu to Hermes file", __func__, __LINE__, g_hermes_record_id);
     free(envelope_str);
 }
 
