@@ -510,7 +510,7 @@ void save_json_data_to_file(void)
     if (p_csi_json_obj->main_json_obj != NULL) {
         hash_map_destroy(p_csi_json_obj->stalist_array_map);
         p_csi_json_obj->stalist_array_map = NULL;
-        char *json_string = cJSON_Print(p_csi_json_obj->main_json_obj);
+        char *json_string = cJSON_PrintUnformatted(p_csi_json_obj->main_json_obj);
         if (json_string == NULL) {
             cJSON_Delete(p_csi_json_obj->main_json_obj);
             p_csi_json_obj->main_json_obj = NULL;
@@ -565,10 +565,9 @@ void save_json_data_to_hermes_file(void)
         strftime(timestamp_str, sizeof(timestamp_str), "%m%d%y%H%M%S", &tm_info);
     }
 
-    /* Serialise only the present sample (not the full accumulated tree). */
-    char *payload_str = cJSON_Print(p_csi_json_obj->current_sample_obj);
-    if (payload_str == NULL) {
-        printf("%s Failed to serialize current sample JSON\n", __func__);
+    cJSON *payload_json = cJSON_Duplicate(p_csi_json_obj->current_sample_obj, 1);
+    if (payload_json == NULL) {
+        printf("%s Failed to duplicate current sample JSON\n", __func__);
         return;
     }
 
@@ -579,18 +578,17 @@ void save_json_data_to_hermes_file(void)
     cJSON *envelope = cJSON_CreateObject();
     if (envelope == NULL) {
         printf("%s Failed to create envelope JSON object\n", __func__);
-        free(payload_str);
+        cJSON_Delete(payload_json);
         return;
     }
     cJSON_AddStringToObject(envelope, "start_id",    id_str);
     cJSON_AddStringToObject(envelope, "ordering_id", id_str);
     cJSON_AddStringToObject(envelope, "app_type",    "csi");
     cJSON_AddStringToObject(envelope, "timestamp",   timestamp_str);
-    cJSON_AddStringToObject(envelope, "payload",     payload_str);
+    cJSON_AddItemToObject(envelope, "payload", payload_json);
     cJSON_AddStringToObject(envelope, "end_id",      id_str);
-    free(payload_str);
 
-    char *envelope_str = cJSON_Print(envelope);
+    char *envelope_str = cJSON_PrintUnformatted(envelope);
     cJSON_Delete(envelope);
     if (envelope_str == NULL) {
         printf("%s Failed to serialize envelope JSON\n", __func__);
