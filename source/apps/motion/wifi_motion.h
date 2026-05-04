@@ -32,6 +32,7 @@ extern "C" {
 #define WIFI_CSI_CLIENTMACLIST              "Device.WiFi.X_RDK_CSI.{i}.ClientMaclist"
 #define WIFI_CSI_ENABLE                     "Device.WiFi.X_RDK_CSI.{i}.Enable"
 #define WIFI_CSI_NUMBEROFENTRIES            "Device.WiFi.X_RDK_CSINumberOfEntries"
+#define WIFI_CSI_STREAM                     "Device.WiFi.X_RDK_CSI.{i}.Stream"
 
 typedef struct {
     csi_base_app_t       csi_fns;
@@ -48,6 +49,7 @@ typedef struct {
 typedef struct {
     bool enable;
     bool subscribed;
+    bool stream;
     bool mac_is_connected[MAX_CSI_CLIENTS_PER_SESSION];
     int  csi_time_interval;
     int  no_of_mac;

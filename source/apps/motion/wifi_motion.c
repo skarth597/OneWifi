@@ -214,6 +214,7 @@ static csi_session_t* csi_get_session(bool create, int csi_session_number) {
     csi->csi_sess_number = csi_session_number;
     csi->enable = FALSE;
     csi->subscribed = FALSE;
+    csi->stream = FALSE;
     csi->csi_fd = -1;
 
     //Create FIFO fr the session.
@@ -886,6 +887,21 @@ bus_error_t csi_set_handler(char *event_name, raw_data_t *p_data, bus_user_data_
                     free(str_dup);
                 }
             }
+        } else if (strcmp(parameter, "Stream") == 0) {
+            bool stream_val;
+
+            if (p_data->data_type != bus_data_type_boolean) {
+                wifi_util_error_print(WIFI_CTRL,"%s:%d '%s' wrong bus data_type:%02x\n",
+                   __func__, __LINE__, name, p_data->data_type);
+                queue_destroy(local_csi_queue);
+                return bus_error_invalid_input;
+            } else {
+                stream_val = p_data->raw_data.b;
+                if (stream_val != csi_data->stream) {
+                    csi_data->stream = stream_val;
+                    apply = true;
+                }
+            }
         } else if (strcmp(parameter, "Enable") == 0) {
             bool enabled;
 
@@ -1023,6 +1039,10 @@ bus_error_t csi_get_handler(char *event_name, raw_data_t *p_data, bus_user_data_
         } else if (strcmp(parameter, "Enable") == 0) {
             p_data->data_type = bus_data_type_boolean;
             p_data->raw_data.b = csi_data->enabled;
+            return status;
+        } else if (strcmp(parameter, "Stream") == 0) {
+            p_data->data_type = bus_data_type_boolean;
+            p_data->raw_data.b = csi_data->stream;
             return status;
         }
     }
@@ -1756,6 +1776,9 @@ int motion_init(wifi_app_t *app, unsigned int create_flag)
             { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
             { bus_data_type_string, true, 0, 0, 0, NULL } },
         { WIFI_CSI_ENABLE, bus_element_type_property,
+            { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
+            { bus_data_type_boolean, true, 0, 0, 0, NULL } },
+        { WIFI_CSI_STREAM, bus_element_type_property,
             { csi_get_handler, csi_set_handler, NULL, NULL, NULL, NULL}, slow_speed, ZERO_TABLE,
             { bus_data_type_boolean, true, 0, 0, 0, NULL } },
         { WIFI_CSI_NUMBEROFENTRIES, bus_element_type_property,

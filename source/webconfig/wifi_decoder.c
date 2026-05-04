@@ -4800,6 +4800,14 @@ webconfig_error_t decode_csi_object(queue_t** csi_queue, cJSON *object)
     }
 
     csi_data->enabled = (value_object->type & cJSON_True) ? true:false;
+
+    value_object = cJSON_GetObjectItem(object, "Stream");
+    if ((value_object != NULL) && (cJSON_IsBool(value_object))) {
+        csi_data->stream = (value_object->type & cJSON_True) ? true:false;
+    } else {
+        csi_data->stream = false;
+    }
+
     if (*csi_queue == NULL) {
         *csi_queue = queue_create();
     }
