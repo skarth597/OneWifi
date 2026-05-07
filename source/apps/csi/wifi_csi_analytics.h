@@ -22,6 +22,7 @@
 
 #include "bus.h"
 #include "collection.h"
+#include "wifi_base.h"
 #include <pthread.h>
 #include <cjson/cJSON.h>
 

@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -259,6 +260,11 @@ static int webconfig_hal_csi_data_apply(wifi_app_t *apps, webconfig_subdoc_decod
     }
 
     total_session = queue_count(new_config);
+
+    /* Reset stream flag before scanning; will be set true if any enabled
+     * external session requests streaming. */
+    csi_info->stream = false;
+
     for (index = 0; index < total_session; index++) {
         new_csi_data = (csi_data_t *)queue_peek(new_config, index);
         if (new_csi_data != NULL) {
@@ -267,15 +273,17 @@ static int webconfig_hal_csi_data_apply(wifi_app_t *apps, webconfig_subdoc_decod
                     "%s:%d csi own session index:%d"
                     " index:%d\n",
                     __func__, __LINE__, csi_info->csi_session_index, index);
-                csi_info->stream = new_csi_data->stream;
-                wifi_util_info_print(WIFI_APPS, "%s:%d csi stream:%d\n", __func__, __LINE__,
-                    csi_info->stream);
             } else if (new_csi_data->enabled == false) {
                 wifi_util_dbg_print(WIFI_APPS,
                     "%s:%d csi not enabled for"
                     " session index:%d\n",
                     __func__, __LINE__, new_csi_data->csi_session_num);
             } else {
+                /* Collect MACs from all enabled external sessions.
+                 * Also inherit stream=true if any such session requests it. */
+                if (new_csi_data->stream) {
+                    csi_info->stream = true;
+                }
                 for (s_index = 0; s_index < new_csi_data->csi_client_count; s_index++) {
                     memset(mac_str, 0, MAX_MAC_STR_SIZE);
                     to_mac_str(new_csi_data->csi_client_list[s_index], mac_str);
@@ -286,6 +294,9 @@ static int webconfig_hal_csi_data_apply(wifi_app_t *apps, webconfig_subdoc_decod
             }
         }
     }
+
+    wifi_util_info_print(WIFI_APPS, "%s:%d csi stream:%d\n", __func__, __LINE__,
+        csi_info->stream);
 
     update_mac_list(apps, total_str_mac);
 
@@ -609,72 +620,98 @@ void csi_analytics_data_in_json_format(wifi_csi_dev_t *csi_dev_data)
     }
 
     mac_addr_str_t str_sta_mac = { 0 };
-    cJSON *obj;
-
     csi_analytics_json_obj_t *p_csi_json_obj = get_csi_analytics_json_obj();
 
+    /*
+     * Always start with a completely fresh JSON tree for this frame.
+     * Free any leftover state from a previous call that wasn't cleaned up
+     * (e.g. if save_json_data_to_hermes_file was never reached).
+     */
+    if (p_csi_json_obj->main_json_obj != NULL) {
+        cJSON_Delete(p_csi_json_obj->main_json_obj);
+        p_csi_json_obj->main_json_obj = NULL;
+        p_csi_json_obj->json_csi_obj = NULL;
+        p_csi_json_obj->json_sounding_devices = NULL;
+        p_csi_json_obj->current_sample_obj = NULL;
+    }
+
+    p_csi_json_obj->main_json_obj = cJSON_CreateObject();
     if (p_csi_json_obj->main_json_obj == NULL) {
-        p_csi_json_obj->main_json_obj = cJSON_CreateObject();
-        if (p_csi_json_obj->main_json_obj == NULL) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create main JSON object\n", __func__,
-                __LINE__);
-            return;
-        }
-    }
-
-    if (p_csi_json_obj->json_csi_obj == NULL) {
-        p_csi_json_obj->json_csi_obj = cJSON_CreateObject();
-        if (p_csi_json_obj->json_csi_obj == NULL) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create CSI JSON object\n", __func__,
-                __LINE__);
-            return;
-        }
-        cJSON_AddItemToObject(p_csi_json_obj->main_json_obj, "CSI", p_csi_json_obj->json_csi_obj);
-    }
-
-    if (p_csi_json_obj->json_sounding_devices == NULL) {
-        p_csi_json_obj->json_sounding_devices = cJSON_CreateArray();
-        if (p_csi_json_obj->json_sounding_devices == NULL) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create SoundingDevices array\n",
-                __func__, __LINE__);
-            return;
-        }
-        cJSON_AddItemToObject(p_csi_json_obj->json_csi_obj, "SoundingDevices",
-            p_csi_json_obj->json_sounding_devices);
-    }
-
-    to_mac_str(csi_dev_data->sta_mac, str_sta_mac);
-
-    obj = cJSON_CreateObject();
-    if (obj == NULL) {
-        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create sample JSON object\n", __func__,
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create main JSON object\n", __func__,
             __LINE__);
         return;
     }
-    cJSON_AddItemToArray(p_csi_json_obj->json_sounding_devices, obj);
-    csi_analytics_client_csi_data_json_elem_add(obj, &csi_dev_data->csi, str_sta_mac);
 
-    /* Track this sample so save_json_data_to_hermes_file can write it in isolation. */
-    p_csi_json_obj->current_sample_obj = obj;
+    p_csi_json_obj->json_csi_obj = cJSON_CreateObject();
+    if (p_csi_json_obj->json_csi_obj == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create CSI JSON object\n", __func__,
+            __LINE__);
+        cJSON_Delete(p_csi_json_obj->main_json_obj);
+        p_csi_json_obj->main_json_obj = NULL;
+        return;
+    }
+    cJSON_AddItemToObject(p_csi_json_obj->main_json_obj, "CSI", p_csi_json_obj->json_csi_obj);
+
+    p_csi_json_obj->json_sounding_devices = cJSON_CreateArray();
+    if (p_csi_json_obj->json_sounding_devices == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create SoundingDevices array\n", __func__,
+            __LINE__);
+        cJSON_Delete(p_csi_json_obj->main_json_obj);
+        p_csi_json_obj->main_json_obj = NULL;
+        p_csi_json_obj->json_csi_obj = NULL;
+        return;
+    }
+    cJSON_AddItemToObject(p_csi_json_obj->json_csi_obj, "SoundingDevices",
+        p_csi_json_obj->json_sounding_devices);
+
+    to_mac_str(csi_dev_data->sta_mac, str_sta_mac);
+
+    /* SoundingDevices layout: [[{sta_mac, frame_info, csi_matrix}]] */
+    cJSON *sta_inner_array = cJSON_CreateArray();
+    if (sta_inner_array == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create sta inner array\n", __func__,
+            __LINE__);
+        cJSON_Delete(p_csi_json_obj->main_json_obj);
+        p_csi_json_obj->main_json_obj = NULL;
+        p_csi_json_obj->json_csi_obj = NULL;
+        p_csi_json_obj->json_sounding_devices = NULL;
+        return;
+    }
+
+    cJSON *sample_obj = cJSON_CreateObject();
+    if (sample_obj == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create sample JSON object\n", __func__,
+            __LINE__);
+        cJSON_Delete(sta_inner_array);
+        cJSON_Delete(p_csi_json_obj->main_json_obj);
+        p_csi_json_obj->main_json_obj = NULL;
+        p_csi_json_obj->json_csi_obj = NULL;
+        p_csi_json_obj->json_sounding_devices = NULL;
+        return;
+    }
+    cJSON_AddItemToArray(sta_inner_array, sample_obj);
+    cJSON_AddItemToArray(p_csi_json_obj->json_sounding_devices, sta_inner_array);
+
+    /* Copy packed csi member into aligned local to avoid -Werror=address-of-packed-member. */
+    wifi_csi_data_t csi_data = csi_dev_data->csi;
+    csi_analytics_client_csi_data_json_elem_add(sample_obj, &csi_data, str_sta_mac);
+
+    p_csi_json_obj->current_sample_obj = sample_obj;
 }
 
 void save_json_data_to_hermes_file(void)
 {
     csi_analytics_json_obj_t *p_csi_json_obj = get_csi_analytics_json_obj();
 
-    /*
-     * Serialize only the single sample that was just added by the latest
-     * csi_analytics_data_in_json_format() call.  The full main_json_obj
-     * is intentionally left untouched.
-     */
-    if (p_csi_json_obj->current_sample_obj == NULL) {
+    if (p_csi_json_obj->current_sample_obj == NULL || p_csi_json_obj->main_json_obj == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d No CSI JSON data to write\n", __func__, __LINE__);
         return;
     }
 
-    /* Increment the record counter once per call so both files share the same ID. */
+    /* Increment the record counter; both files share the same ID. */
     g_csi_analytics_hermes_record_id++;
 
-    /* Build a real-time timestamp string in MMDDYYHHmmss format. */
+    /* Build timestamp string in MMDDYYHHmmss format. */
     char timestamp_str[16] = { 0 };
     {
         time_t now = time(NULL);
@@ -683,71 +720,76 @@ void save_json_data_to_hermes_file(void)
         strftime(timestamp_str, sizeof(timestamp_str), "%m%d%y%H%M%S", &tm_info);
     }
 
-    cJSON *payload_json = cJSON_Duplicate(p_csi_json_obj->current_sample_obj, 1);
-    if (payload_json == NULL) {
-        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to duplicate current sample JSON\n",
-            __func__, __LINE__);
-        return;
-    }
-
-    /* Build the structured envelope JSON object. */
     char id_str[32] = { 0 };
     snprintf(id_str, sizeof(id_str), "%lu", g_csi_analytics_hermes_record_id);
+
+    /*
+     * Build envelope directly — main_json_obj already has the structure
+     * {"CSI":{"SoundingDevices":[[{sta_mac,frame_info,csi_matrix}]]}}
+     * which becomes the "payload" value.  We detach it from p_csi_json_obj
+     * so cJSON_Delete(envelope) frees everything at once.
+     */
+    cJSON *payload_obj = p_csi_json_obj->main_json_obj;
+    /* Detach so cleanup block doesn't double-free. */
+    p_csi_json_obj->main_json_obj = NULL;
+    p_csi_json_obj->json_csi_obj = NULL;
+    p_csi_json_obj->json_sounding_devices = NULL;
+    p_csi_json_obj->current_sample_obj = NULL;
 
     cJSON *envelope = cJSON_CreateObject();
     if (envelope == NULL) {
         wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create envelope JSON object\n", __func__,
             __LINE__);
-        cJSON_Delete(payload_json);
+        cJSON_Delete(payload_obj);
         return;
     }
     cJSON_AddStringToObject(envelope, "start_id", id_str);
     cJSON_AddStringToObject(envelope, "ordering_id", id_str);
     cJSON_AddStringToObject(envelope, "app_type", "csi");
     cJSON_AddStringToObject(envelope, "timestamp", timestamp_str);
-    cJSON_AddItemToObject(envelope, "payload", payload_json);
+    cJSON_AddItemToObject(envelope, "payload", payload_obj); /* envelope now owns payload_obj */
     cJSON_AddStringToObject(envelope, "end_id", id_str);
 
     char *envelope_str = cJSON_PrintUnformatted(envelope);
-    cJSON_Delete(envelope);
+    cJSON_Delete(envelope); /* frees envelope + payload_obj */
     if (envelope_str == NULL) {
         wifi_util_error_print(WIFI_APPS, "%s:%d Failed to serialize envelope JSON\n", __func__,
             __LINE__);
         return;
     }
 
-    /* Write structured record to /tmp/simple_file. */
-    FILE *hermes_fptr = fopen("/tmp/simple_file", "a");
-    if (hermes_fptr == NULL) {
+    /* Write to /tmp/simple_file (append one JSON line per frame). */
+    FILE *fp = fopen("/tmp/simple_file", "a");
+    if (fp == NULL) {
         wifi_util_error_print(WIFI_APPS, "%s:%d Failed to open /tmp/simple_file: %s\n", __func__,
             __LINE__, strerror(errno));
     } else {
-        if (fputs(envelope_str, hermes_fptr) == EOF) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to write to /tmp/simple_file\n",
-                __func__, __LINE__);
-        }
-        fputc('\n', hermes_fptr);
-        fclose(hermes_fptr);
+        fputs(envelope_str, fp);
+        fputc('\n', fp);
+        fclose(fp);
+        wifi_util_info_print(WIFI_APPS, "%s:%d wrote record %s to /tmp/simple_file\n", __func__,
+            __LINE__, id_str);
     }
 
-    /* Write the same structured record to /tmp/hermes/simple_file. */
-    FILE *hermes_ptr = fopen("/tmp/hermes/simple_file", "a");
-    if (hermes_ptr == NULL) {
-        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to open /tmp/hermes/simple_file: %s\n",
-            __func__, __LINE__, strerror(errno));
+    /* Ensure /tmp/hermes/ exists, then write the same record. */
+    if (mkdir("/tmp/hermes", 0755) != 0 && errno != EEXIST) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create /tmp/hermes: %s\n", __func__,
+            __LINE__, strerror(errno));
     } else {
-        if (fputs(envelope_str, hermes_ptr) == EOF) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to write to /tmp/hermes/simple_file\n",
-                __func__, __LINE__);
+        FILE *fp2 = fopen("/tmp/hermes/simple_file", "a");
+        if (fp2 == NULL) {
+            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to open /tmp/hermes/simple_file: %s\n",
+                __func__, __LINE__, strerror(errno));
+        } else {
+            fputs(envelope_str, fp2);
+            fputc('\n', fp2);
+            fclose(fp2);
+            wifi_util_info_print(WIFI_APPS, "%s:%d wrote record %s to /tmp/hermes/simple_file\n",
+                __func__, __LINE__, id_str);
         }
-        fputc('\n', hermes_ptr);
-        fclose(hermes_ptr);
     }
 
     free(envelope_str);
-
-    /* Clear the pointer — the object itself lives inside main_json_obj's tree. */
-    p_csi_json_obj->current_sample_obj = NULL;
 }
 
 void *pipe_read_oper_thread_func(void *arg)
@@ -787,10 +829,11 @@ void *pipe_read_oper_thread_func(void *arg)
             wifi_csi_dev_t csi_dev_data = { 0 };
             decode_csi_pipe_msg((uint8_t *)buffer, &csi_dev_data);
             process_csi_analytics_data(p_app, &csi_dev_data);
-            /* Writing raw CSI data into json format */
-            csi_analytics_data_in_json_format(&csi_dev_data);
             if (p_info->stream) {
-                // csi_analytics_data_in_json_format(&csi_dev_data);
+                /* stream=true: build JSON for this frame and write to output files */
+                wifi_util_info_print(WIFI_APPS, "%s:%d stream=true, writing CSI JSON frame\n",
+                    __func__, __LINE__);
+                csi_analytics_data_in_json_format(&csi_dev_data);
                 save_json_data_to_hermes_file();
             }
         }
