@@ -32,7 +32,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -771,22 +770,17 @@ void save_json_data_to_hermes_file(void)
             __LINE__, id_str);
     }
 
-    /* Ensure /tmp/hermes/ exists, then write the same record. */
-    if (mkdir("/tmp/hermes", 0755) != 0 && errno != EEXIST) {
-        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create /tmp/hermes: %s\n", __func__,
-            __LINE__, strerror(errno));
+    /* Write the same record to /tmp/hermes/simple_file. */
+    FILE *fp2 = fopen("/tmp/hermes/simple_file", "a");
+    if (fp2 == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to open /tmp/hermes/simple_file: %s\n",
+            __func__, __LINE__, strerror(errno));
     } else {
-        FILE *fp2 = fopen("/tmp/hermes/simple_file", "a");
-        if (fp2 == NULL) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d Failed to open /tmp/hermes/simple_file: %s\n",
-                __func__, __LINE__, strerror(errno));
-        } else {
-            fputs(envelope_str, fp2);
-            fputc('\n', fp2);
-            fclose(fp2);
-            wifi_util_info_print(WIFI_APPS, "%s:%d wrote record %s to /tmp/hermes/simple_file\n",
-                __func__, __LINE__, id_str);
-        }
+        fputs(envelope_str, fp2);
+        fputc('\n', fp2);
+        fclose(fp2);
+        wifi_util_info_print(WIFI_APPS, "%s:%d wrote record %s to /tmp/hermes/simple_file\n",
+            __func__, __LINE__, id_str);
     }
 
     free(envelope_str);
