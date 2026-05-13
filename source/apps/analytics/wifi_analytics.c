@@ -440,9 +440,19 @@ int analytics_event_hal_assoc_device(wifi_app_t *apps, void *arg)
 
     if ((sta_info = (analytics_sta_info_t *)hash_map_get(sta_map, client_mac)) == NULL) {
         sta_info = malloc(sizeof(analytics_sta_info_t));
+        if (sta_info == NULL) {
+            wifi_util_error_print(WIFI_ANALYTICS, "%s:%d malloc failed\n", __func__, __LINE__);
+            return RETURN_ERR;
+        }
         sta_info->ap_index = assoc_data->ap_index;
         memcpy(sta_info->sta_mac, assoc_data->dev_stats.cli_MACAddress, sizeof(mac_address_t));
-        hash_map_put(sta_map, strdup(client_mac), sta_info);
+        char *dup_key = strdup(client_mac);
+        if (dup_key == NULL) {
+            wifi_util_error_print(WIFI_ANALYTICS, "%s:%d strdup failed\n", __func__, __LINE__);
+            free(sta_info);
+            return RETURN_ERR;
+        }
+        hash_map_put(sta_map, dup_key, sta_info);
     } else {
         sta_info->ap_index = assoc_data->ap_index;
         memcpy(sta_info->sta_mac, assoc_data->dev_stats.cli_MACAddress, sizeof(mac_address_t));
@@ -927,6 +937,21 @@ int analytics_event(wifi_app_t *app, wifi_event_t *event)
 
 int analytics_deinit(wifi_app_t *app)
 {
+    hash_map_t *sta_map = app->data.u.analytics.sta_map;
+    if (sta_map != NULL) {
+        analytics_sta_info_t *sta_info = hash_map_get_first(sta_map);
+        while (sta_info != NULL) {
+            mac_addr_str_t mac_str;
+            to_mac_str(sta_info->sta_mac, mac_str);
+            sta_info = hash_map_get_next(sta_map, sta_info);
+            analytics_sta_info_t *removed = hash_map_remove(sta_map, mac_str);
+            if (removed != NULL) {
+                free(removed);
+            }
+        }
+        hash_map_destroy(sta_map);
+        app->data.u.analytics.sta_map = NULL;
+    }
     return RETURN_OK;
 }
 

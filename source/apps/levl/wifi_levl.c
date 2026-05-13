@@ -258,10 +258,22 @@ void apps_probe_req_frame_event(wifi_app_t *app, frame_data_t *msg)
     str_tolower(mac_str);
     if ((elem = (probe_req_elem_t *)hash_map_get(app->data.u.levl.probe_req_map, mac_str)) == NULL) {
         elem = (probe_req_elem_t *)malloc(sizeof(probe_req_elem_t));
+        if (elem == NULL) {
+            wifi_util_error_print(WIFI_APPS, "%s:%d malloc failed\r\n", __func__, __LINE__);
+            pthread_mutex_unlock(&app->data.u.levl.lock);
+            return;
+        }
         memset(elem, 0, sizeof(probe_req_elem_t));
         memcpy(&elem->msg_data, msg, sizeof(frame_data_t));
         memcpy(elem->mac_str, mac_str, sizeof(mac_addr_str_t));
-        hash_map_put(app->data.u.levl.probe_req_map, strdup(mac_str), elem);
+        char *dup_key = strdup(mac_str);
+        if (dup_key == NULL) {
+            wifi_util_error_print(WIFI_APPS, "%s:%d strdup failed\r\n", __func__, __LINE__);
+            free(elem);
+            pthread_mutex_unlock(&app->data.u.levl.lock);
+            return;
+        }
+        hash_map_put(app->data.u.levl.probe_req_map, dup_key, elem);
         elem->curr_alive_time_sec = get_current_time_in_sec();
         wifi_util_info_print(WIFI_APPS,"%s:%d wifi mgmt probe frame message for %s time:%ld\r\n", __func__, __LINE__, mac_str, elem->curr_alive_time_sec);
     } else {
