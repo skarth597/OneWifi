@@ -1499,7 +1499,14 @@ sta_data_t *create_sta_data_hash_map(hash_map_t *sta_map, mac_addr_t l_sta_mac)
     }
     memset(sta, 0, sizeof(sta_data_t));
     memcpy(sta->sta_mac, l_sta_mac, sizeof(mac_addr_t));
-    hash_map_put(sta_map, strdup(to_mac_str(l_sta_mac, mac_str)), sta);
+    char *dup_key = strdup(to_mac_str(l_sta_mac, mac_str));
+    if (dup_key == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d strdup failed\r\n", __func__, __LINE__);
+        free(sta);
+        pthread_mutex_unlock(&g_monitor_module.data_lock);
+        return NULL;
+    }
+    hash_map_put(sta_map, dup_key, sta);
     pthread_mutex_unlock(&g_monitor_module.data_lock);
     return sta;
 }
@@ -1801,7 +1808,13 @@ sta_data_t *process_connect_add_sta(unsigned int ap_index, auth_deauth_dev_t *de
         memset(sta, 0, sizeof(sta_data_t));
         memcpy(sta->sta_mac, dev->sta_mac, sizeof(mac_addr_t));
         memcpy(sta->dev_stats.cli_MACAddress, dev->sta_mac, sizeof(mac_addr_t));
-        hash_map_put(sta_map, strdup(sta_key), sta);
+        char *dup_key = strdup(sta_key);
+        if (dup_key == NULL) {
+            wifi_util_error_print(WIFI_MON, "%s:%d strdup failed\r\n", __func__, __LINE__);
+            free(sta);
+            return NULL;
+        }
+        hash_map_put(sta_map, dup_key, sta);
     }
 
     clock_gettime(CLOCK_MONOTONIC, &tv_now);

@@ -207,7 +207,19 @@ webconfig_error_t decode_associated_clients_subdoc(webconfig_t *config, webconfi
                         }
                     }
                 }
-                rdk_vap_info->associated_devices_diff_map = NULL;
+                if (rdk_vap_info->associated_devices_diff_map != NULL) {
+                    assoc_dev_data = hash_map_get_first(rdk_vap_info->associated_devices_diff_map);
+                    while (assoc_dev_data != NULL) {
+                        to_mac_str(assoc_dev_data->dev_stats.cli_MACAddress, mac_str);
+                        assoc_dev_data = hash_map_get_next(rdk_vap_info->associated_devices_diff_map, assoc_dev_data);
+                        temp_assoc_dev_data = hash_map_remove(rdk_vap_info->associated_devices_diff_map, mac_str);
+                        if (temp_assoc_dev_data != NULL) {
+                            free(temp_assoc_dev_data);
+                        }
+                    }
+                    hash_map_destroy(rdk_vap_info->associated_devices_diff_map);
+                    rdk_vap_info->associated_devices_diff_map = NULL;
+                }
             }
         }
     }
