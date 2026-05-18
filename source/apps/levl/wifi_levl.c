@@ -251,11 +251,11 @@ void apps_probe_req_frame_event(wifi_app_t *app, frame_data_t *msg)
         return;
     }
 
-    update_probe_map(app, str);
+    str_tolower(mac_str);
+    update_probe_map(app, mac_str);
 
     wifi_util_dbg_print(WIFI_APPS,"%s:%d wifi mgmt frame message: ap_index:%d length:%d type:%d dir:%d src mac:%s rssi:%d\r\n", __FUNCTION__, __LINE__, msg->frame.ap_index, msg->frame.len, msg->frame.type, msg->frame.dir, str, msg->frame.sig_dbm);
 
-    str_tolower(mac_str);
     if ((elem = (probe_req_elem_t *)hash_map_get(app->data.u.levl.probe_req_map, mac_str)) == NULL) {
         elem = (probe_req_elem_t *)malloc(sizeof(probe_req_elem_t));
         if (elem == NULL) {
@@ -273,7 +273,11 @@ void apps_probe_req_frame_event(wifi_app_t *app, frame_data_t *msg)
             pthread_mutex_unlock(&app->data.u.levl.lock);
             return;
         }
-        hash_map_put(app->data.u.levl.probe_req_map, dup_key, elem);
+        if (hash_map_put(app->data.u.levl.probe_req_map, dup_key, elem) != 0) {
+            wifi_util_error_print(WIFI_APPS, "%s:%d hash_map_put failed for %s\r\n", __func__, __LINE__, mac_str);
+            pthread_mutex_unlock(&app->data.u.levl.lock);
+            return;
+        }
         elem->curr_alive_time_sec = get_current_time_in_sec();
         wifi_util_info_print(WIFI_APPS,"%s:%d wifi mgmt probe frame message for %s time:%ld\r\n", __func__, __LINE__, mac_str, elem->curr_alive_time_sec);
     } else {
@@ -1824,7 +1828,7 @@ int levl_init(wifi_app_t *app, unsigned int create_flag)
     pthread_mutex_init(&app->data.u.levl.lock, NULL);
 
     scheduler_add_timer_task(ctrl->sched, FALSE, &(app->data.u.levl.probe_collector_sched_handler_id),
-                               levl_event_exec_timeout, app, (APPS_FRAME_EXEC_TIMEOUT_PERIOD * 1000), 0, FALSE);
+                               levl_event_exec_timeout, app, (MAX_PROBE_TTL_TIME * 1000), 0, FALSE);
 
     //Create FIFO for the csi.
     if (mkfifo(CSI_LEVL_PIPE, 0777) != 0 && errno != EEXIST) {
