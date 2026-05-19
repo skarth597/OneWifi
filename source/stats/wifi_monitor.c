@@ -1990,6 +1990,10 @@ static void disconnect_mlo_sta(const char* sta_key)
             sta = (sta_data_t *)hash_map_get(sta_map, sta_key);
             if ((sta != NULL) && (sta->dev_stats.cli_Active == true)) {
                 disconnect_sta(sta, i);
+                sta_data_t *removed_sta = hash_map_remove(sta_map, sta_key);
+                if (removed_sta != NULL) {
+                    free(removed_sta);
+                }
             }
         }
     }
@@ -2018,8 +2022,19 @@ void process_disconnect(unsigned int ap_index, auth_deauth_dev_t *dev)
 
     if (sta->dev_stats.cli_MLDEnable){
         disconnect_mlo_sta(sta_key);
+        /* For MLO, entries are removed inside disconnect_mlo_sta per VAP.
+         * Remove the entry on the triggering VAP if still present (e.g. was
+         * already inactive so disconnect_mlo_sta skipped it). */
+        sta_data_t *removed_mlo = hash_map_remove(sta_map, sta_key);
+        if (removed_mlo != NULL) {
+            free(removed_mlo);
+        }
     } else {
         disconnect_sta(sta, vap_array_index);
+        sta_data_t *removed_sta = hash_map_remove(sta_map, sta_key);
+        if (removed_sta != NULL) {
+            free(removed_sta);
+        }
     }
     pthread_mutex_unlock(&g_monitor_module.data_lock);
     // stop instant measurements if its going on with this client device
