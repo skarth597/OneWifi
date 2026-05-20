@@ -5065,4 +5065,135 @@ int coordinator_check_stats_config(wifi_mon_stats_config_t *mon_stats_config)
 
     if (stats_common_args_validation(mon_stats_config) != RETURN_OK) {
         wifi_util_error_print(WIFI_MON, "%s:%d: common args validation failed. stats_type %d  interval_ms %d from app %d\n", __func__,__LINE__,
-                     
+                                    mon_stats_config->data_type, mon_stats_config->interval_ms, mon_stats_config->inst);
+        return RETURN_ERR;
+    }
+
+    stat_desc = (wifi_mon_stats_descriptor_t *)wifi_mon_get_stats_descriptor(mon_stats_config->data_type);
+    if (stat_desc == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d: Invalid stats_type %d from app %d\n", __func__,__LINE__, mon_stats_config->data_type, mon_stats_config->inst);
+        return RETURN_ERR;
+    }
+
+    if (stat_desc->validate_args(&mon_stats_config->args) != RETURN_OK) {
+        wifi_util_error_print(WIFI_MON, "%s:%d: args validation failed for stats_type %d from app %d\n", __func__,__LINE__,
+                                    mon_stats_config->data_type,mon_stats_config->inst);
+        return RETURN_ERR;
+    }
+
+    if (stat_desc->generate_stats_clctr_key(&mon_stats_config->args, stats_key, sizeof(stats_key)) != RETURN_OK) {
+        wifi_util_error_print(WIFI_MON, "%s:%d: stats key generation failed for stats_type %d from app %d\n", __func__,__LINE__, mon_stats_config->data_type, mon_stats_config->inst);
+        return RETURN_ERR;
+    }
+
+    collector_list = coordinator_get_collector_list();
+    if (collector_list == NULL) {
+        wifi_util_error_print(WIFI_MON, "%s:%d: Failed to get collector list\n", __func__,__LINE__);
+        return RETURN_ERR;
+    }
+    collector_elem = (wifi_mon_collector_element_t *)hash_map_get(collector_list, stats_key);
+    if (collector_elem == NULL) {
+        if (mon_stats_config->req_state == mon_stats_request_state_start) {
+            if (coordinator_create_task(&collector_elem, mon_stats_config, stat_desc) !=
+                RETURN_OK) {
+                wifi_util_error_print(WIFI_MON,
+                    "%s:%d: create task failed for key : %s for app  %d\n", __func__, __LINE__,
+                    stats_key, mon_stats_config->inst);
+                return RETURN_ERR;
+            }
+            char *key_copy = strdup(stats_key);
+            if (key_copy == NULL) {
+                wifi_util_error_print(WIFI_MON, "%s:%d: Failed to duplicate key\n", __func__,
+                    __LINE__);
+                return RETURN_ERR;
+            }
+            clctr_subscription = hash_map_get(mon_data->clctr_subscriber_map, stats_key);
+            if (clctr_subscription != NULL) {
+                collector_elem->stats_clctr.is_event_subscribed =
+                    clctr_subscription->is_event_subscribed;
+                collector_elem->stats_clctr.stats_type_subscribed =
+                    clctr_subscription->stats_type_subscribed;
+                wifi_util_dbg_print(WIFI_MON,
+                    "%s:%d: updated key : %s is_event_subscribed : %d stats_type : %d "
+                    "stats_type_subscribed : 0x%x\n",
+                    __func__, __LINE__, stats_key, collector_elem->stats_clctr.is_event_subscribed,
+                    mon_stats_config->data_type, collector_elem->stats_clctr.stats_type_subscribed);
+            }
+            hash_map_put(collector_list, key_copy, collector_elem);
+            wifi_util_info_print(WIFI_MON, "%s:%d: created task for key : %s for app  %d\n",
+                __func__, __LINE__, stats_key, mon_stats_config->inst);
+        } else {
+            wifi_util_error_print(WIFI_MON, "%s:%d: Task is not running. Request state %d is not expected\n", __func__,__LINE__, mon_stats_config->req_state);
+            return RETURN_ERR;
+        }
+    } else {
+        if (mon_stats_config->req_state == mon_stats_request_state_start) {
+            if (coordinator_update_task(collector_elem, mon_stats_config) != RETURN_OK) {
+                wifi_util_error_print(WIFI_MON, "%s:%d: update task failed for key : %s for app  %d\n", __func__,__LINE__, stats_key, mon_stats_config->inst);
+                return RETURN_ERR;
+            }
+            wifi_util_dbg_print(WIFI_MON, "%s:%d: updated task for key : %s for app  %d\n", __func__,__LINE__, stats_key, mon_stats_config->inst);
+        } else {
+            if (coordinator_stop_task(&collector_elem, mon_stats_config) != RETURN_OK) {
+                wifi_util_error_print(WIFI_MON, "%s:%d: stop task failed for key : %s for app  %d\n", __func__,__LINE__, stats_key, mon_stats_config->inst);
+                return RETURN_ERR;
+            }
+            wifi_util_dbg_print(WIFI_MON, "%s:%d: stopped the task for key : %s for app  %d\n", __func__,__LINE__, stats_key, mon_stats_config->inst);
+        }
+    }
+
+    return RETURN_OK;
+}
+
+wifi_apps_coordinator_t *get_apps_coordinator()
+{
+    return &g_apps_coordinator;
+}
+
+hash_map_t *coordinator_get_collector_list()
+{
+    wifi_apps_coordinator_t *apps_coordinator = get_apps_coordinator();
+
+    return apps_coordinator->collector_list;
+}
+
+void free_provider_list(wifi_mon_collector_element_t *coll_elem)
+{
+    wifi_mon_provider_element_t *provider_elem, *temp_provider;
+    char key[MON_STATS_KEY_LEN_32] = {0};
+    if (coll_elem->provider_list != NULL) {
+        provider_elem = hash_map_get_first(coll_elem->provider_list);
+        while (provider_elem != NULL) {
+            memset(key, 0, sizeof(key));
+            provider_elem->stat_desc->generate_stats_provider_key(provider_elem->mon_stats_config, key, sizeof(key));
+            provider_elem = hash_map_get_next(coll_elem->provider_list, provider_elem);
+            temp_provider = hash_map_remove(coll_elem->provider_list, key);
+            if (temp_provider != NULL) {
+                coordinator_free_provider_elem(&temp_provider);
+            }
+        }
+        hash_map_destroy(coll_elem->provider_list);
+    }
+}
+
+
+void free_coordinator(hash_map_t *collector_list)
+{
+    wifi_mon_collector_element_t *coll_elem = NULL, *temp_collector = NULL;
+    char key[MON_STATS_KEY_LEN_32] = {0};
+    if(collector_list != NULL) {
+        coll_elem = hash_map_get_first(collector_list);
+        while (coll_elem != NULL) {
+            free_provider_list(coll_elem);
+            memset(key, 0, sizeof(key));
+            coll_elem->stat_desc->generate_stats_clctr_key(coll_elem->args, key, sizeof(key));
+            coll_elem = hash_map_get_next(collector_list, coll_elem);
+            temp_collector = hash_map_remove(collector_list, key);
+            if (temp_collector != NULL) {
+                coordinator_free_collector_elem(&temp_collector);
+            }
+        }
+        hash_map_destroy(collector_list);
+    }
+}
+
