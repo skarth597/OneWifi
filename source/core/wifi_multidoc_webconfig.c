@@ -858,7 +858,7 @@ static int update_xfinity_vap_info(cJSON *blob, webconfig_subdoc_data_t *data, p
     webconfig_subdoc_decoded_data_t *params = &data->u.decoded;
     cJSON *param;
     wifi_mgr_t *g_wifi_mgr = (wifi_mgr_t *)get_wifimgr_obj();
-
+    wifi_util_info_print(WIFI_CTRL, "%s: Update_xfinity_vap_info is called sam\n", __func__);
     size = cJSON_GetArraySize(blob);
     cJSON *vb_entry = NULL;
     for (unsigned int i = 0; i < size; i++) {
@@ -1005,6 +1005,7 @@ static int update_xfinity_vap_info(cJSON *blob, webconfig_subdoc_data_t *data, p
         }
 
         vap_info->u.bss_info.bssMaxSta = param->valuedouble;
+	wifi_util_info_print(WIFI_CTRL, "   \"sam BssMax\": %d\n", param->valuedouble);
         wifi_util_info_print(WIFI_CTRL, "   \"BssMax\": %d\n", vap_info->u.bss_info.bssMaxSta);
 
         param = cJSON_GetObjectItem(vb_entry, "IsolationEnable");
@@ -1372,6 +1373,7 @@ static int update_vap_info_with_blob_info(void *blob, void *amenities_blob, webc
     wifi_vap_name_t vap_names_xfinity[MAX_NUM_RADIOS * 2];
 
     if (!strcmp(vap_prefix,"hotspot")){
+	wifi_util_dbg_print(WIFI_CTRL, "%s: hotspot is comapred in func update_vap_info_with_blob_info sam\n", __func__);
         /* get a list of VAP names */
         num_vaps= get_list_of_hotspot_open(&data->u.decoded.hal_cap.wifi_prop, MAX_NUM_RADIOS, vap_names_xfinity);
         /* get list of hotspot_secure SSID */
@@ -1379,15 +1381,18 @@ static int update_vap_info_with_blob_info(void *blob, void *amenities_blob, webc
     }
     else {
         num_vaps = get_list_of_vap_names(&data->u.decoded.hal_cap.wifi_prop, vap_names, MAX_NUM_RADIOS, 1, vap_prefix);
+        wifi_util_dbg_print(WIFI_CTRL, "%s: it is out of hotspot check sam\n", __func__);
     }
 
     for (int index = 0; index < num_vaps; index++) {
         if (!strcmp(vap_prefix,"hotspot")) {
             /* from VAP name, obtain radio index and array index within the radio */
             vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names_xfinity[index]);
+	    wifi_util_dbg_print(WIFI_CTRL, "%s: Again check for hotspot sam\n", __func__);
         } else {
             /* from VAP name, obtain radio index and array index within the radio */
             vap_index = convert_vap_name_to_index(&data->u.decoded.hal_cap.wifi_prop, vap_names[index]);
+	    wifi_util_dbg_print(WIFI_CTRL, "%s: checked for hostpst for second time sam\n", __func__);
         }
         status = get_vap_and_radio_index_from_vap_instance(&data->u.decoded.hal_cap.wifi_prop, vap_index, (uint8_t *)&radio_index, (uint8_t *)&vap_array_index);
         if (status == RETURN_ERR) {
@@ -1509,6 +1514,7 @@ static int connected_subdoc_handler(void *blob, void *amenities_blob, char *vap_
     }
 
     webconfig_init_subdoc_data(data);
+    wifi_util_error_print(WIFI_CTRL, "%s: is called sam\n" , __func__);
 
     if (update_vap_info_with_blob_info(blob, amenities_blob, data, vap_prefix, managed_wifi_enabled, execRetVal) != 0) {
         wifi_util_error_print(WIFI_CTRL, "%s: json parse failure\n", __func__);
@@ -1522,6 +1528,7 @@ static int connected_subdoc_handler(void *blob, void *amenities_blob, char *vap_
                               __func__, (subdoc_type == webconfig_subdoc_type_lnf) ? "lnf_psk" : "xfinity");
         goto done;
     }
+    wifi_util_error_print(WIFI_CTRL, "%s: push_blob_data sam is called from connected_subdoc_handler\n" , __func__);
 
     if (strcmp(vap_prefix,"lnf_psk")== 0) {
         num_vaps = get_list_of_vap_names(&data->u.decoded.hal_cap.wifi_prop, vap_names, MAX_NUM_RADIOS, 1, VAP_PREFIX_LNF_PSK);
@@ -1757,6 +1764,8 @@ static pErr xfinity_exec_common_handler(cJSON *blob, webconfig_subdoc_type_t sub
 {
     pErr execRetVal = NULL;
     webconfig_subdoc_data_t *data = NULL;
+    wifi_util_error_print(WIFI_CTRL,
+            "%s: this func is being called sam\n", __func__);
 
     data = (webconfig_subdoc_data_t *)malloc(sizeof(webconfig_subdoc_data_t));
     if (data == NULL) {
@@ -1780,6 +1789,9 @@ static pErr xfinity_exec_common_handler(cJSON *blob, webconfig_subdoc_type_t sub
         execRetVal->ErrorCode = VALIDATION_FALIED;
         goto done;
     }
+
+    wifi_util_error_print(WIFI_CTRL, "%s:%d push_blob_data sam is being called here\n",
+            __func__, __LINE__);
     if (push_blob_data(data, subdoc_type) != RETURN_OK) {
         execRetVal->ErrorCode = WIFI_HAL_FAILURE;
         wifi_util_error_print(WIFI_CTRL, "%s:%d failed to encode xfinity subdoc\n", __func__,
