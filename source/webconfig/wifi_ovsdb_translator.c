@@ -1193,6 +1193,7 @@ webconfig_error_t webconfig_ovsdb_decode(webconfig_t *config, const char *str,
     *type = webconfig_ovsdb_data.type;
     debug_external_protos(&webconfig_ovsdb_data, __func__, __LINE__);
     webconfig_data_free(&webconfig_ovsdb_data);
+    malloc_trim(0);
     pthread_mutex_unlock(&webconfig_data_lock);
     return webconfig_error_none;
 }
