@@ -818,8 +818,8 @@ int upload_client_telemetry_data(wifi_app_t *app, unsigned int num_devs, unsigne
     sta_data_t *sta)
 {
     sta_key_t sta_key;
-    char buff[MAX_BUFF_SIZE];
-    char telemetryBuff[MAX_BUFF_SIZE];
+    char *buff = app->data.u.whix.telemetry_buff;
+    char *telemetryBuff = app->data.u.whix.telemetry_tmp_buff;
     char tmp[128];
     BOOL sendIndication = false;
     char trflag[MAX_VAP] = { 0 };
@@ -2362,6 +2362,20 @@ int whix_init(wifi_app_t *app, unsigned int create_flag)
         wifi_util_error_print(WIFI_APPS, "%s:%d Failed to create hash_map\n", __func__, __LINE__);
         return RETURN_ERR;
     }
+
+    app->data.u.whix.telemetry_buff = (char *)calloc(1, MAX_BUFF_SIZE);
+    app->data.u.whix.telemetry_tmp_buff = (char *)calloc(1, MAX_BUFF_SIZE);
+
+    if (app->data.u.whix.telemetry_buff == NULL || app->data.u.whix.telemetry_tmp_buff == NULL) {
+        wifi_util_error_print(WIFI_APPS, "%s:%d Failed to allocate telemetry buffers\n", __func__, __LINE__);
+        free(app->data.u.whix.telemetry_buff);
+        free(app->data.u.whix.telemetry_tmp_buff);
+        app->data.u.whix.telemetry_buff = NULL;
+        app->data.u.whix.telemetry_tmp_buff = NULL;
+        hash_map_destroy(app->data.u.whix.last_stats_map);
+        return RETURN_ERR;
+    }
+
     return RETURN_OK;
 }
 
@@ -2377,6 +2391,11 @@ int whix_deinit(wifi_app_t *app)
     }
 
     hash_map_destroy(app->data.u.whix.last_stats_map);
+
+    free(app->data.u.whix.telemetry_buff);
+    app->data.u.whix.telemetry_buff = NULL;
+    free(app->data.u.whix.telemetry_tmp_buff);
+    app->data.u.whix.telemetry_tmp_buff = NULL;
 
     return RETURN_OK;
 }

@@ -37,6 +37,8 @@ typedef struct {
     rejected_client_stat_t rejected_client_stats[MAX_VAP];
     int vap_max_client_id;
     hash_map_t *last_stats_map; //wifi_associated_dev3_t
+    char *telemetry_buff;
+    char *telemetry_tmp_buff;
 } whix_data_t;
 
 
