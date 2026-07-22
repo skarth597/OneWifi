@@ -3177,11 +3177,27 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
     }
 
     if (radio_params->band == WIFI_FREQUENCY_6_BAND ) {
-        pub_svc = get_svc_by_type(ctrl, vap_svc_type_public);
-        wifi_util_info_print(WIFI_CTRL,"6G radio channel changed update rrm\n");
-        if (pub_svc->event_fn != NULL) {
-            pub_svc->event_fn(pub_svc, wifi_event_type_command, wifi_event_type_xfinity_rrm,
-                vap_svc_event_none,NULL);
+        /*
+         * Refresh the Xfinity RRM neighbor reports only when the 6G radio has
+         * actually changed channel/bandwidth. A CHANNELS_CHANGED event that
+         * reports the same channel and width (emitted repeatedly during radio
+         * re-apply on forcesync/webconfig blob push) does not alter the 6G
+         * hotspot BSSID/enable state that process_xfinity_rrm programs, so
+         * re-issuing it is pure redundancy and causes the allocation spike seen
+         * during endurance testing. Real channel changes, DFS/radar events and
+         * VAP/webconfig driven updates continue to refresh RRM as before.
+         */
+        bool is_noop_channel_change = (ch_chg->event == WIFI_EVENT_CHANNELS_CHANGED) &&
+            (radio_params->channel == ch_chg->channel) &&
+            (radio_params->channelWidth == ch_chg->channelWidth);
+
+        if (!is_noop_channel_change) {
+            pub_svc = get_svc_by_type(ctrl, vap_svc_type_public);
+            wifi_util_info_print(WIFI_CTRL,"6G radio channel changed update rrm\n");
+            if (pub_svc->event_fn != NULL) {
+                pub_svc->event_fn(pub_svc, wifi_event_type_command, wifi_event_type_xfinity_rrm,
+                    vap_svc_event_none,NULL);
+            }
         }
     }
 
@@ -4103,7 +4119,19 @@ void handle_webconfig_event(wifi_ctrl_t *ctrl, const char *raw, unsigned int len
             return;
         }
 
-        subdoc_type = find_subdoc_type(config, cJSON_Parse(raw));
+        /*
+         * find_subdoc_type() only reads from the parsed JSON; it does not take
+         * ownership of it. Passing cJSON_Parse() inline leaked the entire parsed
+         * tree on every webconfig blob apply (private/hotspot/forcesync), which
+         * accumulated during endurance testing. Capture, use, then free it.
+         */
+        {
+            cJSON *subdoc_json = cJSON_Parse(raw);
+            subdoc_type = find_subdoc_type(config, subdoc_json);
+            if (subdoc_json != NULL) {
+                cJSON_Delete(subdoc_json);
+            }
+        }
         switch (subdoc_type) {
         case webconfig_subdoc_type_private:
             num_ssid += get_list_of_private_ssid(&mgr->hal_cap.wifi_prop, MAX_NUM_RADIOS,
