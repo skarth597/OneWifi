@@ -1225,7 +1225,7 @@ bus_error_t eventHandler(char *eventName, bus_event_sub_action_t action, int32_t
         /* TODO: interval needs to be multiple of WifiMonitor basic interval */
         if (interval > MAX_CSI_INTERVAL || interval < MIN_CSI_INTERVAL
                 ||  csi_data->subscribed == TRUE) {
-            wifi_util_error_print(WIFI_APPS, "%s:%d WiFi_Motion_SubscriptionFailed %d reason: interval=%d (min=%d max=%d) subscribed=%d\n",
+            wifi_util_error_print(WIFI_APPS, "%s:%d WiFi_Motion_SubscriptionFailed :  %d reason: interval=%d (min=%d max=%d) subscribed=%d\n",
                 __func__, __LINE__, csi_session, interval, MIN_CSI_INTERVAL, MAX_CSI_INTERVAL, csi_data->subscribed);
             //telemetry
             printf("WiFi_Motion_SubscriptionFailed %d\n", csi_session);
