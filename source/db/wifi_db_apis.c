@@ -54,6 +54,7 @@
 #include "wifi_dml.h"
 #include "wifi_events.h"
 #include "wifi_monitor.h"
+#include "run_qmgr.h"
 
 #define MAX_BUF_SIZE 128
 #define ONEWIFI_DB_VERSION_EXISTS_FLAG 100017
@@ -6662,15 +6663,15 @@ void wifidb_init_wei_rfc_config_default(wei_rfc_dml_parameters_t *config)
 
     memset(&defaults, 0, sizeof(defaults));
     snprintf(defaults.wei_rfc_id, sizeof(defaults.wei_rfc_id), "%s", WEI_RFC_ID_DEFAULT);
-    defaults.lq_meas_threshold = 0.5;
-    defaults.lq_meas_duration = 1;
-    defaults.lq_meas_params_mask = 0x38; /* DL_SNR | DL_PER | DL_PHY, legacy default */
-    defaults.radio_2g_max_snr = 60;
-    defaults.radio_5g_max_snr = 70;
-    defaults.radio_6g_max_snr = 70;
-    defaults.radio_2g_max_phy = 286;
-    defaults.radio_5g_max_phy = 1200;
-    defaults.radio_6g_max_phy = 2401;
+    defaults.lq_meas_threshold = WEI_RFC_LQ_THRESHOLD_DEFAULT;
+    defaults.lq_meas_duration = WEI_RFC_LQ_DURATION_DEFAULT;
+    defaults.lq_meas_params_mask = LINKQ_AGGREGATE; /* aggregate metric only, by default */
+    defaults.radio_2g_max_snr = WEI_RFC_RADIO_2G_MAX_SNR_DEFAULT;
+    defaults.radio_5g_max_snr = WEI_RFC_RADIO_5G_MAX_SNR_DEFAULT;
+    defaults.radio_6g_max_snr = WEI_RFC_RADIO_6G_MAX_SNR_DEFAULT;
+    defaults.radio_2g_max_phy = WEI_RFC_RADIO_2G_MAX_PHY_DEFAULT;
+    defaults.radio_5g_max_phy = WEI_RFC_RADIO_5G_MAX_PHY_DEFAULT;
+    defaults.radio_6g_max_phy = WEI_RFC_RADIO_6G_MAX_PHY_DEFAULT;
 
     memcpy(config, &defaults, sizeof(defaults));
 }

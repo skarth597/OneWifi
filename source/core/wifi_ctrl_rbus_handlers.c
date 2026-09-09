@@ -2111,46 +2111,37 @@ static void meshStatusHandler(char *event_name, bus_data_prop_t *p_data, void *u
  * A single descriptor table drives GET/SET for all pillar fields so adding
  * a new WEI RFC parameter only requires one new table row.
  * ============================================================ */
-typedef enum { WEI_F_BOOL, WEI_F_UINT, WEI_F_DOUBLE, WEI_F_STRING } wei_field_type_t;
-
-typedef struct {
-    const char       *dmpath;
-    wei_field_type_t  type;
-    size_t            offset;      /* offset within wei_rfc_dml_parameters_t */
-    size_t            field_size;  /* only meaningful for WEI_F_STRING */
-} wei_param_entry_t;
-
 #define WEI_FIELD(path, ftype, member) \
     { (path), (ftype), offsetof(wei_rfc_dml_parameters_t, member), sizeof(((wei_rfc_dml_parameters_t *)0)->member) }
 
 static wei_param_entry_t g_wei_param_table[] = {
-    WEI_FIELD(WEI_MEASUREMENT_RFC,      WEI_F_BOOL,   wei_enable),
-    WEI_FIELD(WEI_LINK_QUALITY_THRESHOLD, WEI_F_DOUBLE, lq_meas_threshold),
-    WEI_FIELD(WEI_LINK_QUALITY_DURATION,  WEI_F_UINT,   lq_meas_duration),
+    WEI_FIELD(WEI_MEASUREMENT_RFC,      FIELD_BOOL,   wei_enable),
+    WEI_FIELD(WEI_LINK_QUALITY_THRESHOLD, FIELD_DOUBLE, lq_meas_threshold),
+    WEI_FIELD(WEI_LINK_QUALITY_DURATION,  FIELD_UINT,   lq_meas_duration),
 
-    WEI_FIELD(WEI_SC_HOME_ENABLE_DMPATH,          WEI_F_BOOL,   sc.home_enable),
-    WEI_FIELD(WEI_SC_HOME_THRESHOLD_DMPATH,       WEI_F_UINT,   sc.home_threshold),
-    WEI_FIELD(WEI_SC_HOME_DETAIL_ENABLE_DMPATH,   WEI_F_BOOL,   sc.home_detail_enable),
-    WEI_FIELD(WEI_SC_CLIENT_ENABLE_DMPATH,        WEI_F_BOOL,   sc.client_enable),
-    WEI_FIELD(WEI_SC_CLIENT_THRESHOLD_DMPATH,     WEI_F_UINT,   sc.client_threshold),
-    WEI_FIELD(WEI_SC_CLIENT_DETAIL_ENABLE_DMPATH, WEI_F_BOOL,   sc.client_detail_enable),
-    WEI_FIELD(WEI_SC_CLIENT_WHITELIST_DMPATH,     WEI_F_STRING, sc.client_whitelist),
+    WEI_FIELD(WEI_SC_HOME_ENABLE_DMPATH,          FIELD_BOOL,   sc.home_enable),
+    WEI_FIELD(WEI_SC_HOME_THRESHOLD_DMPATH,       FIELD_UINT,   sc.home_threshold),
+    WEI_FIELD(WEI_SC_HOME_DETAIL_ENABLE_DMPATH,   FIELD_BOOL,   sc.home_detail_enable),
+    WEI_FIELD(WEI_SC_CLIENT_ENABLE_DMPATH,        FIELD_BOOL,   sc.client_enable),
+    WEI_FIELD(WEI_SC_CLIENT_THRESHOLD_DMPATH,     FIELD_UINT,   sc.client_threshold),
+    WEI_FIELD(WEI_SC_CLIENT_DETAIL_ENABLE_DMPATH, FIELD_BOOL,   sc.client_detail_enable),
+    WEI_FIELD(WEI_SC_CLIENT_WHITELIST_DMPATH,     FIELD_STRING, sc.client_whitelist),
 
-    WEI_FIELD(WEI_GC_HOME_ENABLE_DMPATH,          WEI_F_BOOL,   gc.home_enable),
-    WEI_FIELD(WEI_GC_HOME_THRESHOLD_DMPATH,       WEI_F_UINT,   gc.home_threshold),
-    WEI_FIELD(WEI_GC_HOME_DETAIL_ENABLE_DMPATH,   WEI_F_BOOL,   gc.home_detail_enable),
-    WEI_FIELD(WEI_GC_CLIENT_ENABLE_DMPATH,        WEI_F_BOOL,   gc.client_enable),
-    WEI_FIELD(WEI_GC_CLIENT_THRESHOLD_DMPATH,     WEI_F_UINT,   gc.client_threshold),
-    WEI_FIELD(WEI_GC_CLIENT_DETAIL_ENABLE_DMPATH, WEI_F_BOOL,   gc.client_detail_enable),
-    WEI_FIELD(WEI_GC_CLIENT_WHITELIST_DMPATH,     WEI_F_STRING, gc.client_whitelist),
+    WEI_FIELD(WEI_GC_HOME_ENABLE_DMPATH,          FIELD_BOOL,   gc.home_enable),
+    WEI_FIELD(WEI_GC_HOME_THRESHOLD_DMPATH,       FIELD_UINT,   gc.home_threshold),
+    WEI_FIELD(WEI_GC_HOME_DETAIL_ENABLE_DMPATH,   FIELD_BOOL,   gc.home_detail_enable),
+    WEI_FIELD(WEI_GC_CLIENT_ENABLE_DMPATH,        FIELD_BOOL,   gc.client_enable),
+    WEI_FIELD(WEI_GC_CLIENT_THRESHOLD_DMPATH,     FIELD_UINT,   gc.client_threshold),
+    WEI_FIELD(WEI_GC_CLIENT_DETAIL_ENABLE_DMPATH, FIELD_BOOL,   gc.client_detail_enable),
+    WEI_FIELD(WEI_GC_CLIENT_WHITELIST_DMPATH,     FIELD_STRING, gc.client_whitelist),
 
-    WEI_FIELD(WEI_LQ_HOME_ENABLE_DMPATH,          WEI_F_BOOL,   lq.home_enable),
-    WEI_FIELD(WEI_LQ_HOME_THRESHOLD_DMPATH,       WEI_F_UINT,   lq.home_threshold),
-    WEI_FIELD(WEI_LQ_HOME_DETAIL_ENABLE_DMPATH,   WEI_F_BOOL,   lq.home_detail_enable),
-    WEI_FIELD(WEI_LQ_CLIENT_ENABLE_DMPATH,        WEI_F_BOOL,   lq.client_enable),
-    WEI_FIELD(WEI_LQ_CLIENT_THRESHOLD_DMPATH,     WEI_F_UINT,   lq.client_threshold),
-    WEI_FIELD(WEI_LQ_CLIENT_DETAIL_ENABLE_DMPATH, WEI_F_BOOL,   lq.client_detail_enable),
-    WEI_FIELD(WEI_LQ_CLIENT_WHITELIST_DMPATH,     WEI_F_STRING, lq.client_whitelist),
+    WEI_FIELD(WEI_LQ_HOME_ENABLE_DMPATH,          FIELD_BOOL,   lq.home_enable),
+    WEI_FIELD(WEI_LQ_HOME_THRESHOLD_DMPATH,       FIELD_UINT,   lq.home_threshold),
+    WEI_FIELD(WEI_LQ_HOME_DETAIL_ENABLE_DMPATH,   FIELD_BOOL,   lq.home_detail_enable),
+    WEI_FIELD(WEI_LQ_CLIENT_ENABLE_DMPATH,        FIELD_BOOL,   lq.client_enable),
+    WEI_FIELD(WEI_LQ_CLIENT_THRESHOLD_DMPATH,     FIELD_UINT,   lq.client_threshold),
+    WEI_FIELD(WEI_LQ_CLIENT_DETAIL_ENABLE_DMPATH, FIELD_BOOL,   lq.client_detail_enable),
+    WEI_FIELD(WEI_LQ_CLIENT_WHITELIST_DMPATH,     FIELD_STRING, lq.client_whitelist),
 };
 #define WEI_PARAM_TABLE_COUNT (sizeof(g_wei_param_table) / sizeof(g_wei_param_table[0]))
 
@@ -2182,17 +2173,17 @@ static bus_error_t wei_get_param(char *name, raw_data_t *p_data, bus_user_data_t
     char *field = (char *)cfg + e->offset;
 
     switch (e->type) {
-    case WEI_F_BOOL:
+    case FIELD_BOOL:
         p_data->data_type = bus_data_type_boolean;
         p_data->raw_data.b = *(bool *)field;
         p_data->raw_data_len = sizeof(bool);
         break;
-    case WEI_F_UINT:
+    case FIELD_UINT:
         p_data->data_type = bus_data_type_uint32;
         p_data->raw_data.u32 = *(uint32_t *)field;
         p_data->raw_data_len = sizeof(uint32_t);
         break;
-    case WEI_F_DOUBLE: {
+    case FIELD_DOUBLE: {
         char str[32];
         snprintf(str, sizeof(str), "%.3f", *(double *)field);
         uint32_t sz = (uint32_t)strlen(str) + 1;
@@ -2205,7 +2196,7 @@ static bus_error_t wei_get_param(char *name, raw_data_t *p_data, bus_user_data_t
         p_data->raw_data_len = sz;
         break;
     }
-    case WEI_F_STRING: {
+    case FIELD_STRING: {
         uint32_t sz = (uint32_t)strlen(field) + 1;
         p_data->data_type = bus_data_type_string;
         p_data->raw_data.bytes = malloc(sz);
@@ -2236,21 +2227,21 @@ static bus_error_t wei_set_param(char *event_name, raw_data_t *p_data, bus_user_
     upd.field_id = idx;
 
     switch (e->type) {
-    case WEI_F_BOOL:
+    case FIELD_BOOL:
         if (p_data->data_type != bus_data_type_boolean) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d %s expects bool\n", __func__, __LINE__, event_name);
             return bus_error_invalid_input;
         }
         upd.bval = p_data->raw_data.b;
         break;
-    case WEI_F_UINT:
+    case FIELD_UINT:
         if (p_data->data_type != bus_data_type_uint32) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d %s expects uint32\n", __func__, __LINE__, event_name);
             return bus_error_invalid_input;
         }
         upd.uval = p_data->raw_data.u32;
         break;
-    case WEI_F_DOUBLE:
+    case FIELD_DOUBLE:
         if (p_data->data_type != bus_data_type_string || p_data->raw_data.bytes == NULL) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d %s expects string\n", __func__, __LINE__, event_name);
             return bus_error_invalid_input;
@@ -2262,7 +2253,7 @@ static bus_error_t wei_set_param(char *event_name, raw_data_t *p_data, bus_user_
             return bus_error_invalid_input;
         }
         break;
-    case WEI_F_STRING:
+    case FIELD_STRING:
         if (p_data->data_type != bus_data_type_string || p_data->raw_data.bytes == NULL) {
             wifi_util_error_print(WIFI_CTRL, "%s:%d %s expects string\n", __func__, __LINE__, event_name);
             return bus_error_invalid_input;
@@ -2308,14 +2299,14 @@ static int register_wei_bus_elements(bus_data_element_t *elements)
         elements[i].num_of_table_row = ZERO_TABLE;
 
         switch (g_wei_param_table[i].type) {
-        case WEI_F_BOOL:
+        case FIELD_BOOL:
             elements[i].data_model_prop.data_format = bus_data_type_boolean;
             break;
-        case WEI_F_UINT:
+        case FIELD_UINT:
             elements[i].data_model_prop.data_format = bus_data_type_uint32;
             break;
-        case WEI_F_DOUBLE:
-        case WEI_F_STRING:
+        case FIELD_DOUBLE:
+        case FIELD_STRING:
             elements[i].data_model_prop.data_format = bus_data_type_string;
             break;
         }
@@ -2378,16 +2369,16 @@ static void wei_apply_field_update(wei_rfc_dml_parameters_t *cfg, wei_rfc_field_
     char *field = (char *)cfg + e->offset;
 
     switch (e->type) {
-    case WEI_F_BOOL:
+    case FIELD_BOOL:
         *(bool *)field = upd->bval;
         break;
-    case WEI_F_UINT:
+    case FIELD_UINT:
         *(uint32_t *)field = upd->uval;
         break;
-    case WEI_F_DOUBLE:
+    case FIELD_DOUBLE:
         *(double *)field = upd->dval;
         break;
-    case WEI_F_STRING:
+    case FIELD_STRING:
         snprintf(field, e->field_size, "%s", upd->sval);
         break;
     }
@@ -2959,19 +2950,6 @@ void bus_subscribe_events(wifi_ctrl_t *ctrl)
             wifi_util_dbg_print(WIFI_CTRL, "%s:%d MeshStatus subscribe success, rc: %d\n",
                 __FUNCTION__, __LINE__, rc);
         }
-    }
-
-    if (ctrl->wei_events_subscribed == false) {
-        int ret1 = -1;
-        ret1 = bus_desc->bus_event_subs_fn(&ctrl->handle, WEI_RFC_MASK, wei_rfc_mask_handler, NULL,0);
-        if (ret1 == 0 )  {    
-	    ctrl->wei_events_subscribed = true;
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d wei event subscribe success\n",
-                __FUNCTION__, __LINE__);
-        } else {
-            wifi_util_dbg_print(WIFI_CTRL, "%s:%d wei event subscribe unsuccess\n",
-                __FUNCTION__, __LINE__);
-	}
     }
 
 #if defined(RDKB_EXTENDER_ENABLED) || defined(WAN_FAILOVER_SUPPORTED)
