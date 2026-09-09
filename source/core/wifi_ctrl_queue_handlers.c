@@ -42,12 +42,12 @@
 
 #define MAC_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAC_ARG(arg) \
-    (arg)[0], \
-    (arg)[1], \
-    (arg)[2], \
-    (arg)[3], \
-    (arg)[4], \
-    (arg)[5]
+    arg[0], \
+    arg[1], \
+    arg[2], \
+    arg[3], \
+    arg[4], \
+    arg[5]
 
 static unsigned msg_id = 1000;
 
@@ -3824,7 +3824,7 @@ void process_channel_change_event(wifi_channel_change_event_t *ch_chg, bool is_n
                 } else if (l_radio->radarInfo.num_detected > 1){
                     l_radio->radarInfo.num_detected--;
                 }
-                if (strcmp(radio_params->radarDetected, " ") != 0) {
+                if (strcmp(radio_params->radarDetected, " ")) {
                     char *str_re, *radar_detected_ch_time;
                     char radarDetected_temp[128];
                     unsigned int ch_temp;
