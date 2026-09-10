@@ -356,12 +356,15 @@ int csi_init(wifi_app_t *app, unsigned int create_flag)
 
     app->data.u.csi.num_current_sounding = 0;
 
-    /* Gated on ONEWIFI_CSI_APP_SUPPORT (this whole function) - FEATURE_CSI is never defined by
-     * the build, which silently compiled this registration out and left the driver with no
-     * callback to deliver CSI into. */
+#if defined (FEATURE_CSI)
     wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 1: registering process_csi with HAL\n",
         __func__, __LINE__);
     wifi_csi_callback_register(process_csi);
+#else
+    wifi_util_error_print(WIFI_APPS,
+        "%s:%d CSI_FLOW 1: FEATURE_CSI not defined, process_csi not registered\n", __func__,
+        __LINE__);
+#endif
 
     if (app_init(app, create_flag) != 0) {
         return RETURN_ERR;
