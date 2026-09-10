@@ -41,6 +41,9 @@ INT process_csi(mac_address_t mac_addr, wifi_csi_data_t  *csi_data)
     mac_addr_str_t mac_str = { 0 };
     const size_t mac_size = sizeof(mac_addr_t);
 
+    wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 3: driver callback mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+        __func__, __LINE__, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+
     wifi_util_dbg_print(WIFI_APPS, "%s: CSI data received - MAC  %02x:%02x:%02x:%02x:%02x:%02x\n",__func__, mac_addr[0], mac_addr[1],
                                                         mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
 
@@ -100,14 +103,19 @@ void update_pinger_config(int ap_index, mac_addr_t mac_addr, bool pause_pinger)
     }
     memset(data, 0, sizeof(wifi_monitor_data_t));
 
-    wifi_util_dbg_print(WIFI_APPS,
-        "%s:%d pinger request ap:%d pause:%d\n",
+    wifi_util_info_print(WIFI_APPS,
+        "%s:%d CSI_FLOW 2b: pinger request ap:%d pause:%d\n",
         __func__, __LINE__, ap_index, pause_pinger);
     memcpy(data->u.csi_mon.mac_addr, mac_addr, sizeof(mac_addr_t));
     data->u.csi_mon.ap_index = ap_index;
     data->u.csi_mon.pause_pinger = pause_pinger;
     push_event_to_monitor_queue(data, wifi_event_monitor_csi_pinger, NULL);
     free(data);
+#else
+    wifi_util_info_print(WIFI_APPS,
+        "%s:%d CSI_FLOW 2b: CSI pinger compiled out (_XB7_PRODUCT_REQ_ not set) ap:%d pause:%d - "
+        "no keep-alive traffic to the client, so an idle client yields no CSI\n",
+        __func__, __LINE__, ap_index, pause_pinger);
 #endif
     return;
 }
@@ -124,6 +132,7 @@ int csi_start_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int 
     rdk_wifi_vap_info_t *rdk_vap_info = get_wifidb_rdk_vap_info(ap_index);
     const size_t mac_size = sizeof(mac_addr_t);
     bool is_mlo = false;
+    int hal_rc = 0;
 
     wifi_app_t *app = (wifi_app_t *)csi_app;
     if (app == NULL) {
@@ -185,7 +194,9 @@ int csi_start_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int 
                         } else {
                             to_mac_str((unsigned char *)to_hash_map->mac_addr, evicted_mac_str);
                         }
-                        wifi_enableCSIEngine(to_hash_map->ap_index, to_hash_map->mac_addr, FALSE);
+                        hal_rc = wifi_enableCSIEngine(to_hash_map->ap_index, to_hash_map->mac_addr, FALSE);
+                        wifi_util_info_print(WIFI_APPS, "%s:%d wifi_enableCSIEngine evict rc:%d\n",
+                            __func__, __LINE__, hal_rc);
                         update_pinger_config(to_hash_map->ap_index, to_hash_map->mac_addr, true);
                         to_hash_map = (csi_mac_data_t *)hash_map_remove(app->data.u.csi.csi_sounding_mac_map, evicted_mac_str);
                         if (to_hash_map != NULL) {
@@ -227,7 +238,10 @@ int csi_start_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int 
             to_hash_map->is_mlo = is_mlo;
             to_hash_map->subscribed_apps |= sounding_app;
             wifi_util_info_print(WIFI_APPS, "%s:%d Enabling CSI for mac %02x..%02x\n", __func__, __LINE__, to_hash_map->mac_addr[0], to_hash_map->mac_addr[5]);
-            wifi_enableCSIEngine(ap_index, (unsigned char *)mac_addr, TRUE);
+            hal_rc = wifi_enableCSIEngine(ap_index, (unsigned char *)mac_addr, TRUE);
+            wifi_util_info_print(WIFI_APPS,
+                "%s:%d CSI_FLOW 2: wifi_enableCSIEngine(ap:%u, %s, TRUE) rc:%d\n", __func__,
+                __LINE__, ap_index, mac_str, hal_rc);
             map_key = strdup(mac_str);
             if (map_key == NULL) {
                 wifi_util_error_print(WIFI_APPS, "%s:%d CSI map key allocation failed for mac %s\n",
@@ -261,6 +275,7 @@ int csi_start_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int 
 int csi_stop_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int sounding_app)
 {
     mac_addr_str_t mac_str = { 0 };
+    int hal_rc = 0;
 
     wifi_app_t *app = (wifi_app_t *)csi_app;
     if (app == NULL) {
@@ -308,7 +323,9 @@ int csi_stop_fn(void* csi_app, unsigned int ap_index, mac_addr_t mac_addr, int s
     } else {
         //Disable Sounding.
         wifi_util_info_print(WIFI_APPS, "%s:%d Disabling CSI for mac %02x..%02x\n", __func__, __LINE__, mac_data->mac_addr[0], mac_data->mac_addr[5]);
-        wifi_enableCSIEngine(mac_data->ap_index, mac_data->mac_addr, FALSE);
+        hal_rc = wifi_enableCSIEngine(mac_data->ap_index, mac_data->mac_addr, FALSE);
+        wifi_util_info_print(WIFI_APPS, "%s:%d wifi_enableCSIEngine(%s, FALSE) rc:%d\n",
+            __func__, __LINE__, mac_str, hal_rc);
         mac_data = (csi_mac_data_t *)hash_map_remove(app->data.u.csi.csi_sounding_mac_map, mac_str);
         if (mac_data == NULL) {
             wifi_util_error_print(WIFI_APPS, "%s:%d hash_map_remove returned NULL for mac_str %s\n", __func__, __LINE__, mac_str);
@@ -339,9 +356,12 @@ int csi_init(wifi_app_t *app, unsigned int create_flag)
 
     app->data.u.csi.num_current_sounding = 0;
 
-#if defined (FEATURE_CSI)
+    /* Gated on ONEWIFI_CSI_APP_SUPPORT (this whole function) - FEATURE_CSI is never defined by
+     * the build, which silently compiled this registration out and left the driver with no
+     * callback to deliver CSI into. */
+    wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 1: registering process_csi with HAL\n",
+        __func__, __LINE__);
     wifi_csi_callback_register(process_csi);
-#endif
 
     if (app_init(app, create_flag) != 0) {
         return RETURN_ERR;

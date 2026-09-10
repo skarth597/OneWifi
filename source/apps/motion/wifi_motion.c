@@ -1421,9 +1421,12 @@ int do_pipe_publish(char *buffer, size_t len, csi_session_t *csi)
     if (csi->csi_fd > 0)
     {
         if ((write(csi->csi_fd, buffer, len) < 0)) {
-            wifi_util_dbg_print(WIFI_APPS, "%s:%d Messed up write error is %s\n", __func__, __LINE__, strerror(errno));
+            wifi_util_error_print(WIFI_APPS, "%s:%d CSI_FLOW 6: pipe%d write failed %s\n",
+                __func__, __LINE__, csi->csi_sess_number, strerror(errno));
             return RETURN_ERR;
         }
+        wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 6: wrote %zu bytes to pipe%d\n", __func__,
+            __LINE__, len, csi->csi_sess_number);
     }
     return RETURN_OK;
 
@@ -1464,6 +1467,9 @@ void motion_csi_publish(mac_address_t mac_address, wifi_csi_dev_t *csi_dev_data,
 
     size_t buffer_len = CSI_HEADER_SIZE + sizeof(wifi_csi_data_t);
 
+    wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 5: publish session %d len %zu\n", __func__,
+        __LINE__, csi->csi_sess_number, buffer_len);
+
     do_pipe_publish(csi_dev_data->header, buffer_len, csi);
     return;
 }
@@ -1492,10 +1498,16 @@ void process_csi_data(wifi_app_t *app, wifi_csi_dev_t *csi_dev_data)
     int csi_subscribers_count = queue_count(csi_queue);
     gettimeofday(&t_now, NULL);
 
+    wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 4: mac %02x:%02x:%02x:%02x:%02x:%02x sessions:%d paused:%d\n",
+        __func__, __LINE__, mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4],
+        mac_addr[5], csi_subscribers_count, app->data.u.motion.paused);
+
     for (i =0; i < csi_subscribers_count; i++) {
         mac_found = FALSE;
         csi = (csi_session_t *)queue_peek(csi_queue, i);
         if (csi == NULL || !(csi->enable && csi->subscribed && !(app->data.u.motion.paused))) {
+            wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 4: session idx %d skipped\n", __func__,
+                __LINE__, i);
             continue;
         }
         for (j = 0; j < csi->no_of_mac; j++) {
@@ -1507,6 +1519,8 @@ void process_csi_data(wifi_app_t *app, wifi_csi_dev_t *csi_dev_data)
                 break;
             }
         }
+        wifi_util_info_print(WIFI_APPS, "%s:%d CSI_FLOW 4: session %d mac_found:%d no_of_mac:%d\n",
+            __func__, __LINE__, csi->csi_sess_number, mac_found, csi->no_of_mac);
         if (mac_found == TRUE) {
             //check interval
             if (csi->csi_time_interval == MIN_CSI_INTERVAL || csi_check_timeout(csi, j, &t_now)) {
