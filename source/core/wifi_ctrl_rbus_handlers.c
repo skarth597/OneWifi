@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stddef.h>
+#include <errno.h>
+#include <math.h>
 
 #define MAX_EVENT_NAME_SIZE 200
 #define MAX_STR_LEN 128
@@ -2115,7 +2117,8 @@ static void meshStatusHandler(char *event_name, bus_data_prop_t *p_data, void *u
     { (path), (ftype), offsetof(wei_rfc_dml_parameters_t, member), sizeof(((wei_rfc_dml_parameters_t *)0)->member) }
 
 static wei_param_entry_t g_wei_param_table[] = {
-    WEI_FIELD(WEI_MEASUREMENT_RFC,      FIELD_BOOL,   wei_enable),
+    WEI_FIELD(WEI_MEASUREMENT_RFC,        FIELD_BOOL,   wei_enable),
+    WEI_FIELD(WEI_LINK_QUALITY_FLAGS,     FIELD_UINT,   lq_meas_params_mask),
     WEI_FIELD(WEI_LINK_QUALITY_THRESHOLD, FIELD_DOUBLE, lq_meas_threshold),
     WEI_FIELD(WEI_LINK_QUALITY_DURATION,  FIELD_UINT,   lq_meas_duration),
 
@@ -2278,9 +2281,9 @@ static bus_error_t wei_get_rfc_mask_param(char *name, raw_data_t *p_data, bus_us
 {
     (void)name;
     (void)user_data;
-    wifi_rfc_dml_parameters_t *legacy = get_ctrl_rfc_parameters();
+    wifi_rfc_dml_parameters_t *wei_rfc = get_ctrl_rfc_parameters();
     p_data->data_type = bus_data_type_uint32;
-    p_data->raw_data.u32 = (uint32_t)legacy->wei_rfc_mask;
+    p_data->raw_data.u32 = (uint32_t)wei_rfc->wei_rfc_mask;
     p_data->raw_data_len = sizeof(uint32_t);
     return bus_error_success;
 }
@@ -2419,9 +2422,9 @@ void process_wei_rfc_config_update(wei_rfc_field_update_t *upd)
     }
 
     uint32_t mask = wei_compute_rfc_mask(cfg);
-    wifi_rfc_dml_parameters_t *legacy = get_ctrl_rfc_parameters();
-    if (legacy->wei_rfc_mask != (int)mask) {
-        legacy->wei_rfc_mask = (int)mask;
+    wifi_rfc_dml_parameters_t *wei_rfc = get_ctrl_rfc_parameters();
+    if (wei_rfc->wei_rfc_mask != (int)mask) {
+        wei_rfc->wei_rfc_mask = (int)mask;
         /* In-memory only: Wifi_Wei_Rfc_Config (already persisted above) is the
          * sole source of truth, so this derived value is never written back
          * to OVSDB -- keep the DB-mirror struct in sync purely so the next
