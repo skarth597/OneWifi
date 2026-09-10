@@ -1713,7 +1713,6 @@
         PJS_OVS_STRING(wei_rfc_id, 16 + 1) \
         PJS_OVS_BOOL(wei_enable) \
         PJS_OVS_INT(lq_meas_params_mask) \
-        PJS_OVS_REAL(lq_meas_threshold) \
         PJS_OVS_INT(lq_meas_duration) \
         PJS_OVS_INT(radio_2g_max_snr) \
         PJS_OVS_INT(radio_5g_max_snr) \
@@ -3438,7 +3437,6 @@
     COLUMN(wei_rfc_id) \
     COLUMN(wei_enable) \
     COLUMN(lq_meas_params_mask) \
-    COLUMN(lq_meas_threshold) \
     COLUMN(lq_meas_duration) \
     COLUMN(radio_2g_max_snr) \
     COLUMN(radio_5g_max_snr) \
@@ -4751,7 +4749,6 @@
 #define SCHEMA__Wifi_Wei_Rfc_Config__wei_rfc_id "wei_rfc_id"
 #define SCHEMA__Wifi_Wei_Rfc_Config__wei_enable "wei_enable"
 #define SCHEMA__Wifi_Wei_Rfc_Config__lq_meas_params_mask "lq_meas_params_mask"
-#define SCHEMA__Wifi_Wei_Rfc_Config__lq_meas_threshold "lq_meas_threshold"
 #define SCHEMA__Wifi_Wei_Rfc_Config__lq_meas_duration "lq_meas_duration"
 #define SCHEMA__Wifi_Wei_Rfc_Config__radio_2g_max_snr "radio_2g_max_snr"
 #define SCHEMA__Wifi_Wei_Rfc_Config__radio_5g_max_snr "radio_5g_max_snr"

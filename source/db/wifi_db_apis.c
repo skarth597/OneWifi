@@ -318,7 +318,6 @@ static void wei_rfc_schema_to_dml(const struct schema_Wifi_Wei_Rfc_Config *cfg, 
 {
     dml->wei_enable = cfg->wei_enable;
     dml->lq_meas_params_mask = (uint32_t)cfg->lq_meas_params_mask;
-    dml->lq_meas_threshold = cfg->lq_meas_threshold;
     dml->lq_meas_duration = (uint32_t)cfg->lq_meas_duration;
     dml->radio_2g_max_snr = (uint32_t)cfg->radio_2g_max_snr;
     dml->radio_5g_max_snr = (uint32_t)cfg->radio_5g_max_snr;
@@ -356,7 +355,6 @@ static void wei_rfc_dml_to_schema(const wei_rfc_dml_parameters_t *dml, struct sc
 {
     cfg->wei_enable = dml->wei_enable;
     cfg->lq_meas_params_mask = (int)dml->lq_meas_params_mask;
-    cfg->lq_meas_threshold = dml->lq_meas_threshold;
     cfg->lq_meas_duration = (int)dml->lq_meas_duration;
     cfg->radio_2g_max_snr = (int)dml->radio_2g_max_snr;
     cfg->radio_5g_max_snr = (int)dml->radio_5g_max_snr;
@@ -425,9 +423,9 @@ void callback_Wifi_Wei_Rfc_Config(ovsdb_update_monitor_t *mon, struct schema_Wif
     pthread_mutex_unlock(&g_wifidb->data_cache_lock);
 
     wifi_util_dbg_print(WIFI_DB,
-        "%s:%d WEI RFC Config New/Modify wei_enable=%d lq_thr=%.3f lq_dur=%u "
+        "%s:%d WEI RFC Config New/Modify wei_enable=%d lq_dur=%u "
         "sc(h_en=%d c_en=%d) gc(h_en=%d c_en=%d) lq(h_en=%d c_en=%d)\r\n",
-        __func__, __LINE__, rfc_param->wei_enable, rfc_param->lq_meas_threshold, rfc_param->lq_meas_duration,
+        __func__, __LINE__, rfc_param->wei_enable, rfc_param->lq_meas_duration,
         rfc_param->sc.home_enable, rfc_param->sc.client_enable,
         rfc_param->gc.home_enable, rfc_param->gc.client_enable,
         rfc_param->lq.home_enable, rfc_param->lq.client_enable);
@@ -6664,9 +6662,9 @@ void wifidb_init_wei_rfc_config_default(wei_rfc_dml_parameters_t *config)
 
     memset(&defaults, 0, sizeof(defaults));
     snprintf(defaults.wei_rfc_id, sizeof(defaults.wei_rfc_id), "%s", WEI_RFC_ID_DEFAULT);
-    defaults.lq_meas_threshold = WEI_RFC_LQ_THRESHOLD_DEFAULT;
     defaults.lq_meas_duration = WEI_RFC_LQ_DURATION_DEFAULT;
-    defaults.lq_meas_params_mask = LINKQ_AGGREGATE; /* aggregate metric only, by default */
+    //defaults.lq_meas_params_mask = LINKQ_AGGREGATE; /* aggregate metric only, by default */
+    defaults.lq_meas_params_mask = LINKQ_VALID_MASK; // With LINKQ_AGGREGATE, lq home score is 0.
     defaults.radio_2g_max_snr = WEI_RFC_RADIO_2G_MAX_SNR_DEFAULT;
     defaults.radio_5g_max_snr = WEI_RFC_RADIO_5G_MAX_SNR_DEFAULT;
     defaults.radio_6g_max_snr = WEI_RFC_RADIO_6G_MAX_SNR_DEFAULT;
