@@ -485,7 +485,9 @@ int execute_assoc_client_stats_api(wifi_mon_collector_element_t *c_elem, wifi_mo
     // This triggers BOTH link_quality_event_exec_timeout (for add_stats_metrics) 
     // AND link_quality_periodic_stats_update (for caffinity timing updates)
     if (link_data && num_devs != 0 && ((link_quality_measurement) || (rf_down_mesh_sta))) {
-        wifi_util_dbg_print(WIFI_MON, "%s:%d timestats Sending periodic link quality event for %d clients\n", __func__, __LINE__, num_devs);
+        wifi_util_dbg_print(WIFI_MON,
+            "%s:%d timestats Sending periodic link quality event for %d clients\n", __func__,
+            __LINE__, num_devs);
         apps_mgr_link_quality_event(&ctrl->apps_mgr, wifi_event_type_exec, wifi_event_exec_timeout, link_data, num_devs);
     }
 
