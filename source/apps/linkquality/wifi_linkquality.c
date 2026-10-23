@@ -633,8 +633,8 @@ int link_quality_apps_status_code_event(wifi_app_t *app, int sub_event, void *ar
 
 int link_quality_apps_disassoc_event(wifi_app_t *app, bool req,int sub_event,void *arg)
 {
-    wifi_util_dbg_print(WIFI_APPS,"Enter %s:%d\n",__func__,__LINE__);
-    
+    wifi_util_dbg_print(WIFI_APPS, "Enter %s:%d\n", __func__, __LINE__);
+
     if (!arg) {
         wifi_util_error_print(WIFI_APPS, "%s:%d NULL arg\n", __func__, __LINE__);
         return RETURN_ERR;
