@@ -754,7 +754,7 @@ int exec_event_hal_ind(wifi_app_t *apps, wifi_event_subtype_t sub_type, void *ar
             break;
 
         case wifi_event_exec_stop:
-            wifi_util_dbg_print(WIFI_APPS," %s:%d\n",__func__,__LINE__);
+            wifi_util_dbg_print(WIFI_APPS, " %s:%d\n", __func__, __LINE__);
             link_quality_hal_disconnect(apps, arg);
             break;
 
