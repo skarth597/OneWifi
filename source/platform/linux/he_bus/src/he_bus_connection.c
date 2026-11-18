@@ -16,11 +16,17 @@
   See the License for the specific language governing permissions and
   limitations under the License.
  **************************************************************************/
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "he_bus_connection.h"
 #include "he_bus_common.h"
 #include "he_bus_data_conversion.h"
 #include "he_bus_memory.h"
 #include "he_bus_utils.h"
+#include <poll.h>
+#include <stdint.h>
 
 #define CONN_VERIFY_NULL_WITH_RC(T)                                                 \
     if (NULL == (T)) {                                                              \
@@ -36,8 +42,8 @@ int save_connection_info(hash_map_t *conn_info_map, he_bus_connection_info_t *co
     char key[32] = { 0 };
 
     snprintf(key, sizeof(key), "%d", conn_info->fd);
-    hash_map_put(conn_info_map, strdup(key), conn_info);
-    return HE_BUS_RETURN_OK;
+    return hash_map_put(conn_info_map, strdup(key), conn_info) == 0 ? HE_BUS_RETURN_OK :
+        HE_BUS_RETURN_ERR;
 }
 
 int bus_server_bind_listener(char const *socket_name, he_bus_listener *pListener)
@@ -71,9 +77,12 @@ int bus_server_bind_listener(char const *socket_name, he_bus_listener *pListener
         return ret;
     }
 
-    if (chmod(socket_name, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) < 0) {
+    if (chmod(socket_name, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) < 0) {
         he_bus_conn_error_print(
             "Failed to change socket's:%s write permission for non-root listener\r\n", socket_name);
+        close(listener.fd);
+        unlink(socket_name);
+        return HE_BUS_RETURN_ERR;
     }
 
     ret = listen(listener.fd, 32);
@@ -95,7 +104,33 @@ static void bus_connection_info_init(he_bus_connection_info_t *clnt, int fd,
     memcpy(&clnt->endpoint, remote_endpoint, sizeof(struct sockaddr_un));
 }
 
-static void bus_server_register_new_client(int fd, server_listener_info_t *p_stream_info,
+static bool is_peer_authorized(int fd)
+{
+    struct ucred credentials;
+    socklen_t credentials_length = sizeof(credentials);
+
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &credentials, &credentials_length) < 0) {
+        he_bus_conn_error_print("getsockopt SO_PEERCRED failed:%d:%s\r\n", errno,
+            strerror(errno));
+        return false;
+    }
+
+    if (credentials_length != sizeof(credentials)) {
+        he_bus_conn_error_print("unexpected SO_PEERCRED length:%u\r\n",
+            (unsigned int)credentials_length);
+        return false;
+    }
+
+    if (credentials.uid != geteuid()) {
+        he_bus_conn_error_print("rejecting local bus peer uid:%u\r\n",
+            (unsigned int)credentials.uid);
+        return false;
+    }
+
+    return true;
+}
+
+static int bus_server_register_new_client(int fd, server_listener_info_t *p_stream_info,
     struct sockaddr_un *remote_endpoint)
 {
     he_bus_connection_info_t *new_client;
@@ -105,9 +140,14 @@ static void bus_server_register_new_client(int fd, server_listener_info_t *p_str
 
     bus_connection_info_init(new_client, fd, remote_endpoint);
     snprintf(new_client->identity, HE_BUS_MSG_ADDR_MAX, "%s/%d", remote_endpoint->sun_path, fd);
-    save_connection_info(p_stream_info->connected_client_info_map, new_client);
+    if (save_connection_info(p_stream_info->connected_client_info_map, new_client) !=
+        HE_BUS_RETURN_OK) {
+        close(fd);
+        return HE_BUS_RETURN_ERR;
+    }
 
     he_bus_conn_info_print("new client:%s\r\n", new_client->identity);
+    return HE_BUS_RETURN_OK;
 }
 
 static void bus_server_accept_client_connection(server_listener_info_t *p_stream_info)
@@ -127,37 +167,69 @@ static void bus_server_accept_client_connection(server_listener_info_t *p_stream
         return;
     }
 
+    if (!is_peer_authorized(fd)) {
+        close(fd);
+        return;
+    }
+
     he_bus_conn_info_print("new client:%d successfully connected with server:%d:%s\r\n", fd,
         listener->fd, remote_endpoint.sun_path);
     setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &tx_buff_size, sizeof(tx_buff_size)); // Send buffer 4K
     setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rx_buff_size, sizeof(rx_buff_size)); // Receive buffer 4K
 
-    bus_server_register_new_client(fd, p_stream_info, &p_stream_info->listener_info.local_endpoint);
-}
-
-static void set_socket_fd(fd_set *fds, int fd, int *maxFd)
-{
-
-    if (fd != SOCKET_INVALID_FD) {
-        FD_SET(fd, fds);
-        if (maxFd && fd > *maxFd) {
-            *maxFd = fd;
-        }
+    if (bus_server_register_new_client(fd, p_stream_info,
+            &p_stream_info->listener_info.local_endpoint) != HE_BUS_RETURN_OK) {
+        he_bus_conn_error_print("failed to register accepted client fd:%d\r\n", fd);
     }
 }
 
-int set_client_socket_fd(hash_map_t *client_info_map, fd_set *fds, int *maxFd)
+static struct pollfd *create_server_pollfds(server_listener_info_t *stream_info,
+    nfds_t *pollfd_count)
 {
+    size_t count = 1;
+    size_t index = 1;
     he_bus_connection_info_t *client = NULL;
+    struct pollfd *poll_fds;
 
-    if (client_info_map != NULL) {
-        client = hash_map_get_first(client_info_map);
+    if (stream_info->connected_client_info_map != NULL) {
+        client = hash_map_get_first(stream_info->connected_client_info_map);
         while (client != NULL) {
-            set_socket_fd(fds, client->fd, maxFd);
-            client = hash_map_get_next(client_info_map, client);
+            if (client->fd >= 0) {
+                if (count == SIZE_MAX) {
+                    return NULL;
+                }
+                count++;
+            }
+            client = hash_map_get_next(stream_info->connected_client_info_map, client);
         }
     }
-    return HE_BUS_RETURN_OK;
+
+    if (count > SIZE_MAX / sizeof(*poll_fds)) {
+        return NULL;
+    }
+
+    poll_fds = calloc(count, sizeof(*poll_fds));
+    if (poll_fds == NULL) {
+        return NULL;
+    }
+
+    poll_fds[0].fd = stream_info->listener_info.fd;
+    poll_fds[0].events = POLLIN;
+
+    if (stream_info->connected_client_info_map != NULL) {
+        client = hash_map_get_first(stream_info->connected_client_info_map);
+        while (client != NULL) {
+            if (client->fd >= 0) {
+                poll_fds[index].fd = client->fd;
+                poll_fds[index].events = POLLIN;
+                index++;
+            }
+            client = hash_map_get_next(stream_info->connected_client_info_map, client);
+        }
+    }
+
+    *pollfd_count = (nfds_t)index;
+    return poll_fds;
 }
 
 int socket_raw_buffer_send(int fd, he_bus_raw_data_msg_t *p_msg_data)
@@ -324,35 +396,115 @@ static int read_connected_client_data_and_send_res(he_bus_handle_t handle,
     return HE_BUS_RETURN_OK;
 }
 
-int recv_connected_clients_data(he_bus_handle_t handle, hash_map_t *client_info_map, fd_set *fds)
+static void remove_connected_client(he_bus_handle_t handle, hash_map_t *client_info_map,
+    he_bus_connection_info_t *client, bool is_broadcast)
 {
-    he_bus_connection_info_t *client = NULL;
+    char key[32] = { 0 };
+    he_bus_connection_info_t *removed_client;
 
-    if (client_info_map != NULL) {
-        client = hash_map_get_first(client_info_map);
-        while (client != NULL) {
-            if (FD_ISSET(client->fd, fds)) {
-                int err = read_connected_client_data(handle, client);
-                if (err != HE_BUS_RETURN_OK) {
-                    if (err == HE_BUS_ERROR_STREAM_CLOSED) {
-                        remove_client_all_details(handle, client->component_name);
+    if (is_broadcast) {
+        remove_client_all_details(handle, client->component_name);
+    }
 
-                        char key[32] = { 0 };
-                        snprintf(key, sizeof(key), "%d", client->fd);
-                        client = hash_map_get_next(client_info_map, client);
-                        he_bus_connection_info_t *temp_client = hash_map_remove(client_info_map,
-                            key);
-                        if (temp_client != NULL) {
-                            he_bus_free(temp_client);
-                        }
-                        continue;
-                    }
-                }
-            }
-            client = hash_map_get_next(client_info_map, client);
+    snprintf(key, sizeof(key), "%d", client->fd);
+    removed_client = hash_map_remove(client_info_map, key);
+    if (removed_client != NULL) {
+        if (removed_client->fd >= 0) {
+            close(removed_client->fd);
+        }
+        he_bus_free(removed_client);
+    }
+}
+
+static void process_connected_client_poll_events(he_bus_handle_t handle,
+    server_listener_info_t *stream_info, const struct pollfd *poll_fds, nfds_t pollfd_count,
+    bool is_broadcast)
+{
+    nfds_t index;
+
+    for (index = 1; index < pollfd_count; index++) {
+        short events = poll_fds[index].revents;
+        char key[32] = { 0 };
+        he_bus_connection_info_t *client;
+        bool remove_client = (events & (POLLERR | POLLHUP | POLLNVAL)) != 0;
+
+        if (!(events & (POLLIN | POLLERR | POLLHUP | POLLNVAL))) {
+            continue;
+        }
+
+        snprintf(key, sizeof(key), "%d", poll_fds[index].fd);
+        client = hash_map_get(stream_info->connected_client_info_map, key);
+        if (client == NULL) {
+            continue;
+        }
+
+        if (events & POLLIN) {
+            int status = is_broadcast ? read_connected_client_data(handle, client) :
+                read_connected_client_data_and_send_res(handle, client);
+            remove_client = remove_client || status == HE_BUS_ERROR_STREAM_CLOSED;
+        }
+
+        if (remove_client) {
+            remove_connected_client(handle, stream_info->connected_client_info_map, client,
+                is_broadcast);
         }
     }
+}
+
+static int poll_server_connections(he_bus_handle_t handle, server_listener_info_t *stream_info,
+    bool is_broadcast)
+{
+    int ret;
+    nfds_t pollfd_count = 0;
+    struct pollfd *poll_fds = create_server_pollfds(stream_info, &pollfd_count);
+
+    if (poll_fds == NULL) {
+        he_bus_conn_error_print("failed to allocate server poll descriptors\r\n");
+        return HE_BUS_RETURN_ERR;
+    }
+
+    ret = poll(poll_fds, pollfd_count, 10000);
+    if (ret < 0) {
+        int poll_error = errno;
+        free(poll_fds);
+        if (poll_error != EINTR) {
+            he_bus_conn_error_print("server poll failure:%d:%s\r\n", poll_error,
+                strerror(poll_error));
+            return HE_BUS_RETURN_ERR;
+        }
+        return HE_BUS_RETURN_OK;
+    }
+
+    if (ret > 0) {
+        if (poll_fds[0].revents & POLLIN) {
+            bus_server_accept_client_connection(stream_info);
+        }
+        if (poll_fds[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            he_bus_conn_error_print("server listener poll error:%d\r\n", poll_fds[0].revents);
+        }
+        process_connected_client_poll_events(handle, stream_info, poll_fds, pollfd_count,
+            is_broadcast);
+    }
+
+    free(poll_fds);
     return HE_BUS_RETURN_OK;
+}
+
+static void close_connected_client_fds(hash_map_t *client_info_map)
+{
+    he_bus_connection_info_t *client;
+
+    if (client_info_map == NULL) {
+        return;
+    }
+
+    client = hash_map_get_first(client_info_map);
+    while (client != NULL) {
+        if (client->fd >= 0) {
+            close(client->fd);
+        }
+        client = hash_map_get_next(client_info_map, client);
+    }
 }
 
 void *ipc_unix_broadcast_server_start(void *arg)
@@ -377,77 +529,14 @@ void *ipc_unix_broadcast_server_start(void *arg)
     p_stream_info->connected_client_info_map = hash_map_create();
 
     while (conn_info->server_info.is_running) {
-        int ret;
-        int max_fd;
-        fd_set read_fds;
-        fd_set err_fds;
-        struct timeval timeout;
-
-        max_fd = -1;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&err_fds);
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
-
-        set_socket_fd(&read_fds, p_stream_info->listener_info.fd, &max_fd);
-        set_socket_fd(&err_fds, p_stream_info->listener_info.fd, &max_fd);
-
-        set_client_socket_fd(p_stream_info->connected_client_info_map, &read_fds, &max_fd);
-
-        ret = select(max_fd + 1, &read_fds, NULL, &err_fds, &timeout);
-        if (ret == 0) {
-            continue;
-        }
-
-        if (ret == -1) {
-            he_bus_conn_error_print("server select failure:%d:%s\r\n", errno, strerror(errno));
-            continue;
-        }
-
-        if (FD_ISSET(p_stream_info->listener_info.fd, &read_fds)) {
-            bus_server_accept_client_connection(p_stream_info);
-        }
-
-        ret = recv_connected_clients_data(handle, p_stream_info->connected_client_info_map,
-            &read_fds);
-        if (ret != HE_BUS_RETURN_OK) {
-            continue;
-        }
+        poll_server_connections(handle, p_stream_info, true);
     }
     close(p_stream_info->listener_info.fd);
+    p_stream_info->listener_info.fd = -1;
+    close_connected_client_fds(p_stream_info->connected_client_info_map);
     hash_map_destroy(p_stream_info->connected_client_info_map);
     p_stream_info->connected_client_info_map = NULL;
     return NULL;
-}
-
-int process_recv_unicast_connected_clients_data(he_bus_handle_t handle, hash_map_t *client_info_map,
-    fd_set *fds)
-{
-    he_bus_connection_info_t *client = NULL;
-
-    if (client_info_map != NULL) {
-        client = hash_map_get_first(client_info_map);
-        while (client != NULL) {
-            if (FD_ISSET(client->fd, fds)) {
-                int err = read_connected_client_data_and_send_res(handle, client);
-                if (err != HE_BUS_RETURN_OK) {
-                    if (err == HE_BUS_ERROR_STREAM_CLOSED) {
-                        char key[32] = { 0 };
-                        snprintf(key, sizeof(key), "%d", client->fd);
-                        client = hash_map_get_next(client_info_map, client);
-                        he_bus_connection_info_t *temp_client = hash_map_remove(client_info_map,
-                            key);
-                        if (temp_client != NULL) {
-                            he_bus_free(temp_client);
-                        }
-                        continue;
-                    }
-                }
-            }
-            client = hash_map_get_next(client_info_map, client);
-        }
-    }
-    return HE_BUS_RETURN_OK;
 }
 
 void *ipc_unix_unicast_server_start(void *arg)
@@ -472,44 +561,11 @@ void *ipc_unix_unicast_server_start(void *arg)
     p_stream_info->connected_client_info_map = hash_map_create();
 
     while (conn_info->server_info.is_running) {
-        int ret;
-        int max_fd;
-        fd_set read_fds;
-        fd_set err_fds;
-        struct timeval timeout;
-
-        max_fd = -1;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&err_fds);
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
-
-        set_socket_fd(&read_fds, p_stream_info->listener_info.fd, &max_fd);
-        set_socket_fd(&err_fds, p_stream_info->listener_info.fd, &max_fd);
-
-        set_client_socket_fd(p_stream_info->connected_client_info_map, &read_fds, &max_fd);
-
-        ret = select(max_fd + 1, &read_fds, NULL, &err_fds, &timeout);
-        if (ret == 0) {
-            continue;
-        }
-
-        if (ret == -1) {
-            he_bus_conn_error_print("server select failure:%d:%s\r\n", errno, strerror(errno));
-            continue;
-        }
-
-        if (FD_ISSET(p_stream_info->listener_info.fd, &read_fds)) {
-            bus_server_accept_client_connection(p_stream_info);
-        }
-
-        ret = process_recv_unicast_connected_clients_data(handle,
-            p_stream_info->connected_client_info_map, &read_fds);
-        if (ret != HE_BUS_RETURN_OK) {
-            continue;
-        }
+        poll_server_connections(handle, p_stream_info, false);
     }
     close(p_stream_info->listener_info.fd);
+    p_stream_info->listener_info.fd = -1;
+    close_connected_client_fds(p_stream_info->connected_client_info_map);
     hash_map_destroy(p_stream_info->connected_client_info_map);
     p_stream_info->connected_client_info_map = NULL;
     return NULL;
@@ -602,32 +658,29 @@ void *ipc_unix_broadcast_client_start(void *arg)
     send_bus_initial_msg_info(p_client_info->conn_info.fd, handle->component_name);
 
     while (p_client_info->is_running) {
-        int ret;
-        int max_fd;
-        fd_set read_fds;
-        fd_set err_fds;
-        struct timeval timeout;
+        struct pollfd client_poll_fd = {
+            .fd = p_client_info->conn_info.fd,
+            .events = POLLIN,
+        };
 
-        max_fd = -1;
-        FD_ZERO(&read_fds);
-        FD_ZERO(&err_fds);
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
-
-        set_socket_fd(&read_fds, p_client_info->conn_info.fd, &max_fd);
-        set_socket_fd(&err_fds, p_client_info->conn_info.fd, &max_fd);
-
-        ret = select(max_fd + 1, &read_fds, NULL, &err_fds, &timeout);
+        int ret = poll(&client_poll_fd, 1, 10000);
         if (ret == 0) {
             continue;
         } else if (ret == -1) {
-            he_bus_conn_error_print("client select failure:%d:%s\r\n", errno, strerror(errno));
+            if (errno != EINTR) {
+                he_bus_conn_error_print("client poll failure:%d:%s\r\n", errno, strerror(errno));
+            }
             continue;
         }
 
-        if (FD_ISSET(p_client_info->conn_info.fd, &read_fds)) {
-            ret = recv_server_data(handle, &p_client_info->conn_info);
-            if (ret == HE_BUS_ERROR_STREAM_CLOSED) {
+        if (client_poll_fd.revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) {
+            ret = (client_poll_fd.revents & POLLIN) ?
+                recv_server_data(handle, &p_client_info->conn_info) : HE_BUS_ERROR_STREAM_CLOSED;
+            if (ret == HE_BUS_ERROR_STREAM_CLOSED ||
+                (client_poll_fd.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+                if (p_client_info->conn_info.fd >= 0) {
+                    close(p_client_info->conn_info.fd);
+                }
                 p_client_info->conn_info.fd = -1;
                 sleep(20); //@TODO TBD Do we need to trigger retry for server connection ?
                 if (bus_client_bind(SOCKET_BROADCAST_SERVER_NAME, &p_client_info->conn_info) !=
@@ -641,7 +694,9 @@ void *ipc_unix_broadcast_client_start(void *arg)
             }
         }
     }
-    close(p_client_info->conn_info.fd);
+    if (p_client_info->conn_info.fd >= 0) {
+        close(p_client_info->conn_info.fd);
+    }
     return NULL;
 }
 
