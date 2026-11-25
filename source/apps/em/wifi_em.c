@@ -47,16 +47,16 @@
     18 // MAC address string length (xx:xx:xx:xx:xx:xx = 17 chars + null terminator)
 
 static bool is_monitor_done = false;
+static pthread_mutex_t monitor_done_lock = PTHREAD_MUTEX_INITIALIZER;
 static bool g_btm_pending_valid = false;
 static em_btm_req_ctrl_msg_t g_pending_btm;
 
 static bool wifi_em_refresh_tx_power(UINT tx_power[MAX_NUM_RADIOS], unsigned int *num_radios)
 {
-    wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     unsigned int radio_count = getNumberRadios();
 
-    if (wifi_mgr == NULL || tx_power == NULL || num_radios == NULL) {
-        wifi_util_error_print(WIFI_EM, "%s:%d: Wi-Fi manager unavailable\n", __func__, __LINE__);
+    if (tx_power == NULL || num_radios == NULL) {
+        wifi_util_error_print(WIFI_EM, "%s:%d: invalid arguments\n", __func__, __LINE__);
         return false;
     }
     if (radio_count == 0 || radio_count > MAX_NUM_RADIOS) {
@@ -88,12 +88,6 @@ static bool wifi_em_refresh_tx_power(UINT tx_power[MAX_NUM_RADIOS], unsigned int
         wifi_util_info_print(WIFI_EM, "%s:%d: radio_index=%u curr_txpower=%lu\n", __func__,
             __LINE__, i, curr_txpower);
     }
-
-    pthread_mutex_lock(&wifi_mgr->data_cache_lock);
-    for (unsigned int i = 0; i < radio_count; i++) {
-        wifi_mgr->radio_config[i].oper.transmitPower = tx_power[i];
-    }
-    pthread_mutex_unlock(&wifi_mgr->data_cache_lock);
 
     *num_radios = radio_count;
     return true;
@@ -3217,13 +3211,20 @@ static int em_toggle_disconn_steady_state(void *data, unsigned int len)
 
 void handle_em_command_event(wifi_app_t *app, wifi_event_t *event)
 {
+    bool monitor_done;
+
     switch (event->sub_type) {
     case wifi_event_type_notify_monitor_done:
-        is_monitor_done = TRUE;
+        pthread_mutex_lock(&monitor_done_lock);
+        is_monitor_done = true;
+        pthread_mutex_unlock(&monitor_done_lock);
         break;
 
     case wifi_event_type_start_channel_scan:
-        if (is_monitor_done) {
+        pthread_mutex_lock(&monitor_done_lock);
+        monitor_done = is_monitor_done;
+        pthread_mutex_unlock(&monitor_done_lock);
+        if (monitor_done) {
             em_config_channel_scan(event->u.core_data.msg, event->u.core_data.len);
         }
         break;
@@ -3503,6 +3504,25 @@ bus_error_t start_channel_scan(char *name, raw_data_t *p_data, bus_user_data_t *
     push_event_to_ctrl_queue((char *)pTmp, len, wifi_event_type_command,
         wifi_event_type_start_channel_scan, NULL);
 
+    return bus_error_success;
+}
+
+bus_error_t get_monitor_done(char *event_name, raw_data_t *p_data, bus_user_data_t *user_data)
+{
+    bool monitor_done;
+
+    (void)event_name;
+    (void)user_data;
+
+    if (p_data == NULL) {
+        return bus_error_invalid_input;
+    }
+    p_data->data_type = bus_data_type_boolean;
+    pthread_mutex_lock(&monitor_done_lock);
+    monitor_done = is_monitor_done;
+    pthread_mutex_unlock(&monitor_done_lock);
+    p_data->raw_data.b = monitor_done;
+    p_data->raw_data_len = sizeof(p_data->raw_data.b);
     return bus_error_success;
 }
 
@@ -4209,56 +4229,27 @@ static int em_send_action_frame(void *data)
     UCHAR out_dialog = rand() % 256;
     wifi_mgr_t *wifi_mgr = get_wifimgr_obj();
     wifi_platform_property_t *wifi_prop = &wifi_mgr->hal_cap.wifi_prop;
-    unsigned int num_of_radios = getNumberRadios();
-    wifi_vap_info_map_t *vap_map;
 
     beacon_query_params_t *query = (beacon_query_params_t *)data;
     wifi_BeaconRequest_t *params = &query->data;
-    int ap_index = RETURN_ERR;
+    int ap_index;
 
-    for (unsigned int i = 0; i < num_of_radios; i++) {
-        vap_map = (wifi_vap_info_map_t *)get_wifidb_vap_map(i);
-        if (vap_map == NULL) {
-            continue;
-        }
-
-        for (unsigned int j = 0; j < vap_map->num_vaps; j++) {
-            if (memcmp(params->bssid, vap_map->vap_array[j].u.bss_info.bssid, sizeof(mac_addr_t)) ==
-                0) {
-                ap_index = vap_map->vap_array[j].vap_index;
-                break;
-            }
-            /* The queried bssid may be the AP MLD address (used for the assoc
-             * exchange itself) rather than any single link's own bssid; resolve
-             * it to one of that MLD's links so the HAL can still be reached and
-             * map the request out to all of the STA's established links. */
-            if (memcmp(params->bssid,
-                    vap_map->vap_array[j].u.bss_info.mld_info.common_info.mld_addr,
-                    sizeof(mac_addr_t)) == 0) {
-                ap_index = vap_map->vap_array[j].vap_index;
-                break;
-            }
-        }
-
-        if (ap_index != RETURN_ERR) {
-            break;
-        }
-    }
+    /* The request goes out on the BSS the STA is associated to (its association
+     * link for an MLD); params->bssid is the BSS the STA is asked to measure and
+     * is passed to the HAL as-is. */
+    ap_index = get_ap_index_from_clientmac(query->sta_mac);
 
     to_mac_str((unsigned char *)query->sta_mac, client_mac);
     to_mac_str((unsigned char *)params->bssid, bssid_str);
     wifi_util_dbg_print(WIFI_EM,
         "%s:%d: Sending beacon query action frame for mac %s with ap_index %d bssid:%s\n", __func__,
         __LINE__, client_mac, ap_index, bssid_str);
-    if (ap_index == RETURN_ERR) {
-        wifi_util_error_print(WIFI_EM, "%s:%d Failed to resolve ap_index for bssid:%s\n", __func__,
-            __LINE__, bssid_str);
+    if (ap_index < 0) {
+        wifi_util_error_print(WIFI_EM, "%s:%d STA %s is not associated to any BSS\n", __func__,
+            __LINE__, client_mac);
         return RETURN_ERR;
     }
 
-    /* The queried bssid (whether the AP MLD address or one of its per-link
-     * addresses) is passed to the HAL as-is; the HAL decides whether it
-     * identifies the STA's whole MLD and fans the request out accordingly. */
     unsigned int radio_index = get_radio_index_for_vap_index(wifi_prop, ap_index);
     wifi_radio_operationParam_t *radio_oper_param =
         (wifi_radio_operationParam_t *)get_wifidb_radio_map(radio_index);
@@ -4312,8 +4303,6 @@ static int em_send_action_frame(void *data)
         params->opClass = global_op_class;
         params->channel = radio_oper_param->channel;
     }
-
-    params->duration = 200;
 
     /* channel=255 requires a Channel Report subelement listing primary channels.
      * If one is present (now containing correct 20 MHz primary channels), use it
@@ -4427,7 +4416,9 @@ int em_init(wifi_app_t *app, unsigned int create_flag)
 
     bus_data_element_t dataElements[] = {
         { WIFI_EM_GET_TX_POWER,             bus_element_type_property, { get_tx_power, NULL, NULL, NULL, NULL, NULL },       slow_speed,
-         ZERO_TABLE,                                                                                                                                 { bus_data_type_bytes, false, 0, 0, 0, NULL }  },
+         ZERO_TABLE,                                                                                                                                 { bus_data_type_bytes, false, 0, 0, 0, NULL }   },
+        { WIFI_EM_MONITOR_DONE,             bus_element_type_property, { get_monitor_done, NULL, NULL, NULL, NULL, NULL },
+         slow_speed,                                                                                                                     ZERO_TABLE, { bus_data_type_boolean, false, 0, 0, 0, NULL } },
         { WIFI_EM_CHANNEL_SCAN_REQUEST,     bus_element_type_method,   { NULL, start_channel_scan, NULL, NULL, NULL, NULL },
          slow_speed,                                                                                                                     ZERO_TABLE, { bus_data_type_bytes, true, 0, 0, 0, NULL }   },
         { WIFI_SET_DISCONN_STEADY_STATE,    bus_element_type_method,
